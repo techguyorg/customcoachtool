@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Trash2, Beef, Wheat, Droplet, Flame, ArrowLeftRight } from "lucide-react";
+import { Plus, Trash2, Beef, Wheat, Droplet, Flame } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/select";
 import { FoodSearchCombobox } from "./FoodSearchCombobox";
 import { FoodAlternativesPopover, FoodAlternative } from "./FoodAlternatives";
+import { CustomFoodDialog } from "./CustomFoodDialog";
 import { Food, calculateNutrition } from "@/hooks/useFoods";
 
 export interface MealFoodItem {
@@ -63,13 +64,14 @@ export function MealFoodBuilder({
   const [quantity, setQuantity] = useState<number>(100);
   const [unit, setUnit] = useState<string>("g");
 
-  const addFood = () => {
-    if (!selectedFood) return;
+  const addFood = (foodToAdd?: Food) => {
+    const food = foodToAdd || selectedFood;
+    if (!food) return;
 
-    const nutrition = calculateNutrition(selectedFood, quantity, unit);
+    const nutrition = calculateNutrition(food, quantity, unit);
     const newItem: MealFoodItem = {
       id: crypto.randomUUID(),
-      food: selectedFood,
+      food: food,
       quantity,
       unit,
       nutrition,
@@ -79,6 +81,10 @@ export function MealFoodBuilder({
     setSelectedFood(null);
     setQuantity(100);
     setUnit("g");
+  };
+
+  const handleCustomFoodCreated = (food: Food) => {
+    addFood(food);
   };
 
   const removeItem = (id: string) => {
@@ -161,36 +167,50 @@ export function MealFoodBuilder({
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Add Food Section */}
-        <div className="flex gap-2">
-          <div className="flex-1">
-            <FoodSearchCombobox
-              value={selectedFood}
-              onSelect={setSelectedFood}
-              placeholder="Search to add food..."
+        <div className="flex flex-col gap-2">
+          <div className="flex gap-2">
+            <div className="flex-1">
+              <FoodSearchCombobox
+                value={selectedFood}
+                onSelect={setSelectedFood}
+                placeholder="Search to add food..."
+              />
+            </div>
+            <Input
+              type="number"
+              value={quantity}
+              onChange={(e) => setQuantity(Number(e.target.value) || 0)}
+              className="w-20"
+              min={1}
+            />
+            <Select value={unit} onValueChange={setUnit}>
+              <SelectTrigger className="w-28">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {UNITS.map((u) => (
+                  <SelectItem key={u.value} value={u.value}>
+                    {u.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button onClick={() => addFood()} disabled={!selectedFood} size="icon">
+              <Plus className="h-4 w-4" />
+            </Button>
+          </div>
+          {/* Custom Food Option */}
+          <div className="flex justify-end">
+            <CustomFoodDialog 
+              onFoodCreated={handleCustomFoodCreated}
+              trigger={
+                <Button variant="ghost" size="sm" className="text-xs text-muted-foreground">
+                  <Plus className="h-3 w-3 mr-1" />
+                  Can't find it? Add custom food
+                </Button>
+              }
             />
           </div>
-          <Input
-            type="number"
-            value={quantity}
-            onChange={(e) => setQuantity(Number(e.target.value) || 0)}
-            className="w-20"
-            min={1}
-          />
-          <Select value={unit} onValueChange={setUnit}>
-            <SelectTrigger className="w-28">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {UNITS.map((u) => (
-                <SelectItem key={u.value} value={u.value}>
-                  {u.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Button onClick={addFood} disabled={!selectedFood} size="icon">
-            <Plus className="h-4 w-4" />
-          </Button>
         </div>
 
         {/* Food Items List */}

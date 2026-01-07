@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { useDietPlans, useDeleteDietPlan, DietPlan } from "@/hooks/useDietPlans";
 import { CreateDietPlanDialog } from "@/components/diet/CreateDietPlanDialog";
 import { DietPlanDetailSheet } from "@/components/diet/DietPlanDetailSheet";
+import { FavoriteButton } from "@/components/favorites/FavoriteButton";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -206,22 +207,25 @@ function DietPlanCard({
     <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={onView}>
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
-          <div className="space-y-1">
+          <div className="space-y-1 flex-1">
             <CardTitle className="text-lg">{plan.name}</CardTitle>
             {plan.description && (
               <CardDescription className="line-clamp-2">{plan.description}</CardDescription>
             )}
           </div>
-          {!isSystem && (
-            <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
-              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onEdit}>
-                <Edit className="h-4 w-4" />
-              </Button>
-              <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={onDelete}>
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </div>
-          )}
+          <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+            <FavoriteButton itemType="diet_plan" itemId={plan.id} size="sm" />
+            {!isSystem && (
+              <>
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onEdit}>
+                  <Edit className="h-4 w-4" />
+                </Button>
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={onDelete}>
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </>
+            )}
+          </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
