@@ -1,4 +1,5 @@
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Link, useLocation } from "react-router-dom";
+import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { 
@@ -13,15 +14,20 @@ import {
   Menu,
   X,
   Dumbbell,
-  Library
+  Library,
+  TrendingUp,
+  UserCheck,
+  Clock,
+  Target
 } from "lucide-react";
-import { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
 import ExercisesPage from "@/pages/shared/ExercisesPage";
 import WorkoutTemplatesPage from "@/pages/shared/WorkoutTemplatesPage";
 import ClientsPage from "@/pages/coach/ClientsPage";
 import CoachCheckinsPage from "@/pages/coach/CheckinsPage";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
+import { useCoachClients, useClientStats } from "@/hooks/useCoachClients";
+import { useCoachCheckins } from "@/hooks/useCheckins";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const sidebarItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/coach" },
@@ -143,6 +149,12 @@ function CoachDashboard() {
 
 function CoachHome() {
   const { user } = useAuth();
+  const { data: clients, isLoading: loadingClients } = useCoachClients();
+  const stats = useClientStats();
+  const { data: checkins, isLoading: loadingCheckins } = useCoachCheckins();
+
+  const pendingCheckins = checkins?.filter(c => c.status === 'submitted') || [];
+  const recentClients = clients?.slice(0, 5) || [];
   
   return (
     <div className="space-y-6">
@@ -153,47 +165,229 @@ function CoachHome() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {[
-          { label: "Active Clients", value: "0", icon: Users },
-          { label: "Pending Check-ins", value: "0", icon: CalendarCheck },
-          { label: "Unread Messages", value: "0", icon: MessageSquare },
-          { label: "Programs Created", value: "0", icon: ClipboardList },
-        ].map((stat, i) => (
-          <div key={i} className="bg-card border border-border rounded-xl p-6">
-            <div className="flex items-center justify-between">
-              <p className="text-sm text-muted-foreground">{stat.label}</p>
-              <stat.icon className="w-5 h-5 text-muted-foreground" />
-            </div>
-            <p className="text-3xl font-bold mt-2">{stat.value}</p>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-card border border-border rounded-xl p-6">
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">Total Clients</p>
+            <Users className="w-5 h-5 text-muted-foreground" />
           </div>
-        ))}
+          {loadingClients ? (
+            <Skeleton className="h-9 w-16 mt-2" />
+          ) : (
+            <p className="text-3xl font-bold mt-2">{stats.total}</p>
+          )}
+        </div>
+        
+        <div className="bg-card border border-border rounded-xl p-6">
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">Active Clients</p>
+            <UserCheck className="w-5 h-5 text-success" />
+          </div>
+          {loadingClients ? (
+            <Skeleton className="h-9 w-16 mt-2" />
+          ) : (
+            <p className="text-3xl font-bold mt-2 text-success">{stats.active}</p>
+          )}
+        </div>
+        
+        <div className="bg-card border border-border rounded-xl p-6">
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">Pending Check-ins</p>
+            <CalendarCheck className="w-5 h-5 text-warning" />
+          </div>
+          {loadingCheckins ? (
+            <Skeleton className="h-9 w-16 mt-2" />
+          ) : (
+            <p className="text-3xl font-bold mt-2 text-warning">{pendingCheckins.length}</p>
+          )}
+        </div>
+        
+        <div className="bg-card border border-border rounded-xl p-6">
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">Pending Invites</p>
+            <Clock className="w-5 h-5 text-muted-foreground" />
+          </div>
+          {loadingClients ? (
+            <Skeleton className="h-9 w-16 mt-2" />
+          ) : (
+            <p className="text-3xl font-bold mt-2">{stats.pending}</p>
+          )}
+        </div>
       </div>
 
-      {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {/* Analytics Overview */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Client Distribution */}
         <div className="bg-card border border-border rounded-xl p-6">
-          <h3 className="font-semibold mb-4">Quick Actions</h3>
-          <div className="space-y-3">
-            <Button variant="outline" className="w-full justify-start">
-              <Users className="w-4 h-4 mr-2" />
-              Add New Client
-            </Button>
-            <Button variant="outline" className="w-full justify-start">
-              <ClipboardList className="w-4 h-4 mr-2" />
-              Create Program
-            </Button>
-            <Button variant="outline" className="w-full justify-start">
-              <CalendarCheck className="w-4 h-4 mr-2" />
-              Review Check-ins
-            </Button>
+          <h3 className="font-semibold mb-4 flex items-center gap-2">
+            <BarChart3 className="w-5 h-5 text-primary" />
+            Client Status
+          </h3>
+          <div className="space-y-4">
+            <div>
+              <div className="flex justify-between text-sm mb-1">
+                <span className="text-muted-foreground">Active</span>
+                <span className="font-medium text-success">{stats.active}</span>
+              </div>
+              <div className="h-2 bg-muted rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-success transition-all" 
+                  style={{ width: stats.total ? `${(stats.active / stats.total) * 100}%` : '0%' }}
+                />
+              </div>
+            </div>
+            <div>
+              <div className="flex justify-between text-sm mb-1">
+                <span className="text-muted-foreground">Pending</span>
+                <span className="font-medium text-warning">{stats.pending}</span>
+              </div>
+              <div className="h-2 bg-muted rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-warning transition-all" 
+                  style={{ width: stats.total ? `${(stats.pending / stats.total) * 100}%` : '0%' }}
+                />
+              </div>
+            </div>
+            <div>
+              <div className="flex justify-between text-sm mb-1">
+                <span className="text-muted-foreground">Paused</span>
+                <span className="font-medium">{stats.paused}</span>
+              </div>
+              <div className="h-2 bg-muted rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-muted-foreground transition-all" 
+                  style={{ width: stats.total ? `${(stats.paused / stats.total) * 100}%` : '0%' }}
+                />
+              </div>
+            </div>
           </div>
         </div>
 
+        {/* Pending Check-ins */}
         <div className="bg-card border border-border rounded-xl p-6">
-          <h3 className="font-semibold mb-4">Recent Activity</h3>
-          <p className="text-muted-foreground text-sm">No recent activity yet. Start by adding your first client!</p>
+          <h3 className="font-semibold mb-4 flex items-center gap-2">
+            <CalendarCheck className="w-5 h-5 text-primary" />
+            Pending Check-ins
+          </h3>
+          {loadingCheckins ? (
+            <div className="space-y-3">
+              {[...Array(3)].map((_, i) => (
+                <Skeleton key={i} className="h-12 w-full" />
+              ))}
+            </div>
+          ) : pendingCheckins.length > 0 ? (
+            <div className="space-y-3">
+              {pendingCheckins.slice(0, 4).map((checkin) => (
+                <div key={checkin.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors">
+                  <div className="w-8 h-8 rounded-full bg-warning/20 flex items-center justify-center">
+                    <Clock className="w-4 h-4 text-warning" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm truncate">Check-in #{checkin.id.slice(0, 8)}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {new Date(checkin.checkin_date).toLocaleDateString()}
+                    </p>
+                  </div>
+                </div>
+              ))}
+              {pendingCheckins.length > 4 && (
+                <Link to="/coach/checkins" className="text-sm text-primary hover:underline block text-center">
+                  View all {pendingCheckins.length} pending
+                </Link>
+              )}
+            </div>
+          ) : (
+            <div className="text-center py-6">
+              <CalendarCheck className="w-10 h-10 text-muted-foreground mx-auto mb-2" />
+              <p className="text-muted-foreground text-sm">No pending check-ins</p>
+            </div>
+          )}
         </div>
+
+        {/* Quick Actions */}
+        <div className="bg-card border border-border rounded-xl p-6">
+          <h3 className="font-semibold mb-4 flex items-center gap-2">
+            <Target className="w-5 h-5 text-primary" />
+            Quick Actions
+          </h3>
+          <div className="space-y-3">
+            <Link to="/coach/clients">
+              <Button variant="outline" className="w-full justify-start">
+                <Users className="w-4 h-4 mr-2" />
+                Manage Clients
+              </Button>
+            </Link>
+            <Link to="/coach/programs">
+              <Button variant="outline" className="w-full justify-start">
+                <ClipboardList className="w-4 h-4 mr-2" />
+                Browse Programs
+              </Button>
+            </Link>
+            <Link to="/coach/checkins">
+              <Button variant="outline" className="w-full justify-start">
+                <CalendarCheck className="w-4 h-4 mr-2" />
+                Review Check-ins
+              </Button>
+            </Link>
+            <Link to="/coach/exercises">
+              <Button variant="outline" className="w-full justify-start">
+                <Dumbbell className="w-4 h-4 mr-2" />
+                Exercise Library
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </div>
+
+      {/* Recent Clients */}
+      <div className="bg-card border border-border rounded-xl p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-semibold flex items-center gap-2">
+            <TrendingUp className="w-5 h-5 text-primary" />
+            Recent Clients
+          </h3>
+          <Link to="/coach/clients" className="text-sm text-primary hover:underline">
+            View all
+          </Link>
+        </div>
+        {loadingClients ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[...Array(3)].map((_, i) => (
+              <Skeleton key={i} className="h-20 w-full" />
+            ))}
+          </div>
+        ) : recentClients.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {recentClients.map((client) => (
+              <div key={client.id} className="flex items-center gap-3 p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors">
+                <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+                  <span className="text-primary font-semibold">
+                    {client.profile?.full_name?.charAt(0) || '?'}
+                  </span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium truncate">{client.profile?.full_name || 'Unknown'}</p>
+                  <p className="text-xs text-muted-foreground truncate">{client.profile?.email}</p>
+                </div>
+                <div className={`w-2 h-2 rounded-full ${
+                  client.status === 'active' ? 'bg-success' : 
+                  client.status === 'pending' ? 'bg-warning' : 'bg-muted-foreground'
+                }`} />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-8">
+            <Users className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
+            <p className="text-muted-foreground">No clients yet. Start by inviting your first client!</p>
+            <Link to="/coach/clients">
+              <Button className="mt-4">
+                <Users className="w-4 h-4 mr-2" />
+                Add Client
+              </Button>
+            </Link>
+          </div>
+        )}
       </div>
     </div>
   );
