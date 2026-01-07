@@ -20,6 +20,7 @@ import { Link, useLocation } from "react-router-dom";
 import ExercisesPage from "@/pages/shared/ExercisesPage";
 import WorkoutTemplatesPage from "@/pages/shared/WorkoutTemplatesPage";
 import ClientsPage from "@/pages/coach/ClientsPage";
+import CoachCheckinsPage from "@/pages/coach/CheckinsPage";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 
 const sidebarItems = [
@@ -129,7 +130,7 @@ function CoachDashboard() {
             <Route path="clients" element={<ClientsPage />} />
             <Route path="programs" element={<WorkoutTemplatesPage />} />
             <Route path="exercises" element={<ExercisesPage />} />
-            <Route path="checkins" element={<div className="text-muted-foreground">Check-ins coming soon...</div>} />
+            <Route path="checkins" element={<CoachCheckinsPage />} />
             <Route path="messages" element={<div className="text-muted-foreground">Messages coming soon...</div>} />
             <Route path="analytics" element={<div className="text-muted-foreground">Analytics coming soon...</div>} />
             <Route path="settings" element={<div className="text-muted-foreground">Settings coming soon...</div>} />
