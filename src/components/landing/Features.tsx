@@ -1,78 +1,87 @@
 import { 
-  Users, 
+  TrendingUp, 
   Dumbbell, 
   Apple, 
   ClipboardCheck, 
   BarChart3, 
-  Calendar,
-  MessageSquare,
-  Shield,
-  Zap
+  Users,
+  Target,
+  Camera,
+  Search
 } from "lucide-react";
 
 const features = [
   {
-    icon: Users,
-    title: "Client Management",
-    description: "Manage unlimited clients with detailed profiles, progress tracking, and communication tools.",
+    icon: Dumbbell,
+    title: "Exercise Library",
+    description: "Access 1000+ exercises with video demonstrations. Search, filter, and learn proper form.",
     color: "text-primary",
     bgColor: "bg-primary/10",
+    forWho: "Everyone",
   },
   {
-    icon: Dumbbell,
-    title: "Workout Builder",
-    description: "Create custom workout plans from our 1000+ exercise database with video demonstrations.",
+    icon: TrendingUp,
+    title: "Progress Tracking",
+    description: "Log workouts, track weight, measurements, and see your progress visualized over time.",
     color: "text-info",
     bgColor: "bg-info/10",
+    forWho: "Everyone",
   },
   {
     icon: Apple,
-    title: "Nutrition Planning",
-    description: "Design personalized meal plans with macro tracking and our comprehensive food database.",
+    title: "Nutrition Plans",
+    description: "Browse meal plans, track macros, and access our comprehensive food database.",
     color: "text-success",
     bgColor: "bg-success/10",
+    forWho: "Everyone",
+  },
+  {
+    icon: Search,
+    title: "Discover Plans",
+    description: "Explore free workout and diet plans created by the community and certified coaches.",
+    color: "text-accent",
+    bgColor: "bg-accent/10",
+    forWho: "Everyone",
+  },
+  {
+    icon: Target,
+    title: "Goal Setting",
+    description: "Set fitness goals, track milestones, and celebrate achievements along your journey.",
+    color: "text-warning",
+    bgColor: "bg-warning/10",
+    forWho: "Everyone",
+  },
+  {
+    icon: Camera,
+    title: "Progress Photos",
+    description: "Document your transformation with secure progress photo uploads and comparisons.",
+    color: "text-primary",
+    bgColor: "bg-primary/10",
+    forWho: "Everyone",
+  },
+  {
+    icon: Users,
+    title: "Client Management",
+    description: "Coaches: Manage unlimited clients with detailed profiles and progress tracking.",
+    color: "text-info",
+    bgColor: "bg-info/10",
+    forWho: "Coaches",
   },
   {
     icon: ClipboardCheck,
-    title: "Check-in System",
-    description: "Automated check-ins with progress photos, measurements, and wellness questionnaires.",
-    color: "text-accent",
-    bgColor: "bg-accent/10",
+    title: "Smart Check-ins",
+    description: "Automated client check-ins with progress photos, measurements, and wellness questionnaires.",
+    color: "text-success",
+    bgColor: "bg-success/10",
+    forWho: "Coaches & Clients",
   },
   {
     icon: BarChart3,
-    title: "Advanced Analytics",
-    description: "Track adherence, progress metrics, and client engagement with beautiful dashboards.",
-    color: "text-warning",
-    bgColor: "bg-warning/10",
-  },
-  {
-    icon: Calendar,
-    title: "Smart Scheduling",
-    description: "Integrated calendar for sessions, automated reminders, and timezone-aware scheduling.",
-    color: "text-primary",
-    bgColor: "bg-primary/10",
-  },
-  {
-    icon: MessageSquare,
-    title: "In-App Messaging",
-    description: "Real-time chat with clients, file sharing, and voice notes for seamless communication.",
-    color: "text-info",
-    bgColor: "bg-info/10",
-  },
-  {
-    icon: Shield,
-    title: "Role-Based Access",
-    description: "Multi-level permissions for admins, coaches, and clients with secure data handling.",
-    color: "text-success",
-    bgColor: "bg-success/10",
-  },
-  {
-    icon: Zap,
-    title: "Automation Tools",
-    description: "Automate repetitive tasks, schedule reminders, and streamline your coaching workflow.",
+    title: "Business Analytics",
+    description: "Track client adherence, retention, revenue, and grow your coaching business.",
     color: "text-accent",
     bgColor: "bg-accent/10",
+    forWho: "Coaches",
   },
 ];
 
@@ -85,12 +94,12 @@ const Features = () => {
       <div className="container px-4">
         <div className="text-center max-w-3xl mx-auto mb-16">
           <h2 className="text-4xl md:text-5xl font-bold mb-6">
-            Everything You Need to{" "}
-            <span className="text-gradient-primary">Scale Your Coaching</span>
+            Built for{" "}
+            <span className="text-gradient-primary">Your Fitness Journey</span>
           </h2>
           <p className="text-xl text-muted-foreground">
-            Powerful features designed by coaches, for coaches. 
-            Manage your entire business from one intuitive platform.
+            Whether you're tracking solo, training with a coach, or running a coaching business — 
+            we've got the tools you need.
           </p>
         </div>
 
@@ -100,6 +109,19 @@ const Features = () => {
               key={index}
               className="group relative p-6 rounded-2xl bg-card border border-border/50 hover:border-primary/30 transition-all duration-300 hover:shadow-lg hover:shadow-primary/5"
             >
+              {/* For Who Badge */}
+              <div className="absolute top-4 right-4">
+                <span className={`text-xs px-2 py-1 rounded-full ${
+                  feature.forWho === "Everyone" 
+                    ? "bg-primary/10 text-primary" 
+                    : feature.forWho === "Coaches"
+                    ? "bg-info/10 text-info"
+                    : "bg-success/10 text-success"
+                }`}>
+                  {feature.forWho}
+                </span>
+              </div>
+
               {/* Icon */}
               <div className={`inline-flex p-3 rounded-xl ${feature.bgColor} mb-4`}>
                 <feature.icon className={`w-6 h-6 ${feature.color}`} />

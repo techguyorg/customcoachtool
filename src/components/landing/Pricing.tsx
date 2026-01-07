@@ -4,51 +4,49 @@ import { Link } from "react-router-dom";
 
 const plans = [
   {
-    name: "Starter",
-    description: "Perfect for new coaches getting started",
-    price: 29,
+    name: "Free",
+    description: "For fitness enthusiasts tracking their journey",
+    price: 0,
     features: [
-      "Up to 10 clients",
-      "Workout builder",
-      "Basic nutrition planning",
-      "Client messaging",
-      "Progress tracking",
-      "Email support",
+      "Workout logging & history",
+      "Progress tracking & stats",
+      "Exercise library access",
+      "Browse free workout plans",
+      "Browse free nutrition plans",
+      "Basic goal setting",
     ],
-    cta: "Start Free Trial",
+    cta: "Get Started Free",
     popular: false,
   },
   {
-    name: "Professional",
-    description: "For growing coaching businesses",
-    price: 79,
+    name: "Pro",
+    description: "For serious athletes and coached clients",
+    price: 9,
     features: [
-      "Up to 50 clients",
-      "Everything in Starter",
+      "Everything in Free",
+      "Unlimited progress photos",
       "Advanced analytics",
-      "Check-in automation",
-      "Custom branding",
-      "API access",
+      "Coach integration",
+      "Custom plan creation",
       "Priority support",
     ],
     cta: "Start Free Trial",
     popular: true,
   },
   {
-    name: "Enterprise",
-    description: "For large teams and gyms",
-    price: 199,
+    name: "Coach",
+    description: "For fitness professionals",
+    price: 49,
     features: [
-      "Unlimited clients",
-      "Everything in Professional",
-      "Multi-coach support",
-      "Admin dashboard",
+      "Everything in Pro",
+      "Manage unlimited clients",
+      "Create & assign plans",
+      "Automated check-ins",
+      "Business analytics",
       "White-label options",
-      "Dedicated success manager",
-      "Custom integrations",
-      "SLA guarantee",
+      "Dedicated support",
     ],
-    cta: "Contact Sales",
+    cta: "Start Free Trial",
     popular: false,
   },
 ];
@@ -59,12 +57,12 @@ const Pricing = () => {
       <div className="container px-4">
         <div className="text-center max-w-3xl mx-auto mb-16">
           <h2 className="text-4xl md:text-5xl font-bold mb-6">
-            Simple, Transparent{" "}
-            <span className="text-gradient-primary">Pricing</span>
+            Plans for{" "}
+            <span className="text-gradient-primary">Everyone</span>
           </h2>
           <p className="text-xl text-muted-foreground">
-            Choose the plan that fits your business. 
-            All plans include a 14-day free trial, no credit card required.
+            Start free and upgrade as you grow. Whether you're tracking solo or 
+            managing a coaching business, we have a plan for you.
           </p>
         </div>
 
@@ -93,8 +91,10 @@ const Pricing = () => {
                 <h3 className="text-2xl font-bold mb-2">{plan.name}</h3>
                 <p className="text-muted-foreground text-sm mb-4">{plan.description}</p>
                 <div className="flex items-baseline justify-center gap-1">
-                  <span className="text-5xl font-bold">${plan.price}</span>
-                  <span className="text-muted-foreground">/month</span>
+                  <span className="text-5xl font-bold">
+                    {plan.price === 0 ? "Free" : `$${plan.price}`}
+                  </span>
+                  {plan.price > 0 && <span className="text-muted-foreground">/month</span>}
                 </div>
               </div>
 

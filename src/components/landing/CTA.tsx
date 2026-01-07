@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Sparkles } from "lucide-react";
+import { ArrowRight, Dumbbell } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const CTA = () => {
@@ -13,36 +13,36 @@ const CTA = () => {
         <div className="max-w-4xl mx-auto text-center">
           {/* Badge */}
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-8">
-            <Sparkles className="w-4 h-4 text-primary" />
-            <span className="text-sm font-medium text-primary">Start your free 14-day trial today</span>
+            <Dumbbell className="w-4 h-4 text-primary" />
+            <span className="text-sm font-medium text-primary">Start your fitness journey today</span>
           </div>
 
           <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6">
-            Ready to Transform Your{" "}
-            <span className="text-gradient-primary">Coaching Business?</span>
+            Ready to{" "}
+            <span className="text-gradient-primary">Transform Your Fitness?</span>
           </h2>
 
           <p className="text-xl text-muted-foreground mb-10 max-w-2xl mx-auto">
-            Join 10,000+ coaches who are already using CustomCoachPro to 
-            deliver exceptional results and scale their businesses.
+            Join 500,000+ users who track their progress, follow personalized plans, 
+            and achieve their fitness goals with CustomCoachPro.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link to="/signup">
               <Button variant="hero" size="xl">
-                Start Free Trial
+                Get Started Free
                 <ArrowRight className="w-5 h-5" />
               </Button>
             </Link>
             <Link to="/login">
               <Button variant="heroOutline" size="xl">
-                Log In to Dashboard
+                Sign In
               </Button>
             </Link>
           </div>
 
           <p className="text-sm text-muted-foreground mt-6">
-            No credit card required • Full access for 14 days • Cancel anytime
+            Free forever • No credit card required • Upgrade anytime
           </p>
         </div>
       </div>
