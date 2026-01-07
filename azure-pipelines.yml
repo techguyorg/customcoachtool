@@ -1,0 +1,107 @@
+# Azure DevOps Pipeline for CustomCoachPro
+# This pipeline builds and deploys the React frontend to Azure Static Web Apps
+
+trigger:
+  branches:
+    include:
+      - main
+      - develop
+
+pr:
+  branches:
+    include:
+      - main
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  - group: CustomCoachPro-Variables # Create this variable group in Azure DevOps
+  - name: nodeVersion
+    value: '20.x'
+  - name: buildDirectory
+    value: 'dist'
+
+stages:
+  - stage: Build
+    displayName: 'Build Stage'
+    jobs:
+      - job: BuildJob
+        displayName: 'Build React Application'
+        steps:
+          - task: NodeTool@0
+            inputs:
+              versionSpec: $(nodeVersion)
+            displayName: 'Install Node.js'
+
+          - script: |
+              npm ci
+            displayName: 'Install dependencies'
+
+          - script: |
+              npm run build
+            displayName: 'Build application'
+            env:
+              VITE_SUPABASE_URL: $(VITE_SUPABASE_URL)
+              VITE_SUPABASE_PUBLISHABLE_KEY: $(VITE_SUPABASE_PUBLISHABLE_KEY)
+
+          - script: |
+              npm run lint
+            displayName: 'Run linting'
+            continueOnError: true
+
+          - task: PublishBuildArtifacts@1
+            inputs:
+              pathToPublish: '$(buildDirectory)'
+              artifactName: 'webapp'
+            displayName: 'Publish build artifacts'
+
+  - stage: DeployDev
+    displayName: 'Deploy to Development'
+    dependsOn: Build
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/develop'))
+    jobs:
+      - deployment: DeployDev
+        displayName: 'Deploy to Dev Environment'
+        environment: 'development'
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - task: DownloadBuildArtifacts@1
+                  inputs:
+                    buildType: 'current'
+                    downloadType: 'single'
+                    artifactName: 'webapp'
+                    downloadPath: '$(System.ArtifactsDirectory)'
+
+                - task: AzureStaticWebApp@0
+                  inputs:
+                    app_location: '$(System.ArtifactsDirectory)/webapp'
+                    skip_app_build: true
+                    azure_static_web_apps_api_token: $(AZURE_STATIC_WEB_APPS_API_TOKEN_DEV)
+
+  - stage: DeployProd
+    displayName: 'Deploy to Production'
+    dependsOn: Build
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+    jobs:
+      - deployment: DeployProd
+        displayName: 'Deploy to Production Environment'
+        environment: 'production'
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - task: DownloadBuildArtifacts@1
+                  inputs:
+                    buildType: 'current'
+                    downloadType: 'single'
+                    artifactName: 'webapp'
+                    downloadPath: '$(System.ArtifactsDirectory)'
+
+                - task: AzureStaticWebApp@0
+                  inputs:
+                    app_location: '$(System.ArtifactsDirectory)/webapp'
+                    skip_app_build: true
+                    azure_static_web_apps_api_token: $(AZURE_STATIC_WEB_APPS_API_TOKEN_PROD)
