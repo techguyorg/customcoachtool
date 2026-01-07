@@ -14,16 +14,230 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      client_profiles: {
+        Row: {
+          coach_id: string | null
+          created_at: string
+          current_weight_kg: number | null
+          dietary_restrictions: string[] | null
+          fitness_goals: string[] | null
+          fitness_level: string | null
+          height_cm: number | null
+          id: string
+          medical_conditions: string | null
+          subscription_end_date: string | null
+          subscription_status: string | null
+          target_weight_kg: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          coach_id?: string | null
+          created_at?: string
+          current_weight_kg?: number | null
+          dietary_restrictions?: string[] | null
+          fitness_goals?: string[] | null
+          fitness_level?: string | null
+          height_cm?: number | null
+          id?: string
+          medical_conditions?: string | null
+          subscription_end_date?: string | null
+          subscription_status?: string | null
+          target_weight_kg?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          coach_id?: string | null
+          created_at?: string
+          current_weight_kg?: number | null
+          dietary_restrictions?: string[] | null
+          fitness_goals?: string[] | null
+          fitness_level?: string | null
+          height_cm?: number | null
+          id?: string
+          medical_conditions?: string | null
+          subscription_end_date?: string | null
+          subscription_status?: string | null
+          target_weight_kg?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      coach_client_relationships: {
+        Row: {
+          client_id: string
+          coach_id: string
+          created_at: string
+          ended_at: string | null
+          id: string
+          notes: string | null
+          started_at: string | null
+          status: string | null
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          coach_id: string
+          created_at?: string
+          ended_at?: string | null
+          id?: string
+          notes?: string | null
+          started_at?: string | null
+          status?: string | null
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          coach_id?: string
+          created_at?: string
+          ended_at?: string | null
+          id?: string
+          notes?: string | null
+          started_at?: string | null
+          status?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      coach_profiles: {
+        Row: {
+          certifications: string[] | null
+          created_at: string
+          currency: string | null
+          experience_years: number | null
+          hourly_rate: number | null
+          id: string
+          is_accepting_clients: boolean | null
+          max_clients: number | null
+          rating: number | null
+          specializations: string[] | null
+          stripe_account_id: string | null
+          total_reviews: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          certifications?: string[] | null
+          created_at?: string
+          currency?: string | null
+          experience_years?: number | null
+          hourly_rate?: number | null
+          id?: string
+          is_accepting_clients?: boolean | null
+          max_clients?: number | null
+          rating?: number | null
+          specializations?: string[] | null
+          stripe_account_id?: string | null
+          total_reviews?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          certifications?: string[] | null
+          created_at?: string
+          currency?: string | null
+          experience_years?: number | null
+          hourly_rate?: number | null
+          id?: string
+          is_accepting_clients?: boolean | null
+          max_clients?: number | null
+          rating?: number | null
+          specializations?: string[] | null
+          stripe_account_id?: string | null
+          total_reviews?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          bio: string | null
+          created_at: string
+          date_of_birth: string | null
+          email: string
+          full_name: string
+          gender: string | null
+          id: string
+          phone: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string
+          date_of_birth?: string | null
+          email: string
+          full_name: string
+          gender?: string | null
+          id?: string
+          phone?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string
+          date_of_birth?: string | null
+          email?: string
+          full_name?: string
+          gender?: string | null
+          id?: string
+          phone?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_user_roles: {
+        Args: { _user_id: string }
+        Returns: Database["public"]["Enums"]["app_role"][]
+      }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      is_coach_of_client: {
+        Args: { _client_id: string; _coach_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "super_admin" | "coach" | "client"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +364,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["super_admin", "coach", "client"],
+    },
   },
 } as const
