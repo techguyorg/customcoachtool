@@ -188,32 +188,28 @@ export function CreateDietPlanDialog({ open, onOpenChange, editingPlan }: Props)
     );
   };
 
-  const calculateDayTotals = () => {
+  const calculateDayTotals = (): { calories: number; protein: number; carbs: number; fat: number } => {
     if (!useFoodBuilder) {
       const meals = form.getValues("meals") || [];
-      return meals.reduce(
-        (acc, meal) => ({
-          calories: acc.calories + (meal.calories || 0),
-          protein: acc.protein + (meal.protein_grams || 0),
-          carbs: acc.carbs + (meal.carbs_grams || 0),
-          fat: acc.fat + (meal.fat_grams || 0),
-        }),
-        { calories: 0, protein: 0, carbs: 0, fat: 0 }
-      );
+      let calories = 0, protein = 0, carbs = 0, fat = 0;
+      for (const meal of meals) {
+        calories += meal.calories || 0;
+        protein += meal.protein_grams || 0;
+        carbs += meal.carbs_grams || 0;
+        fat += meal.fat_grams || 0;
+      }
+      return { calories, protein, carbs, fat };
     }
 
-    return Object.keys(mealFoods).reduce(
-      (acc, key) => {
-        const mealTotal = calculateMealTotals(parseInt(key));
-        return {
-          calories: acc.calories + mealTotal.calories,
-          protein: acc.protein + mealTotal.protein,
-          carbs: acc.carbs + mealTotal.carbs,
-          fat: acc.fat + mealTotal.fat,
-        };
-      },
-      { calories: 0, protein: 0, carbs: 0, fat: 0 }
-    );
+    let calories = 0, protein = 0, carbs = 0, fat = 0;
+    for (const key of Object.keys(mealFoods)) {
+      const mealTotal = calculateMealTotals(parseInt(key));
+      calories += mealTotal.calories;
+      protein += mealTotal.protein;
+      carbs += mealTotal.carbs;
+      fat += mealTotal.fat;
+    }
+    return { calories, protein, carbs, fat };
   };
 
   const onSubmit = async (data: FormData) => {
