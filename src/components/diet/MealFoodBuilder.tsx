@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Trash2, Beef, Wheat, Droplet, Flame } from "lucide-react";
+import { Plus, Trash2, Beef, Wheat, Droplet, Flame, ArrowLeftRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { FoodSearchCombobox } from "./FoodSearchCombobox";
+import { FoodAlternativesPopover, FoodAlternative } from "./FoodAlternatives";
 import { Food, calculateNutrition } from "@/hooks/useFoods";
 
 export interface MealFoodItem {
@@ -33,6 +34,9 @@ interface Props {
   onItemsChange: (items: MealFoodItem[]) => void;
   timeSuggestion?: string;
   onTimeChange?: (time: string) => void;
+  alternatives?: FoodAlternative[];
+  onAlternativesChange?: (alternatives: FoodAlternative[]) => void;
+  showAlternatives?: boolean;
 }
 
 const UNITS = [
@@ -45,7 +49,16 @@ const UNITS = [
   { value: "tsp", label: "teaspoon" },
 ];
 
-export function MealFoodBuilder({ mealName, items, onItemsChange, timeSuggestion, onTimeChange }: Props) {
+export function MealFoodBuilder({ 
+  mealName, 
+  items, 
+  onItemsChange, 
+  timeSuggestion, 
+  onTimeChange,
+  alternatives = [],
+  onAlternativesChange,
+  showAlternatives = true,
+}: Props) {
   const [selectedFood, setSelectedFood] = useState<Food | null>(null);
   const [quantity, setQuantity] = useState<number>(100);
   const [unit, setUnit] = useState<string>("g");
@@ -70,6 +83,15 @@ export function MealFoodBuilder({ mealName, items, onItemsChange, timeSuggestion
 
   const removeItem = (id: string) => {
     onItemsChange(items.filter((item) => item.id !== id));
+    // Also remove alternatives for this food
+    if (onAlternativesChange) {
+      const itemToRemove = items.find((i) => i.id === id);
+      if (itemToRemove) {
+        onAlternativesChange(
+          alternatives.filter((a) => a.originalFood.id !== itemToRemove.food.id)
+        );
+      }
+    }
   };
 
   const updateItemQuantity = (id: string, newQuantity: number) => {
@@ -94,6 +116,21 @@ export function MealFoodBuilder({ mealName, items, onItemsChange, timeSuggestion
         return item;
       })
     );
+  };
+
+  const handleAddAlternative = (food: Food, alternativeFood: Food) => {
+    if (!onAlternativesChange) return;
+    const newAlt: FoodAlternative = {
+      id: crypto.randomUUID(),
+      originalFood: food,
+      alternativeFood,
+    };
+    onAlternativesChange([...alternatives, newAlt]);
+  };
+
+  const handleRemoveAlternative = (altId: string) => {
+    if (!onAlternativesChange) return;
+    onAlternativesChange(alternatives.filter((a) => a.id !== altId));
   };
 
   // Calculate meal totals
@@ -165,7 +202,17 @@ export function MealFoodBuilder({ mealName, items, onItemsChange, timeSuggestion
                 className="flex items-center gap-2 p-2 bg-muted/50 rounded-lg"
               >
                 <div className="flex-1 min-w-0">
-                  <div className="font-medium text-sm truncate">{item.food.name}</div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium text-sm truncate">{item.food.name}</span>
+                    {showAlternatives && onAlternativesChange && (
+                      <FoodAlternativesPopover
+                        food={item.food}
+                        alternatives={alternatives}
+                        onAddAlternative={(alt) => handleAddAlternative(item.food, alt)}
+                        onRemoveAlternative={handleRemoveAlternative}
+                      />
+                    )}
+                  </div>
                   <div className="text-xs text-muted-foreground">
                     {item.nutrition.calories} kcal • P:{item.nutrition.protein}g • C:{item.nutrition.carbs}g • F:{item.nutrition.fat}g
                   </div>

@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Flame, Beef, Wheat, Droplet, ArrowLeftRight } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -29,8 +29,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { useCreateDietPlan, useUpdateDietPlan, DietPlan } from "@/hooks/useDietPlans";
+import { MealFoodBuilder, MealFoodItem } from "./MealFoodBuilder";
+import { FoodAlternative, FoodAlternativesDialog } from "./FoodAlternatives";
+import { calculateCalories } from "@/hooks/useFoods";
 import { toast } from "sonner";
 
 const mealSchema = z.object({
@@ -68,14 +73,19 @@ interface Props {
 }
 
 const defaultMeals = [
-  { meal_number: 1, meal_name: "Breakfast", time_suggestion: "7:00 AM" },
-  { meal_number: 2, meal_name: "Lunch", time_suggestion: "12:00 PM" },
-  { meal_number: 3, meal_name: "Snack", time_suggestion: "3:00 PM" },
-  { meal_number: 4, meal_name: "Dinner", time_suggestion: "7:00 PM" },
+  { meal_number: 1, meal_name: "Breakfast", time_suggestion: "07:00" },
+  { meal_number: 2, meal_name: "Lunch", time_suggestion: "12:00" },
+  { meal_number: 3, meal_name: "Snack", time_suggestion: "15:00" },
+  { meal_number: 4, meal_name: "Dinner", time_suggestion: "19:00" },
 ];
 
 export function CreateDietPlanDialog({ open, onOpenChange, editingPlan }: Props) {
   const [activeTab, setActiveTab] = useState("basics");
+  const [useFoodBuilder, setUseFoodBuilder] = useState(false);
+  const [mealFoods, setMealFoods] = useState<Record<number, MealFoodItem[]>>({});
+  const [alternatives, setAlternatives] = useState<FoodAlternative[]>([]);
+  const [showAlternativesDialog, setShowAlternativesDialog] = useState(false);
+  
   const createMutation = useCreateDietPlan();
   const updateMutation = useUpdateDietPlan();
 
@@ -100,6 +110,25 @@ export function CreateDietPlanDialog({ open, onOpenChange, editingPlan }: Props)
     control: form.control,
     name: "meals",
   });
+
+  // Watch macros for auto-calculation
+  const proteinGrams = form.watch("protein_grams");
+  const carbsGrams = form.watch("carbs_grams");
+  const fatGrams = form.watch("fat_grams");
+
+  // Auto-calculate calories when macros change
+  useEffect(() => {
+    if (proteinGrams || carbsGrams || fatGrams) {
+      const calculatedCalories = calculateCalories(
+        proteinGrams || 0,
+        carbsGrams || 0,
+        fatGrams || 0
+      );
+      if (calculatedCalories > 0) {
+        form.setValue("calories_target", calculatedCalories);
+      }
+    }
+  }, [proteinGrams, carbsGrams, fatGrams, form]);
 
   useEffect(() => {
     if (editingPlan) {
@@ -140,47 +169,110 @@ export function CreateDietPlanDialog({ open, onOpenChange, editingPlan }: Props)
         notes: "",
         meals: defaultMeals,
       });
+      setMealFoods({});
+      setAlternatives([]);
     }
   }, [editingPlan, form, open]);
 
+  // Calculate totals from food builder
+  const calculateMealTotals = (mealIndex: number) => {
+    const foods = mealFoods[mealIndex] || [];
+    return foods.reduce(
+      (acc, item) => ({
+        calories: acc.calories + item.nutrition.calories,
+        protein: acc.protein + item.nutrition.protein,
+        carbs: acc.carbs + item.nutrition.carbs,
+        fat: acc.fat + item.nutrition.fat,
+      }),
+      { calories: 0, protein: 0, carbs: 0, fat: 0 }
+    );
+  };
+
+  const calculateDayTotals = () => {
+    if (!useFoodBuilder) {
+      const meals = form.getValues("meals") || [];
+      return meals.reduce(
+        (acc, meal) => ({
+          calories: acc.calories + (meal.calories || 0),
+          protein: acc.protein + (meal.protein_grams || 0),
+          carbs: acc.carbs + (meal.carbs_grams || 0),
+          fat: acc.fat + (meal.fat_grams || 0),
+        }),
+        { calories: 0, protein: 0, carbs: 0, fat: 0 }
+      );
+    }
+
+    return Object.keys(mealFoods).reduce(
+      (acc, key) => {
+        const mealTotal = calculateMealTotals(parseInt(key));
+        return {
+          calories: acc.calories + mealTotal.calories,
+          protein: acc.protein + mealTotal.protein,
+          carbs: acc.carbs + mealTotal.carbs,
+          fat: acc.fat + mealTotal.fat,
+        };
+      },
+      { calories: 0, protein: 0, carbs: 0, fat: 0 }
+    );
+  };
+
   const onSubmit = async (data: FormData) => {
     try {
+      // If using food builder, update meal macros from foods
+      const mealsWithMacros = data.meals?.map((m, idx) => {
+        if (useFoodBuilder) {
+          const totals = calculateMealTotals(idx);
+          return {
+            meal_number: idx + 1,
+            meal_name: m.meal_name,
+            time_suggestion: m.time_suggestion || null,
+            calories: totals.calories || null,
+            protein_grams: Math.round(totals.protein) || null,
+            carbs_grams: Math.round(totals.carbs) || null,
+            fat_grams: Math.round(totals.fat) || null,
+            food_suggestions: (mealFoods[idx] || []).map(f => f.food.name),
+            notes: m.notes || null,
+          };
+        }
+        return {
+          meal_number: idx + 1,
+          meal_name: m.meal_name,
+          time_suggestion: m.time_suggestion || null,
+          calories: m.calories || null,
+          protein_grams: m.protein_grams || null,
+          carbs_grams: m.carbs_grams || null,
+          fat_grams: m.fat_grams || null,
+          food_suggestions: m.food_suggestions || null,
+          notes: m.notes || null,
+        };
+      });
+
+      const dayTotals = calculateDayTotals();
+
       const planData = {
         name: data.name,
         description: data.description || null,
         goal: data.goal || null,
         dietary_type: data.dietary_type || null,
-        calories_target: data.calories_target || null,
-        protein_grams: data.protein_grams || null,
-        carbs_grams: data.carbs_grams || null,
-        fat_grams: data.fat_grams || null,
+        calories_target: useFoodBuilder ? dayTotals.calories : (data.calories_target || null),
+        protein_grams: useFoodBuilder ? Math.round(dayTotals.protein) : (data.protein_grams || null),
+        carbs_grams: useFoodBuilder ? Math.round(dayTotals.carbs) : (data.carbs_grams || null),
+        fat_grams: useFoodBuilder ? Math.round(dayTotals.fat) : (data.fat_grams || null),
         meals_per_day: data.meals_per_day,
         notes: data.notes || null,
         is_system: false,
         is_active: true,
       };
 
-      const meals = data.meals?.map((m, idx) => ({
-        meal_number: idx + 1,
-        meal_name: m.meal_name,
-        time_suggestion: m.time_suggestion || null,
-        calories: m.calories || null,
-        protein_grams: m.protein_grams || null,
-        carbs_grams: m.carbs_grams || null,
-        fat_grams: m.fat_grams || null,
-        food_suggestions: m.food_suggestions || null,
-        notes: m.notes || null,
-      }));
-
       if (editingPlan) {
         await updateMutation.mutateAsync({
           id: editingPlan.id,
           plan: planData,
-          meals,
+          meals: mealsWithMacros,
         });
         toast.success("Diet plan updated");
       } else {
-        await createMutation.mutateAsync({ plan: planData, meals });
+        await createMutation.mutateAsync({ plan: planData, meals: mealsWithMacros });
         toast.success("Diet plan created");
       }
       onOpenChange(false);
@@ -197,9 +289,15 @@ export function CreateDietPlanDialog({ open, onOpenChange, editingPlan }: Props)
     });
   };
 
+  const getAllFoods = () => {
+    return Object.values(mealFoods).flat().map(item => item.food);
+  };
+
+  const dayTotals = calculateDayTotals();
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{editingPlan ? "Edit Diet Plan" : "Create Diet Plan"}</DialogTitle>
           <DialogDescription>
@@ -322,87 +420,144 @@ export function CreateDietPlanDialog({ open, onOpenChange, editingPlan }: Props)
               </TabsContent>
 
               <TabsContent value="macros" className="space-y-4 mt-4">
-                <FormField
-                  control={form.control}
-                  name="calories_target"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Daily Calories Target</FormLabel>
-                      <FormControl>
-                        <Input 
-                          type="number" 
-                          placeholder="e.g., 2500"
-                          {...field}
-                          onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
-                          value={field.value || ""}
+                <Card className="bg-muted/50">
+                  <CardContent className="pt-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium">Auto-calculate from meals</p>
+                        <p className="text-sm text-muted-foreground">
+                          Calories are calculated using: P×4 + C×4 + F×9
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          checked={useFoodBuilder}
+                          onCheckedChange={setUseFoodBuilder}
                         />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                        <Label>Use food builder</Label>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
 
-                <div className="grid grid-cols-3 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="protein_grams"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Protein (g)</FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="number" 
-                            placeholder="e.g., 180"
-                            {...field}
-                            onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
-                            value={field.value || ""}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                {!useFoodBuilder && (
+                  <>
+                    <div className="grid grid-cols-3 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="protein_grams"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Protein (g)</FormLabel>
+                            <FormControl>
+                              <Input 
+                                type="number" 
+                                placeholder="e.g., 180"
+                                {...field}
+                                onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
+                                value={field.value || ""}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
 
-                  <FormField
-                    control={form.control}
-                    name="carbs_grams"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Carbs (g)</FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="number" 
-                            placeholder="e.g., 250"
-                            {...field}
-                            onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
-                            value={field.value || ""}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                      <FormField
+                        control={form.control}
+                        name="carbs_grams"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Carbs (g)</FormLabel>
+                            <FormControl>
+                              <Input 
+                                type="number" 
+                                placeholder="e.g., 250"
+                                {...field}
+                                onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
+                                value={field.value || ""}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
 
-                  <FormField
-                    control={form.control}
-                    name="fat_grams"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Fat (g)</FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="number" 
-                            placeholder="e.g., 80"
-                            {...field}
-                            onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
-                            value={field.value || ""}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
+                      <FormField
+                        control={form.control}
+                        name="fat_grams"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Fat (g)</FormLabel>
+                            <FormControl>
+                              <Input 
+                                type="number" 
+                                placeholder="e.g., 80"
+                                {...field}
+                                onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
+                                value={field.value || ""}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    <FormField
+                      control={form.control}
+                      name="calories_target"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Daily Calories (auto-calculated)</FormLabel>
+                          <FormControl>
+                            <Input 
+                              type="number" 
+                              placeholder="e.g., 2500"
+                              {...field}
+                              onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
+                              value={field.value || ""}
+                              className="bg-muted"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </>
+                )}
+
+                {useFoodBuilder && (
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-base">Daily Totals (from meals)</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-4 gap-2">
+                        <div className="flex flex-col items-center p-3 bg-muted rounded-lg">
+                          <Flame className="h-5 w-5 text-orange-500 mb-1" />
+                          <span className="font-bold text-lg">{dayTotals.calories}</span>
+                          <span className="text-xs text-muted-foreground">kcal</span>
+                        </div>
+                        <div className="flex flex-col items-center p-3 bg-muted rounded-lg">
+                          <Beef className="h-5 w-5 text-red-500 mb-1" />
+                          <span className="font-bold text-lg">{dayTotals.protein.toFixed(0)}g</span>
+                          <span className="text-xs text-muted-foreground">protein</span>
+                        </div>
+                        <div className="flex flex-col items-center p-3 bg-muted rounded-lg">
+                          <Wheat className="h-5 w-5 text-amber-500 mb-1" />
+                          <span className="font-bold text-lg">{dayTotals.carbs.toFixed(0)}g</span>
+                          <span className="text-xs text-muted-foreground">carbs</span>
+                        </div>
+                        <div className="flex flex-col items-center p-3 bg-muted rounded-lg">
+                          <Droplet className="h-5 w-5 text-yellow-500 mb-1" />
+                          <span className="font-bold text-lg">{dayTotals.fat.toFixed(0)}g</span>
+                          <span className="text-xs text-muted-foreground">fat</span>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
 
                 <FormField
                   control={form.control}
@@ -434,145 +589,215 @@ export function CreateDietPlanDialog({ open, onOpenChange, editingPlan }: Props)
               </TabsContent>
 
               <TabsContent value="meals" className="space-y-4 mt-4">
+                {useFoodBuilder && (
+                  <div className="flex justify-end">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowAlternativesDialog(true)}
+                    >
+                      <ArrowLeftRight className="h-4 w-4 mr-2" />
+                      Manage Alternatives ({alternatives.length})
+                    </Button>
+                  </div>
+                )}
+
                 <div className="space-y-4">
                   {fields.map((field, index) => (
-                    <Card key={field.id}>
-                      <CardContent className="pt-4">
-                        <div className="flex items-start justify-between mb-4">
-                          <h4 className="font-medium">Meal {index + 1}</h4>
-                          {fields.length > 1 && (
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 text-destructive"
-                              onClick={() => remove(index)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          )}
-                        </div>
-                        <div className="grid gap-4">
-                          <div className="grid grid-cols-2 gap-4">
-                            <FormField
-                              control={form.control}
-                              name={`meals.${index}.meal_name`}
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>Meal Name</FormLabel>
-                                  <FormControl>
-                                    <Input placeholder="e.g., Breakfast" {...field} />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                            <FormField
-                              control={form.control}
-                              name={`meals.${index}.time_suggestion`}
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>Time</FormLabel>
-                                  <FormControl>
-                                    <Input placeholder="e.g., 7:00 AM" {...field} />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                          </div>
-                          <div className="grid grid-cols-4 gap-2">
-                            <FormField
-                              control={form.control}
-                              name={`meals.${index}.calories`}
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>Calories</FormLabel>
-                                  <FormControl>
-                                    <Input 
-                                      type="number" 
-                                      placeholder="kcal"
-                                      {...field}
-                                      onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
-                                      value={field.value || ""}
-                                    />
-                                  </FormControl>
-                                </FormItem>
-                              )}
-                            />
-                            <FormField
-                              control={form.control}
-                              name={`meals.${index}.protein_grams`}
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>Protein</FormLabel>
-                                  <FormControl>
-                                    <Input 
-                                      type="number" 
-                                      placeholder="g"
-                                      {...field}
-                                      onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
-                                      value={field.value || ""}
-                                    />
-                                  </FormControl>
-                                </FormItem>
-                              )}
-                            />
-                            <FormField
-                              control={form.control}
-                              name={`meals.${index}.carbs_grams`}
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>Carbs</FormLabel>
-                                  <FormControl>
-                                    <Input 
-                                      type="number" 
-                                      placeholder="g"
-                                      {...field}
-                                      onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
-                                      value={field.value || ""}
-                                    />
-                                  </FormControl>
-                                </FormItem>
-                              )}
-                            />
-                            <FormField
-                              control={form.control}
-                              name={`meals.${index}.fat_grams`}
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>Fat</FormLabel>
-                                  <FormControl>
-                                    <Input 
-                                      type="number" 
-                                      placeholder="g"
-                                      {...field}
-                                      onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
-                                      value={field.value || ""}
-                                    />
-                                  </FormControl>
-                                </FormItem>
-                              )}
-                            />
-                          </div>
+                    useFoodBuilder ? (
+                      <div key={field.id} className="relative">
+                        {fields.length > 1 && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="absolute right-2 top-2 h-8 w-8 text-destructive z-10"
+                            onClick={() => {
+                              remove(index);
+                              const newMealFoods = { ...mealFoods };
+                              delete newMealFoods[index];
+                              // Reindex remaining meals
+                              const reindexed: Record<number, MealFoodItem[]> = {};
+                              Object.keys(newMealFoods).forEach((key) => {
+                                const oldIdx = parseInt(key);
+                                const newIdx = oldIdx > index ? oldIdx - 1 : oldIdx;
+                                reindexed[newIdx] = newMealFoods[oldIdx];
+                              });
+                              setMealFoods(reindexed);
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                        <MealFoodBuilder
+                          mealName={form.watch(`meals.${index}.meal_name`) || `Meal ${index + 1}`}
+                          items={mealFoods[index] || []}
+                          onItemsChange={(items) => setMealFoods({ ...mealFoods, [index]: items })}
+                          timeSuggestion={form.watch(`meals.${index}.time_suggestion`)}
+                          onTimeChange={(time) => form.setValue(`meals.${index}.time_suggestion`, time)}
+                          alternatives={alternatives}
+                          onAlternativesChange={setAlternatives}
+                          showAlternatives={true}
+                        />
+                        <div className="mt-2">
                           <FormField
                             control={form.control}
-                            name={`meals.${index}.notes`}
+                            name={`meals.${index}.meal_name`}
                             render={({ field }) => (
                               <FormItem>
-                                <FormLabel>Food Suggestions</FormLabel>
                                 <FormControl>
-                                  <Textarea 
-                                    placeholder="List recommended foods..."
+                                  <Input 
+                                    placeholder="Meal name" 
                                     {...field}
+                                    className="max-w-xs"
                                   />
                                 </FormControl>
                               </FormItem>
                             )}
                           />
                         </div>
-                      </CardContent>
-                    </Card>
+                      </div>
+                    ) : (
+                      <Card key={field.id}>
+                        <CardContent className="pt-4">
+                          <div className="flex items-start justify-between mb-4">
+                            <h4 className="font-medium">Meal {index + 1}</h4>
+                            {fields.length > 1 && (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-destructive"
+                                onClick={() => remove(index)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </div>
+                          <div className="grid gap-4">
+                            <div className="grid grid-cols-2 gap-4">
+                              <FormField
+                                control={form.control}
+                                name={`meals.${index}.meal_name`}
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Meal Name</FormLabel>
+                                    <FormControl>
+                                      <Input placeholder="e.g., Breakfast" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                              <FormField
+                                control={form.control}
+                                name={`meals.${index}.time_suggestion`}
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Time</FormLabel>
+                                    <FormControl>
+                                      <Input type="time" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                            </div>
+                            <div className="grid grid-cols-4 gap-2">
+                              <FormField
+                                control={form.control}
+                                name={`meals.${index}.protein_grams`}
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Protein (g)</FormLabel>
+                                    <FormControl>
+                                      <Input 
+                                        type="number" 
+                                        placeholder="g"
+                                        {...field}
+                                        onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
+                                        value={field.value || ""}
+                                      />
+                                    </FormControl>
+                                  </FormItem>
+                                )}
+                              />
+                              <FormField
+                                control={form.control}
+                                name={`meals.${index}.carbs_grams`}
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Carbs (g)</FormLabel>
+                                    <FormControl>
+                                      <Input 
+                                        type="number" 
+                                        placeholder="g"
+                                        {...field}
+                                        onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
+                                        value={field.value || ""}
+                                      />
+                                    </FormControl>
+                                  </FormItem>
+                                )}
+                              />
+                              <FormField
+                                control={form.control}
+                                name={`meals.${index}.fat_grams`}
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Fat (g)</FormLabel>
+                                    <FormControl>
+                                      <Input 
+                                        type="number" 
+                                        placeholder="g"
+                                        {...field}
+                                        onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
+                                        value={field.value || ""}
+                                      />
+                                    </FormControl>
+                                  </FormItem>
+                                )}
+                              />
+                              <FormField
+                                control={form.control}
+                                name={`meals.${index}.calories`}
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Calories</FormLabel>
+                                    <FormControl>
+                                      <Input 
+                                        type="number" 
+                                        placeholder="kcal"
+                                        {...field}
+                                        onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
+                                        value={field.value || ""}
+                                        className="bg-muted"
+                                      />
+                                    </FormControl>
+                                  </FormItem>
+                                )}
+                              />
+                            </div>
+                            <FormField
+                              control={form.control}
+                              name={`meals.${index}.notes`}
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Food Suggestions</FormLabel>
+                                  <FormControl>
+                                    <Textarea 
+                                      placeholder="List recommended foods..."
+                                      {...field}
+                                    />
+                                  </FormControl>
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )
                   ))}
                 </div>
 
@@ -593,6 +818,14 @@ export function CreateDietPlanDialog({ open, onOpenChange, editingPlan }: Props)
             </div>
           </form>
         </Form>
+
+        <FoodAlternativesDialog
+          open={showAlternativesDialog}
+          onOpenChange={setShowAlternativesDialog}
+          foods={getAllFoods()}
+          alternatives={alternatives}
+          onAlternativesChange={setAlternatives}
+        />
       </DialogContent>
     </Dialog>
   );
