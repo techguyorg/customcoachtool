@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   Sheet,
   SheetContent,
@@ -15,15 +16,23 @@ import {
   ListChecks, 
   Lightbulb, 
   AlertTriangle,
-  Play
+  Play,
+  X
 } from "lucide-react";
 import { useExercise } from "@/hooks/useExercises";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
 
 interface ExerciseDetailSheetProps {
   exerciseId: string | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+}
+
+interface Exercise {
+  name: string;
+  video_url?: string | null;
+  image_url?: string | null;
 }
 
 const formatLabel = (value: string) => 
@@ -34,6 +43,124 @@ const difficultyColors = {
   intermediate: "bg-warning/20 text-warning border-warning/30",
   advanced: "bg-destructive/20 text-destructive border-destructive/30",
 };
+
+// Video player component that actually plays videos
+function ExerciseMedia({ exercise }: { exercise: Exercise }) {
+  const [isPlaying, setIsPlaying] = useState(false);
+
+  // Check if it's a YouTube URL and extract video ID
+  const getYouTubeId = (url: string) => {
+    const match = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([^&\s]+)/);
+    return match ? match[1] : null;
+  };
+
+  if (exercise.video_url) {
+    const youtubeId = getYouTubeId(exercise.video_url);
+    
+    if (youtubeId) {
+      // YouTube video
+      return (
+        <div className="aspect-video rounded-xl bg-muted overflow-hidden">
+          {isPlaying ? (
+            <div className="relative w-full h-full">
+              <iframe
+                src={`https://www.youtube.com/embed/${youtubeId}?autoplay=1`}
+                title={exercise.name}
+                className="w-full h-full"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+              <Button
+                size="icon"
+                variant="secondary"
+                className="absolute top-2 right-2 z-10"
+                onClick={() => setIsPlaying(false)}
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+          ) : (
+            <div 
+              className="relative w-full h-full group cursor-pointer"
+              onClick={() => setIsPlaying(true)}
+            >
+              <img 
+                src={exercise.image_url || `https://img.youtube.com/vi/${youtubeId}/maxresdefault.jpg`} 
+                alt={exercise.name}
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute inset-0 bg-black/40 flex items-center justify-center group-hover:bg-black/50 transition-colors">
+                <div className="w-16 h-16 rounded-full bg-primary/90 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <Play className="w-8 h-8 text-primary-foreground ml-1" />
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // Regular video URL
+    return (
+      <div className="aspect-video rounded-xl bg-muted overflow-hidden">
+        {isPlaying ? (
+          <div className="relative w-full h-full">
+            <video
+              src={exercise.video_url}
+              controls
+              autoPlay
+              className="w-full h-full object-cover"
+            />
+            <Button
+              size="icon"
+              variant="secondary"
+              className="absolute top-2 right-2 z-10"
+              onClick={() => setIsPlaying(false)}
+            >
+              <X className="w-4 h-4" />
+            </Button>
+          </div>
+        ) : (
+          <div 
+            className="relative w-full h-full group cursor-pointer"
+            onClick={() => setIsPlaying(true)}
+          >
+            <img 
+              src={exercise.image_url || ""} 
+              alt={exercise.name}
+              className="w-full h-full object-cover"
+            />
+            <div className="absolute inset-0 bg-black/40 flex items-center justify-center group-hover:bg-black/50 transition-colors">
+              <div className="w-16 h-16 rounded-full bg-primary/90 flex items-center justify-center group-hover:scale-110 transition-transform">
+                <Play className="w-8 h-8 text-primary-foreground ml-1" />
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Image only
+  if (exercise.image_url) {
+    return (
+      <div className="aspect-video rounded-xl bg-muted overflow-hidden">
+        <img 
+          src={exercise.image_url} 
+          alt={exercise.name}
+          className="w-full h-full object-cover"
+        />
+      </div>
+    );
+  }
+
+  // No media
+  return (
+    <div className="aspect-video rounded-xl bg-muted flex items-center justify-center">
+      <Dumbbell className="w-16 h-16 text-muted-foreground" />
+    </div>
+  );
+}
 
 export function ExerciseDetailSheet({ exerciseId, open, onOpenChange }: ExerciseDetailSheetProps) {
   const { data: exercise, isLoading } = useExercise(exerciseId);
@@ -52,30 +179,7 @@ export function ExerciseDetailSheet({ exerciseId, open, onOpenChange }: Exercise
                 </SheetHeader>
 
                 {/* Hero Image/Video */}
-                <div className="aspect-video rounded-xl bg-muted flex items-center justify-center overflow-hidden">
-                  {exercise.video_url ? (
-                    <div className="relative w-full h-full group cursor-pointer">
-                      <img 
-                        src={exercise.image_url || ""} 
-                        alt={exercise.name}
-                        className="w-full h-full object-cover"
-                      />
-                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center group-hover:bg-black/50 transition-colors">
-                        <div className="w-16 h-16 rounded-full bg-primary/90 flex items-center justify-center">
-                          <Play className="w-8 h-8 text-primary-foreground ml-1" />
-                        </div>
-                      </div>
-                    </div>
-                  ) : exercise.image_url ? (
-                    <img 
-                      src={exercise.image_url} 
-                      alt={exercise.name}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <Dumbbell className="w-16 h-16 text-muted-foreground" />
-                  )}
-                </div>
+                <ExerciseMedia exercise={exercise} />
 
                 {/* Quick Info Badges */}
                 <div className="flex flex-wrap gap-2">
