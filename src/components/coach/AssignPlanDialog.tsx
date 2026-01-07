@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { useAssignPlan } from "@/hooks/usePlanAssignments";
-import { useWorkoutTemplates } from "@/hooks/useWorkoutTemplates";
+import { useWorkoutTemplates, type TemplateFilters } from "@/hooks/useWorkoutTemplates";
 import { toast } from "sonner";
 import { Loader2, ClipboardList, Dumbbell, UtensilsCrossed } from "lucide-react";
 
@@ -45,7 +45,8 @@ interface AssignPlanDialogProps {
 
 export function AssignPlanDialog({ open, onOpenChange, clientId, clientName }: AssignPlanDialogProps) {
   const assignPlan = useAssignPlan();
-  const { data: templates = [], isLoading: loadingTemplates } = useWorkoutTemplates();
+  const defaultFilters: TemplateFilters = { search: "", templateType: "all", difficulty: "all", daysPerWeek: "all" };
+  const { data: templates = [], isLoading: loadingTemplates } = useWorkoutTemplates(defaultFilters);
 
   const form = useForm<AssignmentFormData>({
     resolver: zodResolver(assignmentSchema),
@@ -59,6 +60,8 @@ export function AssignPlanDialog({ open, onOpenChange, clientId, clientName }: A
 
   const onSubmit = async (data: AssignmentFormData) => {
     try {
+      if (data.plan_type === 'workout' && !data.workout_template_id) {
+        toast.error("Please select a workout template");
         return;
       }
 
