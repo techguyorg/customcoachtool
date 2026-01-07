@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { useDietPlans, DietPlan } from "@/hooks/useDietPlans";
 import { DietPlanDetailSheet } from "@/components/diet/DietPlanDetailSheet";
 import { FavoriteButton } from "@/components/favorites/FavoriteButton";
+import { MyPlansSection } from "@/components/plans/MyPlansSection";
 
 const goalLabels: Record<string, string> = {
   weight_loss: "Weight Loss",
@@ -42,6 +43,9 @@ export default function ClientDietPlansPage() {
 
   return (
     <div className="space-y-6">
+      {/* My Active Diet Plans */}
+      <MyPlansSection planType="diet" title="My Active Diet Plans" />
+
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Diet Plans</h1>
