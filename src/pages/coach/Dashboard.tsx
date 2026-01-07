@@ -19,6 +19,7 @@ import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import ExercisesPage from "@/pages/shared/ExercisesPage";
 import WorkoutTemplatesPage from "@/pages/shared/WorkoutTemplatesPage";
+import ClientsPage from "@/pages/coach/ClientsPage";
 
 const sidebarItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/coach" },
@@ -123,7 +124,7 @@ function CoachDashboard() {
         <div className="p-6">
           <Routes>
             <Route index element={<CoachHome />} />
-            <Route path="clients" element={<div className="text-muted-foreground">Client management coming soon...</div>} />
+            <Route path="clients" element={<ClientsPage />} />
             <Route path="programs" element={<WorkoutTemplatesPage />} />
             <Route path="exercises" element={<ExercisesPage />} />
             <Route path="checkins" element={<div className="text-muted-foreground">Check-ins coming soon...</div>} />
