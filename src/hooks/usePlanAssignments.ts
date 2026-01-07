@@ -27,6 +27,15 @@ export interface PlanAssignmentWithDetails extends PlanAssignment {
     days_per_week: number;
     duration_weeks: number | null;
   } | null;
+  diet_plan?: {
+    id: string;
+    name: string;
+    description: string | null;
+    calories_target: number | null;
+    protein_grams: number | null;
+    carbs_grams: number | null;
+    fat_grams: number | null;
+  } | null;
 }
 
 export function useClientAssignments(clientId?: string) {
@@ -44,6 +53,9 @@ export function useClientAssignments(clientId?: string) {
           *,
           workout_template:workout_templates(
             id, name, description, difficulty, days_per_week, duration_weeks
+          ),
+          diet_plan:diet_plans(
+            id, name, description, calories_target, protein_grams, carbs_grams, fat_grams
           )
         `)
         .eq("client_id", targetId)

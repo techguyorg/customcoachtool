@@ -15,7 +15,8 @@ import {
   Search,
   Library,
   ClipboardList,
-  ChefHat
+  ChefHat,
+  Apple
 } from "lucide-react";
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
@@ -25,6 +26,7 @@ import ProgressPage from "@/pages/client/ProgressPage";
 import CheckinsPage from "@/pages/client/CheckinsPage";
 import ClientDietPlansPage from "@/pages/client/DietPlansPage";
 import RecipesPage from "@/pages/shared/RecipesPage";
+import NutritionLogPage from "@/pages/client/NutritionLogPage";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 
 const sidebarItems = [
@@ -33,6 +35,7 @@ const sidebarItems = [
   { icon: ClipboardList, label: "Programs", path: "/client/programs" },
   { icon: Library, label: "Exercises", path: "/client/exercises" },
   { icon: UtensilsCrossed, label: "Diet Plans", path: "/client/diet-plans" },
+  { icon: Apple, label: "Nutrition Log", path: "/client/nutrition-log" },
   { icon: ChefHat, label: "Recipes", path: "/client/recipes" },
   { icon: TrendingUp, label: "Progress", path: "/client/progress" },
   { icon: CalendarCheck, label: "Check-ins", path: "/client/checkins" },
@@ -137,6 +140,7 @@ function ClientDashboard() {
             <Route path="programs" element={<WorkoutTemplatesPage />} />
             <Route path="exercises" element={<ExercisesPage />} />
             <Route path="diet-plans" element={<ClientDietPlansPage />} />
+            <Route path="nutrition-log" element={<NutritionLogPage />} />
             <Route path="recipes" element={<RecipesPage viewOnly />} />
             <Route path="progress" element={<ProgressPage />} />
             <Route path="checkins" element={<CheckinsPage />} />

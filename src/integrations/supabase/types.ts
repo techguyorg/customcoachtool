@@ -281,6 +281,78 @@ export type Database = {
         }
         Relationships: []
       }
+      client_nutrition_logs: {
+        Row: {
+          calories: number | null
+          carbs_grams: number | null
+          client_id: string
+          created_at: string
+          custom_food_name: string | null
+          fat_grams: number | null
+          food_id: string | null
+          id: string
+          log_date: string
+          meal_type: string
+          notes: string | null
+          protein_grams: number | null
+          quantity: number
+          recipe_id: string | null
+          unit: string
+          updated_at: string
+        }
+        Insert: {
+          calories?: number | null
+          carbs_grams?: number | null
+          client_id: string
+          created_at?: string
+          custom_food_name?: string | null
+          fat_grams?: number | null
+          food_id?: string | null
+          id?: string
+          log_date?: string
+          meal_type: string
+          notes?: string | null
+          protein_grams?: number | null
+          quantity?: number
+          recipe_id?: string | null
+          unit?: string
+          updated_at?: string
+        }
+        Update: {
+          calories?: number | null
+          carbs_grams?: number | null
+          client_id?: string
+          created_at?: string
+          custom_food_name?: string | null
+          fat_grams?: number | null
+          food_id?: string | null
+          id?: string
+          log_date?: string
+          meal_type?: string
+          notes?: string | null
+          protein_grams?: number | null
+          quantity?: number
+          recipe_id?: string | null
+          unit?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_nutrition_logs_food_id_fkey"
+            columns: ["food_id"]
+            isOneToOne: false
+            referencedRelation: "foods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_nutrition_logs_recipe_id_fkey"
+            columns: ["recipe_id"]
+            isOneToOne: false
+            referencedRelation: "recipes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_profiles: {
         Row: {
           coach_id: string | null
@@ -1257,6 +1329,30 @@ export type Database = {
           servings?: number
           total_weight_g?: number | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      user_favorites: {
+        Row: {
+          created_at: string
+          id: string
+          item_id: string
+          item_type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          item_id: string
+          item_type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          item_id?: string
+          item_type?: string
+          user_id?: string
         }
         Relationships: []
       }
