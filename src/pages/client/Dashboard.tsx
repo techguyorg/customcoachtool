@@ -12,14 +12,17 @@ import {
   LogOut,
   Menu,
   X,
-  Search
+  Search,
+  Library
 } from "lucide-react";
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
+import ExercisesPage from "@/pages/shared/ExercisesPage";
 
 const sidebarItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/client" },
   { icon: Dumbbell, label: "Workouts", path: "/client/workouts" },
+  { icon: Library, label: "Exercises", path: "/client/exercises" },
   { icon: UtensilsCrossed, label: "Nutrition", path: "/client/nutrition" },
   { icon: TrendingUp, label: "Progress", path: "/client/progress" },
   { icon: CalendarCheck, label: "Check-ins", path: "/client/checkins" },
@@ -121,6 +124,7 @@ function ClientDashboard() {
           <Routes>
             <Route index element={<ClientHome />} />
             <Route path="workouts" element={<div className="text-muted-foreground">Workouts coming soon...</div>} />
+            <Route path="exercises" element={<ExercisesPage />} />
             <Route path="nutrition" element={<div className="text-muted-foreground">Nutrition tracking coming soon...</div>} />
             <Route path="progress" element={<div className="text-muted-foreground">Progress tracking coming soon...</div>} />
             <Route path="checkins" element={<div className="text-muted-foreground">Check-ins coming soon...</div>} />
