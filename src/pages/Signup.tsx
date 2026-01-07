@@ -1,9 +1,12 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Dumbbell, Mail, Lock, User, ArrowRight, Check } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Dumbbell, Mail, Lock, User, ArrowRight, Check, Loader2 } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
+import { AppRole } from "@/lib/auth";
 
 const benefits = [
   "14-day free trial, no credit card required",
@@ -18,11 +21,47 @@ const Signup = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState<"coach" | "client">("coach");
+  const [isLoading, setIsLoading] = useState(false);
+  const { signUp, user } = useAuth();
+  const navigate = useNavigate();
+  const { toast } = useToast();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Redirect if already logged in
+  if (user) {
+    const dashboardMap: Record<AppRole, string> = {
+      super_admin: "/admin",
+      coach: "/coach",
+      client: "/client",
+    };
+    navigate(dashboardMap[user.role] || "/", { replace: true });
+    return null;
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Implement signup with Supabase
-    console.log("Signup:", { name, email, password, role });
+    setIsLoading(true);
+
+    const { error } = await signUp({
+      email,
+      password,
+      fullName: name,
+      role: role as AppRole,
+    });
+
+    if (error) {
+      toast({
+        title: "Sign up failed",
+        description: error.message,
+        variant: "destructive",
+      });
+      setIsLoading(false);
+    } else {
+      toast({
+        title: "Account created!",
+        description: "Welcome to CustomCoachPro. Let's get started!",
+      });
+      // Navigation will happen via auth state change
+    }
   };
 
   return (
@@ -83,11 +122,12 @@ const Signup = () => {
             <button
               type="button"
               onClick={() => setRole("coach")}
+              disabled={isLoading}
               className={`p-4 rounded-xl border-2 transition-all ${
                 role === "coach"
                   ? "border-primary bg-primary/10"
                   : "border-border hover:border-primary/50"
-              }`}
+              } disabled:opacity-50`}
             >
               <div className="font-semibold mb-1">I'm a Coach</div>
               <div className="text-sm text-muted-foreground">
@@ -97,11 +137,12 @@ const Signup = () => {
             <button
               type="button"
               onClick={() => setRole("client")}
+              disabled={isLoading}
               className={`p-4 rounded-xl border-2 transition-all ${
                 role === "client"
                   ? "border-primary bg-primary/10"
                   : "border-border hover:border-primary/50"
-              }`}
+              } disabled:opacity-50`}
             >
               <div className="font-semibold mb-1">I'm a Client</div>
               <div className="text-sm text-muted-foreground">
@@ -124,6 +165,7 @@ const Signup = () => {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   required
+                  disabled={isLoading}
                 />
               </div>
             </div>
@@ -140,6 +182,7 @@ const Signup = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
+                  disabled={isLoading}
                 />
               </div>
             </div>
@@ -156,17 +199,27 @@ const Signup = () => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  minLength={8}
+                  minLength={6}
+                  disabled={isLoading}
                 />
               </div>
               <p className="text-xs text-muted-foreground">
-                Must be at least 8 characters
+                Must be at least 6 characters
               </p>
             </div>
 
-            <Button type="submit" variant="hero" className="w-full" size="lg">
-              Create Account
-              <ArrowRight className="w-5 h-5" />
+            <Button type="submit" variant="hero" className="w-full" size="lg" disabled={isLoading}>
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  Creating account...
+                </>
+              ) : (
+                <>
+                  Create Account
+                  <ArrowRight className="w-5 h-5" />
+                </>
+              )}
             </Button>
           </form>
 
