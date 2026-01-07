@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -23,12 +22,14 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { useAssignPlan } from "@/hooks/usePlanAssignments";
 import { useWorkoutTemplates, type TemplateFilters } from "@/hooks/useWorkoutTemplates";
+import { useDietPlans } from "@/hooks/useDietPlans";
 import { toast } from "sonner";
 import { Loader2, ClipboardList, Dumbbell, UtensilsCrossed } from "lucide-react";
 
 const assignmentSchema = z.object({
   plan_type: z.enum(['workout', 'diet']),
   workout_template_id: z.string().optional(),
+  diet_plan_id: z.string().optional(),
   start_date: z.string(),
   end_date: z.string().optional(),
   notes: z.string().optional(),
@@ -47,6 +48,7 @@ export function AssignPlanDialog({ open, onOpenChange, clientId, clientName }: A
   const assignPlan = useAssignPlan();
   const defaultFilters: TemplateFilters = { search: "", templateType: "all", difficulty: "all", daysPerWeek: "all" };
   const { data: templates = [], isLoading: loadingTemplates } = useWorkoutTemplates(defaultFilters);
+  const { data: dietPlans = [], isLoading: loadingDietPlans } = useDietPlans();
 
   const form = useForm<AssignmentFormData>({
     resolver: zodResolver(assignmentSchema),
@@ -64,11 +66,16 @@ export function AssignPlanDialog({ open, onOpenChange, clientId, clientName }: A
         toast.error("Please select a workout template");
         return;
       }
+      if (data.plan_type === 'diet' && !data.diet_plan_id) {
+        toast.error("Please select a diet plan");
+        return;
+      }
 
       await assignPlan.mutateAsync({
         clientId,
         planType: data.plan_type,
         workoutTemplateId: data.workout_template_id,
+        dietPlanId: data.diet_plan_id,
         startDate: data.start_date,
         endDate: data.end_date,
         notes: data.notes,
@@ -77,7 +84,7 @@ export function AssignPlanDialog({ open, onOpenChange, clientId, clientName }: A
       toast.success(`${data.plan_type === 'workout' ? 'Workout' : 'Diet'} plan assigned! Client will be notified.`);
       form.reset();
       onOpenChange(false);
-    } catch (error) {
+    } catch {
       toast.error("Failed to assign plan");
     }
   };
@@ -124,8 +131,7 @@ export function AssignPlanDialog({ open, onOpenChange, clientId, clientName }: A
               >
                 <UtensilsCrossed className={`w-6 h-6 mb-2 ${planType === 'diet' ? 'text-primary' : 'text-muted-foreground'}`} />
                 <p className="font-medium">Diet Plan</p>
-                <p className="text-xs text-muted-foreground">Coming soon</p>
-                <Badge variant="secondary" className="mt-2 text-xs">Soon</Badge>
+                <p className="text-xs text-muted-foreground">Assign nutrition plans</p>
               </button>
             </div>
           </div>
@@ -167,13 +173,42 @@ export function AssignPlanDialog({ open, onOpenChange, clientId, clientName }: A
             </div>
           )}
 
-          {/* Diet Plan Placeholder */}
+          {/* Diet Plan Selection */}
           {planType === 'diet' && (
-            <div className="p-6 rounded-lg border border-dashed border-border text-center">
-              <UtensilsCrossed className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
-              <p className="text-muted-foreground">
-                Diet plans are coming soon. You'll be able to create and assign custom nutrition plans.
-              </p>
+            <div className="space-y-2">
+              <Label>Select Diet Plan</Label>
+              <Select 
+                value={form.watch("diet_plan_id")} 
+                onValueChange={(value) => form.setValue("diet_plan_id", value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Choose a diet plan..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {loadingDietPlans ? (
+                    <div className="p-2 text-center">
+                      <Loader2 className="w-4 h-4 animate-spin mx-auto" />
+                    </div>
+                  ) : dietPlans.length > 0 ? (
+                    dietPlans.map((plan) => (
+                      <SelectItem key={plan.id} value={plan.id}>
+                        <div className="flex items-center gap-2">
+                          <span>{plan.name}</span>
+                          {plan.calories_target && (
+                            <Badge variant="outline" className="text-xs">
+                              {plan.calories_target} kcal
+                            </Badge>
+                          )}
+                        </div>
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <div className="p-2 text-center text-muted-foreground text-sm">
+                      No diet plans available. Create one first.
+                    </div>
+                  )}
+                </SelectContent>
+              </Select>
             </div>
           )}
 
@@ -213,7 +248,7 @@ export function AssignPlanDialog({ open, onOpenChange, clientId, clientName }: A
             </Button>
             <Button 
               type="submit" 
-              disabled={assignPlan.isPending || (planType === 'diet')}
+              disabled={assignPlan.isPending}
             >
               {assignPlan.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               Assign Plan

@@ -464,6 +464,116 @@ export type Database = {
         }
         Relationships: []
       }
+      diet_plan_meals: {
+        Row: {
+          calories: number | null
+          carbs_grams: number | null
+          created_at: string
+          fat_grams: number | null
+          food_suggestions: string[] | null
+          id: string
+          meal_name: string
+          meal_number: number
+          notes: string | null
+          plan_id: string
+          protein_grams: number | null
+          time_suggestion: string | null
+        }
+        Insert: {
+          calories?: number | null
+          carbs_grams?: number | null
+          created_at?: string
+          fat_grams?: number | null
+          food_suggestions?: string[] | null
+          id?: string
+          meal_name: string
+          meal_number: number
+          notes?: string | null
+          plan_id: string
+          protein_grams?: number | null
+          time_suggestion?: string | null
+        }
+        Update: {
+          calories?: number | null
+          carbs_grams?: number | null
+          created_at?: string
+          fat_grams?: number | null
+          food_suggestions?: string[] | null
+          id?: string
+          meal_name?: string
+          meal_number?: number
+          notes?: string | null
+          plan_id?: string
+          protein_grams?: number | null
+          time_suggestion?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "diet_plan_meals_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "diet_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      diet_plans: {
+        Row: {
+          calories_target: number | null
+          carbs_grams: number | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          dietary_type: string | null
+          fat_grams: number | null
+          goal: string | null
+          id: string
+          is_active: boolean
+          is_system: boolean
+          meals_per_day: number | null
+          name: string
+          notes: string | null
+          protein_grams: number | null
+          updated_at: string
+        }
+        Insert: {
+          calories_target?: number | null
+          carbs_grams?: number | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          dietary_type?: string | null
+          fat_grams?: number | null
+          goal?: string | null
+          id?: string
+          is_active?: boolean
+          is_system?: boolean
+          meals_per_day?: number | null
+          name: string
+          notes?: string | null
+          protein_grams?: number | null
+          updated_at?: string
+        }
+        Update: {
+          calories_target?: number | null
+          carbs_grams?: number | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          dietary_type?: string | null
+          fat_grams?: number | null
+          goal?: string | null
+          id?: string
+          is_active?: boolean
+          is_system?: boolean
+          meals_per_day?: number | null
+          name?: string
+          notes?: string | null
+          protein_grams?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       exercise_alternatives: {
         Row: {
           alternative_exercise_id: string
@@ -658,6 +768,13 @@ export type Database = {
           workout_template_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "plan_assignments_diet_plan_id_fkey"
+            columns: ["diet_plan_id"]
+            isOneToOne: false
+            referencedRelation: "diet_plans"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "plan_assignments_workout_template_id_fkey"
             columns: ["workout_template_id"]
