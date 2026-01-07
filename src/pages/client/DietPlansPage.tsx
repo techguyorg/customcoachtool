@@ -1,11 +1,11 @@
 import { useState } from "react";
-import { Plus, Search, Utensils, Flame, Beef, Wheat, Droplet } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Search, Utensils, Flame, Beef, Wheat, Droplet } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useDietPlans, DietPlan } from "@/hooks/useDietPlans";
 import { DietPlanDetailSheet } from "@/components/diet/DietPlanDetailSheet";
+import { FavoriteButton } from "@/components/favorites/FavoriteButton";
 
 const goalLabels: Record<string, string> = {
   weight_loss: "Weight Loss",
@@ -122,11 +122,16 @@ function DietPlanCard({
   return (
     <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={onView}>
       <CardHeader className="pb-3">
-        <div className="space-y-1">
-          <CardTitle className="text-lg">{plan.name}</CardTitle>
-          {plan.description && (
-            <CardDescription className="line-clamp-2">{plan.description}</CardDescription>
-          )}
+        <div className="flex items-start justify-between">
+          <div className="space-y-1 flex-1">
+            <CardTitle className="text-lg">{plan.name}</CardTitle>
+            {plan.description && (
+              <CardDescription className="line-clamp-2">{plan.description}</CardDescription>
+            )}
+          </div>
+          <div onClick={(e) => e.stopPropagation()}>
+            <FavoriteButton itemType="diet_plan" itemId={plan.id} size="sm" />
+          </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">

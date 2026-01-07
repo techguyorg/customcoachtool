@@ -16,7 +16,8 @@ import {
   Library,
   ClipboardList,
   ChefHat,
-  Apple
+  Apple,
+  Heart
 } from "lucide-react";
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
@@ -27,10 +28,12 @@ import CheckinsPage from "@/pages/client/CheckinsPage";
 import ClientDietPlansPage from "@/pages/client/DietPlansPage";
 import RecipesPage from "@/pages/shared/RecipesPage";
 import NutritionLogPage from "@/pages/client/NutritionLogPage";
+import FavoritesPage from "@/pages/client/FavoritesPage";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 
 const sidebarItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/client" },
+  { icon: Heart, label: "Favorites", path: "/client/favorites" },
   { icon: Dumbbell, label: "Workouts", path: "/client/workouts" },
   { icon: ClipboardList, label: "Programs", path: "/client/programs" },
   { icon: Library, label: "Exercises", path: "/client/exercises" },
@@ -136,6 +139,7 @@ function ClientDashboard() {
         <div className="p-6">
           <Routes>
             <Route index element={<ClientHome />} />
+            <Route path="favorites" element={<FavoritesPage />} />
             <Route path="workouts" element={<div className="text-muted-foreground">Workouts coming soon...</div>} />
             <Route path="programs" element={<WorkoutTemplatesPage />} />
             <Route path="exercises" element={<ExercisesPage />} />

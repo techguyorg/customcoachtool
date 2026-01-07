@@ -1,11 +1,13 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Calendar, Clock, Dumbbell, Target, Zap } from "lucide-react";
+import { Calendar, Clock, Zap } from "lucide-react";
+import { FavoriteButton } from "@/components/favorites/FavoriteButton";
 import type { TemplateWithStats } from "@/hooks/useWorkoutTemplates";
 
 interface TemplateCardProps {
   template: TemplateWithStats;
   onClick: () => void;
+  showFavorite?: boolean;
 }
 
 const difficultyColors = {
@@ -32,7 +34,7 @@ const typeColors: Record<string, string> = {
 const formatLabel = (value: string) => 
   value.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase());
 
-export function TemplateCard({ template, onClick }: TemplateCardProps) {
+export function TemplateCard({ template, onClick, showFavorite = true }: TemplateCardProps) {
   return (
     <Card 
       className="cursor-pointer transition-all hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5 group h-full"
@@ -46,12 +48,16 @@ export function TemplateCard({ template, onClick }: TemplateCardProps) {
               {template.name}
             </h3>
             {template.goal && (
-              <p className="text-sm text-primary/80 mt-0.5 flex items-center gap-1.5">
-                <Target className="w-3.5 h-3.5" />
-                <span className="line-clamp-1">{template.goal}</span>
+              <p className="text-sm text-primary/80 mt-0.5 line-clamp-1">
+                {template.goal}
               </p>
             )}
           </div>
+          {showFavorite && (
+            <div onClick={(e) => e.stopPropagation()}>
+              <FavoriteButton itemType="workout_template" itemId={template.id} size="sm" />
+            </div>
+          )}
         </div>
 
         {/* Description */}

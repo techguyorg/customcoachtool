@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { useRecipes, useDeleteRecipe, Recipe } from "@/hooks/useRecipes";
 import { RecipeBuilderDialog } from "@/components/diet/RecipeBuilderDialog";
 import { RecipeDetailSheet } from "@/components/diet/RecipeDetailSheet";
+import { FavoriteButton } from "@/components/favorites/FavoriteButton";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -198,22 +199,25 @@ function RecipeCard({
     <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={onView}>
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
-          <div className="space-y-1">
+          <div className="space-y-1 flex-1">
             <CardTitle className="text-lg">{recipe.name}</CardTitle>
             {recipe.description && (
               <CardDescription className="line-clamp-2">{recipe.description}</CardDescription>
             )}
           </div>
-          {!isSystem && onEdit && onDelete && (
-            <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
-              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onEdit}>
-                <Edit className="h-4 w-4" />
-              </Button>
-              <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={onDelete}>
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </div>
-          )}
+          <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+            <FavoriteButton itemType="recipe" itemId={recipe.id} size="sm" />
+            {!isSystem && onEdit && onDelete && (
+              <>
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onEdit}>
+                  <Edit className="h-4 w-4" />
+                </Button>
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={onDelete}>
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </>
+            )}
+          </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
