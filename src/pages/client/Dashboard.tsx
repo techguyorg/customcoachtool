@@ -17,7 +17,8 @@ import {
   ClipboardList,
   ChefHat,
   Apple,
-  Heart
+  Heart,
+  Users
 } from "lucide-react";
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
@@ -29,10 +30,12 @@ import ClientDietPlansPage from "@/pages/client/DietPlansPage";
 import RecipesPage from "@/pages/shared/RecipesPage";
 import NutritionLogPage from "@/pages/client/NutritionLogPage";
 import FavoritesPage from "@/pages/client/FavoritesPage";
+import CoachMarketplacePage from "@/pages/client/CoachMarketplacePage";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 
 const sidebarItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/client" },
+  { icon: Users, label: "Find a Coach", path: "/client/coaches" },
   { icon: Heart, label: "Favorites", path: "/client/favorites" },
   { icon: Dumbbell, label: "Workouts", path: "/client/workouts" },
   { icon: ClipboardList, label: "Programs", path: "/client/programs" },
@@ -139,8 +142,8 @@ function ClientDashboard() {
         <div className="p-6">
           <Routes>
             <Route index element={<ClientHome />} />
+            <Route path="coaches" element={<CoachMarketplacePage />} />
             <Route path="favorites" element={<FavoritesPage />} />
-            <Route path="workouts" element={<div className="text-muted-foreground">Workouts coming soon...</div>} />
             <Route path="programs" element={<WorkoutTemplatesPage />} />
             <Route path="exercises" element={<ExercisesPage />} />
             <Route path="diet-plans" element={<ClientDietPlansPage />} />
@@ -200,10 +203,12 @@ function ClientHome() {
         <div className="bg-card border border-border rounded-xl p-6">
           <h3 className="font-semibold mb-4">Find a Coach</h3>
           <p className="text-muted-foreground text-sm mb-4">Get personalized guidance from a certified coach.</p>
-          <Button variant="outline" className="w-full justify-start">
-            <User className="w-4 h-4 mr-2" />
-            Browse Coaches
-          </Button>
+          <Link to="/client/coaches">
+            <Button variant="outline" className="w-full justify-start">
+              <Users className="w-4 h-4 mr-2" />
+              Browse Coaches
+            </Button>
+          </Link>
         </div>
       </div>
     </div>
