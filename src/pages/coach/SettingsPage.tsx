@@ -18,7 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Settings, User, Award, DollarSign, Users, X, Plus, Save, Loader2 } from "lucide-react";
+import { Settings, User, Award, DollarSign, Users, X, Plus, Save, Loader2, Upload, Camera } from "lucide-react";
 import { toast } from "sonner";
 
 const SPECIALIZATION_OPTIONS = [
@@ -95,6 +95,8 @@ export default function CoachSettingsPage() {
 
   const [newSpecialization, setNewSpecialization] = useState("");
   const [newCertification, setNewCertification] = useState("");
+  const [customCertification, setCustomCertification] = useState("");
+  const [uploading, setUploading] = useState(false);
 
   // Load data into form
   useEffect(() => {
@@ -175,6 +177,14 @@ export default function CoachSettingsPage() {
       setCertifications([...certifications, cert]);
     }
     setNewCertification("");
+    setCustomCertification("");
+  };
+
+  const addCustomCertification = () => {
+    if (customCertification.trim() && !certifications.includes(customCertification.trim())) {
+      setCertifications([...certifications, customCertification.trim()]);
+      setCustomCertification("");
+    }
   };
 
   const removeCertification = (cert: string) => {
@@ -220,26 +230,74 @@ export default function CoachSettingsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Avatar Preview */}
+          {/* Avatar Preview with Upload */}
           <div className="flex items-center gap-4">
-            <Avatar className="w-20 h-20">
-              <AvatarImage src={avatarUrl || undefined} />
-              <AvatarFallback className="bg-primary/20 text-primary text-2xl font-semibold">
-                {initials}
-              </AvatarFallback>
-            </Avatar>
+            <div className="relative">
+              <Avatar className="w-20 h-20">
+                <AvatarImage src={avatarUrl || undefined} />
+                <AvatarFallback className="bg-primary/20 text-primary text-2xl font-semibold">
+                  {initials}
+                </AvatarFallback>
+              </Avatar>
+              <label 
+                htmlFor="avatar-upload" 
+                className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center cursor-pointer hover:bg-primary/90 transition-colors"
+              >
+                {uploading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Camera className="w-4 h-4" />
+                )}
+              </label>
+              <input
+                id="avatar-upload"
+                type="file"
+                accept="image/*"
+                className="hidden"
+                disabled={uploading}
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file || !user?.id) return;
+                  
+                  setUploading(true);
+                  try {
+                    // Upload to Supabase Storage
+                    const fileExt = file.name.split('.').pop();
+                    const fileName = `${user.id}-${Date.now()}.${fileExt}`;
+                    
+                    const { data, error } = await supabase.storage
+                      .from('avatars')
+                      .upload(fileName, file, { upsert: true });
+                    
+                    if (error) throw error;
+                    
+                    // Get public URL
+                    const { data: { publicUrl } } = supabase.storage
+                      .from('avatars')
+                      .getPublicUrl(fileName);
+                    
+                    setAvatarUrl(publicUrl);
+                    toast.success("Photo uploaded successfully!");
+                  } catch (error) {
+                    console.error("Upload error:", error);
+                    toast.error("Failed to upload photo. Try using a URL instead.");
+                  } finally {
+                    setUploading(false);
+                  }
+                }}
+              />
+            </div>
             <div className="flex-1">
-              <Label htmlFor="avatar">Profile Photo URL</Label>
+              <Label htmlFor="avatar">Profile Photo</Label>
+              <p className="text-sm text-muted-foreground mb-2">
+                Click the camera icon to upload, or paste a URL below
+              </p>
               <Input
                 id="avatar"
                 placeholder="https://example.com/your-photo.jpg"
                 value={avatarUrl}
                 onChange={(e) => setAvatarUrl(e.target.value)}
-                className="mt-1"
               />
-              <p className="text-xs text-muted-foreground mt-1">
-                A professional photo helps build trust with clients
-              </p>
             </div>
           </div>
 
@@ -336,7 +394,7 @@ export default function CoachSettingsPage() {
             <div className="flex gap-2">
               <Select value={newCertification} onValueChange={addCertification}>
                 <SelectTrigger className="flex-1">
-                  <SelectValue placeholder="Add certification..." />
+                  <SelectValue placeholder="Select certification..." />
                 </SelectTrigger>
                 <SelectContent>
                   {CERTIFICATION_OPTIONS.filter(c => !certifications.includes(c)).map((cert) => (
@@ -344,6 +402,23 @@ export default function CoachSettingsPage() {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+            <div className="flex gap-2 mt-2">
+              <Input
+                placeholder="Or type custom certification..."
+                value={customCertification}
+                onChange={(e) => setCustomCertification(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && addCustomCertification()}
+              />
+              <Button 
+                type="button" 
+                variant="outline" 
+                size="icon"
+                onClick={addCustomCertification}
+                disabled={!customCertification.trim()}
+              >
+                <Plus className="w-4 h-4" />
+              </Button>
             </div>
           </div>
 

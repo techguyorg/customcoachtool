@@ -1,4 +1,4 @@
-import { Flame, Beef, Wheat, Droplet, Clock, Utensils } from "lucide-react";
+import { Flame, Beef, Wheat, Droplet, Clock, Utensils, Play, Loader2 } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -7,9 +7,11 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { useDietPlanWithMeals, DietPlan } from "@/hooks/useDietPlans";
+import { useStartDietPlan } from "@/hooks/useStartProgram";
 
 const goalLabels: Record<string, string> = {
   weight_loss: "Weight Loss",
@@ -38,6 +40,12 @@ interface Props {
 export function DietPlanDetailSheet({ plan, onOpenChange }: Props) {
   const { data: planWithMeals } = useDietPlanWithMeals(plan?.id);
   const displayPlan = planWithMeals || plan;
+  const startDietPlan = useStartDietPlan();
+
+  const handleFollowPlan = () => {
+    if (!plan?.id) return;
+    startDietPlan.mutate({ dietPlanId: plan.id });
+  };
 
   return (
     <Sheet open={!!plan} onOpenChange={onOpenChange}>
@@ -50,6 +58,20 @@ export function DietPlanDetailSheet({ plan, onOpenChange }: Props) {
             </SheetHeader>
 
             <div className="mt-6 space-y-6">
+              {/* Follow Plan Button */}
+              <Button 
+                className="w-full gap-2" 
+                onClick={handleFollowPlan}
+                disabled={startDietPlan.isPending}
+              >
+                {startDietPlan.isPending ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Play className="w-4 h-4" />
+                )}
+                Follow This Plan
+              </Button>
+
               <div className="flex flex-wrap gap-2">
                 {displayPlan.goal && (
                   <Badge variant="secondary">{goalLabels[displayPlan.goal] || displayPlan.goal}</Badge>

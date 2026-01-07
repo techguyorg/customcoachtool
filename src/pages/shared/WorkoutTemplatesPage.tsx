@@ -3,6 +3,7 @@ import { useWorkoutTemplates, type TemplateFilters as Filters } from "@/hooks/us
 import { TemplateCard } from "@/components/templates/TemplateCard";
 import { TemplateFilters } from "@/components/templates/TemplateFilters";
 import { TemplateDetailSheet } from "@/components/templates/TemplateDetailSheet";
+import { MyPlansSection } from "@/components/plans/MyPlansSection";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ClipboardList, Search } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -49,6 +50,9 @@ export default function WorkoutTemplatesPage() {
 
   return (
     <div className="space-y-6">
+      {/* My Active Plans */}
+      <MyPlansSection planType="workout" title="My Active Programs" />
+
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold flex items-center gap-3">
