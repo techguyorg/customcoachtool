@@ -13,21 +13,23 @@ import {
   Menu,
   X,
   Search,
-  Library
+  Library,
+  ClipboardList
 } from "lucide-react";
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import ExercisesPage from "@/pages/shared/ExercisesPage";
+import WorkoutTemplatesPage from "@/pages/shared/WorkoutTemplatesPage";
 
 const sidebarItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/client" },
   { icon: Dumbbell, label: "Workouts", path: "/client/workouts" },
+  { icon: ClipboardList, label: "Programs", path: "/client/programs" },
   { icon: Library, label: "Exercises", path: "/client/exercises" },
   { icon: UtensilsCrossed, label: "Nutrition", path: "/client/nutrition" },
   { icon: TrendingUp, label: "Progress", path: "/client/progress" },
   { icon: CalendarCheck, label: "Check-ins", path: "/client/checkins" },
   { icon: MessageSquare, label: "Messages", path: "/client/messages" },
-  { icon: Search, label: "Explore", path: "/client/explore" },
   { icon: User, label: "Profile", path: "/client/profile" },
 ];
 
@@ -124,12 +126,12 @@ function ClientDashboard() {
           <Routes>
             <Route index element={<ClientHome />} />
             <Route path="workouts" element={<div className="text-muted-foreground">Workouts coming soon...</div>} />
+            <Route path="programs" element={<WorkoutTemplatesPage />} />
             <Route path="exercises" element={<ExercisesPage />} />
             <Route path="nutrition" element={<div className="text-muted-foreground">Nutrition tracking coming soon...</div>} />
             <Route path="progress" element={<div className="text-muted-foreground">Progress tracking coming soon...</div>} />
             <Route path="checkins" element={<div className="text-muted-foreground">Check-ins coming soon...</div>} />
             <Route path="messages" element={<div className="text-muted-foreground">Messages coming soon...</div>} />
-            <Route path="explore" element={<div className="text-muted-foreground">Explore plans & coaches coming soon...</div>} />
             <Route path="profile" element={<div className="text-muted-foreground">Profile settings coming soon...</div>} />
           </Routes>
         </div>
