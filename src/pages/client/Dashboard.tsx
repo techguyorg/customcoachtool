@@ -21,6 +21,7 @@ import { Link, useLocation } from "react-router-dom";
 import ExercisesPage from "@/pages/shared/ExercisesPage";
 import WorkoutTemplatesPage from "@/pages/shared/WorkoutTemplatesPage";
 import ProgressPage from "@/pages/client/ProgressPage";
+import CheckinsPage from "@/pages/client/CheckinsPage";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 
 const sidebarItems = [
@@ -133,7 +134,7 @@ function ClientDashboard() {
             <Route path="exercises" element={<ExercisesPage />} />
             <Route path="nutrition" element={<div className="text-muted-foreground">Nutrition tracking coming soon...</div>} />
             <Route path="progress" element={<ProgressPage />} />
-            <Route path="checkins" element={<div className="text-muted-foreground">Check-ins coming soon...</div>} />
+            <Route path="checkins" element={<CheckinsPage />} />
             <Route path="messages" element={<div className="text-muted-foreground">Messages coming soon...</div>} />
             <Route path="profile" element={<div className="text-muted-foreground">Profile settings coming soon...</div>} />
           </Routes>
