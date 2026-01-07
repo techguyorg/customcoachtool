@@ -1,7 +1,8 @@
 import { Button } from "@/components/ui/button";
-import { Menu, X, Dumbbell } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import logo from "@/assets/logo.png";
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -9,8 +10,7 @@ const Navbar = () => {
   const navLinks = [
     { href: "#features", label: "Features" },
     { href: "#pricing", label: "Pricing" },
-    { href: "#testimonials", label: "Testimonials" },
-    { href: "#faq", label: "FAQ" },
+    { href: "#testimonials", label: "Success Stories" },
   ];
 
   return (
@@ -19,11 +19,9 @@ const Navbar = () => {
         <div className="container px-4">
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
-            <Link to="/" className="flex items-center gap-2">
-              <div className="w-9 h-9 rounded-lg bg-gradient-primary flex items-center justify-center">
-                <Dumbbell className="w-5 h-5 text-primary-foreground" />
-              </div>
-              <span className="font-display font-bold text-xl">
+            <Link to="/" className="flex items-center gap-2.5">
+              <img src={logo} alt="CustomCoachPro" className="w-8 h-8" />
+              <span className="font-display font-bold text-lg">
                 CustomCoachPro
               </span>
             </Link>
@@ -42,12 +40,12 @@ const Navbar = () => {
             </div>
 
             {/* Desktop CTA */}
-            <div className="hidden md:flex items-center gap-4">
+            <div className="hidden md:flex items-center gap-3">
               <Link to="/login">
-                <Button variant="ghost">Log In</Button>
+                <Button variant="ghost" size="sm">Log In</Button>
               </Link>
               <Link to="/signup">
-                <Button variant="hero">Get Started</Button>
+                <Button variant="hero" size="sm">Get Started</Button>
               </Link>
             </div>
 
@@ -56,7 +54,7 @@ const Navbar = () => {
               className="md:hidden p-2 rounded-lg hover:bg-muted transition-colors"
               onClick={() => setIsOpen(!isOpen)}
             >
-              {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              {isOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
           </div>
         </div>
@@ -65,7 +63,7 @@ const Navbar = () => {
       {/* Mobile menu */}
       {isOpen && (
         <div className="md:hidden glass border-b border-border/50 animate-slide-down">
-          <div className="container px-4 py-4 space-y-4">
+          <div className="container px-4 py-4 space-y-3">
             {navLinks.map((link) => (
               <a
                 key={link.href}
@@ -78,10 +76,10 @@ const Navbar = () => {
             ))}
             <div className="flex flex-col gap-2 pt-4 border-t border-border">
               <Link to="/login">
-                <Button variant="ghost" className="w-full">Log In</Button>
+                <Button variant="ghost" className="w-full" size="sm">Log In</Button>
               </Link>
               <Link to="/signup">
-                <Button variant="hero" className="w-full">Get Started</Button>
+                <Button variant="hero" className="w-full" size="sm">Get Started</Button>
               </Link>
             </div>
           </div>

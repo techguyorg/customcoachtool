@@ -1,101 +1,97 @@
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Play, Dumbbell, TrendingUp, Users } from "lucide-react";
+import { ArrowRight, ChevronRight } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const Hero = () => {
   return (
-    <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
-      {/* Background Effects */}
-      <div className="absolute inset-0 bg-hero-pattern" />
-      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-3xl animate-pulse" />
-      <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-accent/5 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
-      
-      {/* Grid pattern */}
-      <div className="absolute inset-0 bg-[linear-gradient(rgba(34,197,94,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(34,197,94,0.03)_1px,transparent_1px)] bg-[size:60px_60px]" />
+    <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden pt-16">
+      {/* Subtle background */}
+      <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-transparent to-transparent" />
+      <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-primary/8 rounded-full blur-[120px]" />
 
-      <div className="container relative z-10 px-4 py-20">
-        <div className="max-w-5xl mx-auto text-center">
-          {/* Badge */}
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-8 animate-fade-up">
-            <Dumbbell className="w-4 h-4 text-primary" />
-            <span className="text-sm font-medium text-primary">Your Complete Fitness Platform</span>
+      <div className="container relative z-10 px-4 py-16">
+        <div className="max-w-3xl mx-auto text-center">
+          {/* Tagline */}
+          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 mb-6 text-xs font-medium text-primary">
+            <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+            Free to start • No credit card required
           </div>
 
-          {/* Main Heading */}
-          <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold mb-6 animate-fade-up" style={{ animationDelay: '0.1s' }}>
-            Your Fitness Journey,{" "}
-            <span className="text-gradient-primary">Simplified</span>
+          {/* Headline - Cleaner, tighter */}
+          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-5 leading-tight">
+            Your fitness journey,{" "}
+            <span className="text-gradient-primary">one platform</span>
           </h1>
 
-          {/* Subheading */}
-          <p className="text-xl md:text-2xl text-muted-foreground max-w-3xl mx-auto mb-10 animate-fade-up" style={{ animationDelay: '0.2s' }}>
-            Whether you're tracking your own progress, following a coach, or 
-            building a coaching business — CustomCoachPro has everything you need 
-            to achieve your fitness goals.
+          {/* Subheadline - Concise */}
+          <p className="text-lg text-muted-foreground max-w-xl mx-auto mb-8">
+            Track workouts, follow nutrition plans, connect with coaches, 
+            or manage your coaching business — all in one place.
           </p>
 
-          {/* CTA Buttons */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16 animate-fade-up" style={{ animationDelay: '0.3s' }}>
+          {/* CTA */}
+          <div className="flex flex-col sm:flex-row gap-3 justify-center mb-12">
             <Link to="/signup">
-              <Button variant="hero" size="xl">
-                Get Started Free
-                <ArrowRight className="w-5 h-5" />
+              <Button variant="hero" size="lg" className="w-full sm:w-auto">
+                Start for free
+                <ArrowRight className="w-4 h-4" />
               </Button>
             </Link>
-            <Button variant="heroOutline" size="xl">
-              <Play className="w-5 h-5" />
-              See How It Works
-            </Button>
+            <a href="#features">
+              <Button variant="outline" size="lg" className="w-full sm:w-auto">
+                See how it works
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+            </a>
           </div>
 
-          {/* Use Cases */}
-          <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto animate-fade-up" style={{ animationDelay: '0.4s' }}>
-            <div className="p-6 rounded-2xl bg-card/50 border border-border/50 backdrop-blur-sm">
-              <div className="inline-flex p-3 rounded-xl bg-primary/10 mb-4">
-                <TrendingUp className="w-6 h-6 text-primary" />
+          {/* Trust indicators - Subtle */}
+          <div className="flex flex-wrap items-center justify-center gap-6 text-sm text-muted-foreground">
+            <div className="flex items-center gap-2">
+              <div className="flex -space-x-2">
+                {[1, 2, 3, 4].map((i) => (
+                  <div
+                    key={i}
+                    className="w-7 h-7 rounded-full bg-gradient-to-br from-primary/40 to-primary/20 border-2 border-background flex items-center justify-center text-[10px] font-medium"
+                  >
+                    {String.fromCharCode(64 + i)}
+                  </div>
+                ))}
               </div>
-              <h3 className="font-semibold mb-2">Track Your Progress</h3>
-              <p className="text-sm text-muted-foreground">
-                Log workouts, monitor stats, and visualize your fitness journey over time.
-              </p>
+              <span>Trusted by fitness enthusiasts</span>
             </div>
-            <div className="p-6 rounded-2xl bg-card/50 border border-border/50 backdrop-blur-sm">
-              <div className="inline-flex p-3 rounded-xl bg-info/10 mb-4">
-                <Users className="w-6 h-6 text-info" />
-              </div>
-              <h3 className="font-semibold mb-2">Work With a Coach</h3>
-              <p className="text-sm text-muted-foreground">
-                Get personalized plans, check-ins, and guidance from certified professionals.
-              </p>
-            </div>
-            <div className="p-6 rounded-2xl bg-card/50 border border-border/50 backdrop-blur-sm">
-              <div className="inline-flex p-3 rounded-xl bg-success/10 mb-4">
-                <Dumbbell className="w-6 h-6 text-success" />
-              </div>
-              <h3 className="font-semibold mb-2">Build Your Business</h3>
-              <p className="text-sm text-muted-foreground">
-                Coaches: manage clients, create plans, and grow your fitness business.
-              </p>
-            </div>
+            <div className="hidden sm:block w-px h-4 bg-border" />
+            <span>Used by coaches worldwide</span>
           </div>
         </div>
 
-        {/* Stats */}
-        <div className="mt-20 max-w-4xl mx-auto animate-fade-up" style={{ animationDelay: '0.5s' }}>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 p-8 rounded-2xl bg-card/50 border border-border/50 backdrop-blur-sm">
-            {[
-              { value: "500K+", label: "Active Users" },
-              { value: "10K+", label: "Fitness Coaches" },
-              { value: "5M+", label: "Workouts Logged" },
-              { value: "98%", label: "Goal Achievement" },
-            ].map((stat, index) => (
-              <div key={index} className="text-center">
-                <div className="text-3xl md:text-4xl font-bold text-gradient-primary mb-1">
-                  {stat.value}
-                </div>
-                <div className="text-sm text-muted-foreground">{stat.label}</div>
+        {/* App preview placeholder */}
+        <div className="mt-16 max-w-4xl mx-auto">
+          <div className="relative rounded-xl overflow-hidden border border-border/50 bg-card/50 backdrop-blur-sm shadow-2xl shadow-black/20">
+            {/* Browser chrome */}
+            <div className="flex items-center gap-2 px-4 py-3 border-b border-border/50 bg-card/80">
+              <div className="flex gap-1.5">
+                <div className="w-3 h-3 rounded-full bg-destructive/60" />
+                <div className="w-3 h-3 rounded-full bg-warning/60" />
+                <div className="w-3 h-3 rounded-full bg-success/60" />
               </div>
-            ))}
+              <div className="flex-1 flex justify-center">
+                <div className="px-4 py-1 rounded-md bg-muted/50 text-xs text-muted-foreground">
+                  app.customcoachpro.com
+                </div>
+              </div>
+            </div>
+            {/* Preview content */}
+            <div className="aspect-[16/9] bg-gradient-to-br from-card via-card/95 to-primary/5 flex items-center justify-center">
+              <div className="text-center p-8">
+                <div className="inline-flex p-4 rounded-2xl bg-primary/10 mb-4">
+                  <svg className="w-12 h-12 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  </svg>
+                </div>
+                <p className="text-muted-foreground text-sm">Dashboard preview coming soon</p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
