@@ -480,6 +480,7 @@ export type Database = {
           is_periodized: boolean
           is_system: boolean
           name: string
+          template_type: Database["public"]["Enums"]["template_type"] | null
           updated_at: string
         }
         Insert: {
@@ -495,6 +496,7 @@ export type Database = {
           is_periodized?: boolean
           is_system?: boolean
           name: string
+          template_type?: Database["public"]["Enums"]["template_type"] | null
           updated_at?: string
         }
         Update: {
@@ -510,6 +512,7 @@ export type Database = {
           is_periodized?: boolean
           is_system?: boolean
           name?: string
+          template_type?: Database["public"]["Enums"]["template_type"] | null
           updated_at?: string
         }
         Relationships: [
@@ -583,6 +586,19 @@ export type Database = {
         | "lower_back"
         | "traps"
         | "lats"
+      template_type:
+        | "push_pull_legs"
+        | "upper_lower"
+        | "full_body"
+        | "bro_split"
+        | "strength"
+        | "hypertrophy"
+        | "powerbuilding"
+        | "sport_specific"
+        | "cardio_conditioning"
+        | "functional"
+        | "bodyweight"
+        | "beginner"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -751,6 +767,20 @@ export const Constants = {
         "lower_back",
         "traps",
         "lats",
+      ],
+      template_type: [
+        "push_pull_legs",
+        "upper_lower",
+        "full_body",
+        "bro_split",
+        "strength",
+        "hypertrophy",
+        "powerbuilding",
+        "sport_specific",
+        "cardio_conditioning",
+        "functional",
+        "bodyweight",
+        "beginner",
       ],
     },
   },
