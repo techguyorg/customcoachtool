@@ -81,7 +81,7 @@ const defaultMeals = [
 
 export function CreateDietPlanDialog({ open, onOpenChange, editingPlan }: Props) {
   const [activeTab, setActiveTab] = useState("basics");
-  const [useFoodBuilder, setUseFoodBuilder] = useState(false);
+  const [useFoodBuilder, setUseFoodBuilder] = useState(true);
   const [mealFoods, setMealFoods] = useState<Record<number, MealFoodItem[]>>({});
   const [alternatives, setAlternatives] = useState<FoodAlternative[]>([]);
   const [showAlternativesDialog, setShowAlternativesDialog] = useState(false);
