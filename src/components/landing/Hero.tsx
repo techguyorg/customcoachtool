@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Play, Sparkles } from "lucide-react";
+import { ArrowRight, Play, Dumbbell, TrendingUp, Users } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const Hero = () => {
@@ -17,44 +17,77 @@ const Hero = () => {
         <div className="max-w-5xl mx-auto text-center">
           {/* Badge */}
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-8 animate-fade-up">
-            <Sparkles className="w-4 h-4 text-primary" />
-            <span className="text-sm font-medium text-primary">The Ultimate Coaching Platform</span>
+            <Dumbbell className="w-4 h-4 text-primary" />
+            <span className="text-sm font-medium text-primary">Your Complete Fitness Platform</span>
           </div>
 
           {/* Main Heading */}
           <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold mb-6 animate-fade-up" style={{ animationDelay: '0.1s' }}>
-            Transform Lives with{" "}
-            <span className="text-gradient-primary">CustomCoachPro</span>
+            Your Fitness Journey,{" "}
+            <span className="text-gradient-primary">Simplified</span>
           </h1>
 
           {/* Subheading */}
           <p className="text-xl md:text-2xl text-muted-foreground max-w-3xl mx-auto mb-10 animate-fade-up" style={{ animationDelay: '0.2s' }}>
-            The all-in-one platform for fitness coaches and their clients. 
-            Manage workouts, nutrition, check-ins, and progress tracking — 
-            all in one beautiful dashboard.
+            Whether you're tracking your own progress, following a coach, or 
+            building a coaching business — CustomCoachPro has everything you need 
+            to achieve your fitness goals.
           </p>
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16 animate-fade-up" style={{ animationDelay: '0.3s' }}>
             <Link to="/signup">
               <Button variant="hero" size="xl">
-                Start Free Trial
+                Get Started Free
                 <ArrowRight className="w-5 h-5" />
               </Button>
             </Link>
             <Button variant="heroOutline" size="xl">
               <Play className="w-5 h-5" />
-              Watch Demo
+              See How It Works
             </Button>
           </div>
 
-          {/* Stats */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-4xl mx-auto animate-fade-up" style={{ animationDelay: '0.4s' }}>
+          {/* Use Cases */}
+          <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto animate-fade-up" style={{ animationDelay: '0.4s' }}>
+            <div className="p-6 rounded-2xl bg-card/50 border border-border/50 backdrop-blur-sm">
+              <div className="inline-flex p-3 rounded-xl bg-primary/10 mb-4">
+                <TrendingUp className="w-6 h-6 text-primary" />
+              </div>
+              <h3 className="font-semibold mb-2">Track Your Progress</h3>
+              <p className="text-sm text-muted-foreground">
+                Log workouts, monitor stats, and visualize your fitness journey over time.
+              </p>
+            </div>
+            <div className="p-6 rounded-2xl bg-card/50 border border-border/50 backdrop-blur-sm">
+              <div className="inline-flex p-3 rounded-xl bg-info/10 mb-4">
+                <Users className="w-6 h-6 text-info" />
+              </div>
+              <h3 className="font-semibold mb-2">Work With a Coach</h3>
+              <p className="text-sm text-muted-foreground">
+                Get personalized plans, check-ins, and guidance from certified professionals.
+              </p>
+            </div>
+            <div className="p-6 rounded-2xl bg-card/50 border border-border/50 backdrop-blur-sm">
+              <div className="inline-flex p-3 rounded-xl bg-success/10 mb-4">
+                <Dumbbell className="w-6 h-6 text-success" />
+              </div>
+              <h3 className="font-semibold mb-2">Build Your Business</h3>
+              <p className="text-sm text-muted-foreground">
+                Coaches: manage clients, create plans, and grow your fitness business.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Stats */}
+        <div className="mt-20 max-w-4xl mx-auto animate-fade-up" style={{ animationDelay: '0.5s' }}>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 p-8 rounded-2xl bg-card/50 border border-border/50 backdrop-blur-sm">
             {[
-              { value: "10K+", label: "Active Coaches" },
-              { value: "250K+", label: "Clients Transformed" },
-              { value: "5M+", label: "Workouts Completed" },
-              { value: "98%", label: "Satisfaction Rate" },
+              { value: "500K+", label: "Active Users" },
+              { value: "10K+", label: "Fitness Coaches" },
+              { value: "5M+", label: "Workouts Logged" },
+              { value: "98%", label: "Goal Achievement" },
             ].map((stat, index) => (
               <div key={index} className="text-center">
                 <div className="text-3xl md:text-4xl font-bold text-gradient-primary mb-1">
@@ -63,64 +96,6 @@ const Hero = () => {
                 <div className="text-sm text-muted-foreground">{stat.label}</div>
               </div>
             ))}
-          </div>
-        </div>
-
-        {/* Dashboard Preview */}
-        <div className="mt-20 max-w-6xl mx-auto animate-fade-up" style={{ animationDelay: '0.5s' }}>
-          <div className="relative">
-            {/* Glow effect behind dashboard */}
-            <div className="absolute inset-0 bg-gradient-to-t from-primary/20 via-primary/5 to-transparent blur-3xl -z-10" />
-            
-            {/* Dashboard mockup */}
-            <div className="glass rounded-2xl p-2 shadow-2xl">
-              <div className="bg-card rounded-xl overflow-hidden">
-                {/* Browser chrome */}
-                <div className="flex items-center gap-2 px-4 py-3 border-b border-border">
-                  <div className="flex gap-1.5">
-                    <div className="w-3 h-3 rounded-full bg-destructive/70" />
-                    <div className="w-3 h-3 rounded-full bg-warning/70" />
-                    <div className="w-3 h-3 rounded-full bg-success/70" />
-                  </div>
-                  <div className="flex-1 flex justify-center">
-                    <div className="px-4 py-1 rounded-md bg-muted text-xs text-muted-foreground">
-                      app.customcoachpro.com/dashboard
-                    </div>
-                  </div>
-                </div>
-                
-                {/* Dashboard content preview */}
-                <div className="p-6 min-h-[400px] bg-gradient-to-br from-card to-background">
-                  <div className="grid grid-cols-12 gap-6">
-                    {/* Sidebar */}
-                    <div className="col-span-2 space-y-4">
-                      <div className="h-10 bg-primary/20 rounded-lg" />
-                      <div className="space-y-2">
-                        {[1, 2, 3, 4, 5].map((i) => (
-                          <div key={i} className="h-8 bg-muted/50 rounded-lg" />
-                        ))}
-                      </div>
-                    </div>
-                    
-                    {/* Main content */}
-                    <div className="col-span-10 space-y-6">
-                      {/* Stats row */}
-                      <div className="grid grid-cols-4 gap-4">
-                        {[1, 2, 3, 4].map((i) => (
-                          <div key={i} className="stat-card h-24" />
-                        ))}
-                      </div>
-                      
-                      {/* Charts */}
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="stat-card h-48" />
-                        <div className="stat-card h-48" />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
       </div>

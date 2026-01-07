@@ -2,45 +2,45 @@ import { Star, Quote } from "lucide-react";
 
 const testimonials = [
   {
+    name: "Alex Rivera",
+    role: "Fitness Enthusiast",
+    image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face",
+    content: "I just wanted to track my workouts and progress. CustomCoachPro makes it so easy to log everything and actually see my gains over time. The exercise library is amazing!",
+    rating: 5,
+  },
+  {
     name: "Sarah Mitchell",
     role: "Online Fitness Coach",
     image: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop&crop=face",
-    content: "CustomCoachPro transformed my coaching business. I went from managing 15 clients in spreadsheets to 80+ with less admin work. The check-in automation alone saves me 10 hours a week.",
+    content: "Managing 80+ clients used to be a nightmare. Now I can create plans, track everyone's progress, and handle check-ins all in one place. Game changer for my business.",
     rating: 5,
   },
   {
     name: "Marcus Johnson",
-    role: "Strength & Conditioning Coach",
-    image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face",
-    content: "The workout builder is incredible. I can create complex periodized programs in minutes and my clients love the exercise video demonstrations. Best investment for my coaching career.",
+    role: "Client with Coach",
+    image: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop&crop=face",
+    content: "My coach assigns me workouts and meal plans through the app. I love seeing my progress charts and being able to easily check in with photos. Lost 30lbs so far!",
     rating: 5,
   },
   {
     name: "Emily Rodriguez",
     role: "Nutrition Coach",
     image: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop&crop=face",
-    content: "Finally, a platform that takes nutrition seriously! The meal planning tools and macro tracking help me deliver results my clients can see. My retention rate has doubled since switching.",
+    content: "The nutrition planning tools are comprehensive. My clients love tracking their macros and seeing how their diet aligns with their goals. Retention rate doubled.",
     rating: 5,
   },
   {
     name: "James Chen",
-    role: "Gym Owner",
+    role: "Self-Coached Athlete",
     image: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face",
-    content: "We have 8 coaches using CustomCoachPro and the admin dashboard gives me complete visibility. The analytics help us identify which programs are most effective for our members.",
+    content: "I browse the free workout plans and use the exercise database to build my own routines. It's like having a coach in my pocket without the monthly fee.",
     rating: 5,
   },
   {
     name: "Lisa Thompson",
-    role: "Wellness Coach",
+    role: "Gym Owner",
     image: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100&h=100&fit=crop&crop=face",
-    content: "The client communication features are seamless. In-app messaging with progress photo sharing makes it easy to stay connected and keep my clients motivated throughout their journey.",
-    rating: 5,
-  },
-  {
-    name: "David Park",
-    role: "CrossFit Coach",
-    image: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop&crop=face",
-    content: "I was skeptical about switching platforms, but CustomCoachPro exceeded expectations. The exercise database has everything I need and the support team is incredibly responsive.",
+    content: "All 8 of our coaches use CustomCoachPro. The admin dashboard gives complete visibility into client progress and coach performance. Essential for scaling.",
     rating: 5,
   },
 ];
@@ -51,12 +51,12 @@ const Testimonials = () => {
       <div className="container px-4">
         <div className="text-center max-w-3xl mx-auto mb-16">
           <h2 className="text-4xl md:text-5xl font-bold mb-6">
-            Loved by{" "}
-            <span className="text-gradient-primary">Coaches Worldwide</span>
+            Trusted by{" "}
+            <span className="text-gradient-primary">Fitness Enthusiasts</span>
           </h2>
           <p className="text-xl text-muted-foreground">
-            Join thousands of fitness professionals who trust CustomCoachPro 
-            to grow their coaching business.
+            From solo gym-goers to professional coaches — see how CustomCoachPro 
+            helps everyone achieve their fitness goals.
           </p>
         </div>
 
