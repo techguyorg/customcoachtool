@@ -20,6 +20,7 @@ import { Link, useLocation } from "react-router-dom";
 import ExercisesPage from "@/pages/shared/ExercisesPage";
 import WorkoutTemplatesPage from "@/pages/shared/WorkoutTemplatesPage";
 import ClientsPage from "@/pages/coach/ClientsPage";
+import { NotificationBell } from "@/components/notifications/NotificationBell";
 
 const sidebarItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/coach" },
@@ -116,7 +117,8 @@ function CoachDashboard() {
             >
               {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </Button>
-            <h1 className="text-xl font-semibold">Coach Dashboard</h1>
+            <h1 className="text-xl font-semibold flex-1">Coach Dashboard</h1>
+            <NotificationBell />
           </div>
         </header>
 
