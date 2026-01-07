@@ -2,6 +2,7 @@ import { Routes, Route, Link, useLocation } from "react-router-dom";
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { 
   LayoutDashboard, 
   Users, 
@@ -20,7 +21,8 @@ import {
   Clock,
   Target,
   Utensils,
-  ChefHat
+  ChefHat,
+  UserPlus
 } from "lucide-react";
 import CoachExercisesPage from "@/pages/coach/ExercisesPage";
 import WorkoutTemplatesPage from "@/pages/shared/WorkoutTemplatesPage";
@@ -28,13 +30,16 @@ import ClientsPage from "@/pages/coach/ClientsPage";
 import CoachCheckinsPage from "@/pages/coach/CheckinsPage";
 import DietPlansPage from "@/pages/coach/DietPlansPage";
 import RecipesPage from "@/pages/coach/RecipesPage";
+import RequestsPage from "@/pages/coach/RequestsPage";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { useCoachClients, useClientStats } from "@/hooks/useCoachClients";
 import { useCoachCheckins } from "@/hooks/useCheckins";
+import { usePendingRequestsCount } from "@/hooks/useCoachRequests";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const sidebarItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/coach" },
+  { icon: UserPlus, label: "Requests", path: "/coach/requests", badge: true },
   { icon: Users, label: "My Clients", path: "/coach/clients" },
   { icon: ClipboardList, label: "Programs", path: "/coach/programs" },
   { icon: Utensils, label: "Diet Plans", path: "/coach/diet-plans" },
@@ -50,6 +55,7 @@ function CoachDashboard() {
   const { user, signOut } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
+  const pendingRequestsCount = usePendingRequestsCount();
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -70,6 +76,7 @@ function CoachDashboard() {
           <nav className="flex-1 p-4 space-y-2">
             {sidebarItems.map((item) => {
               const isActive = location.pathname === item.path;
+              const showBadge = (item as any).badge && pendingRequestsCount > 0;
               return (
                 <Link
                   key={item.path}
@@ -83,6 +90,11 @@ function CoachDashboard() {
                 >
                   <item.icon className="w-5 h-5" />
                   {item.label}
+                  {showBadge && (
+                    <Badge variant="destructive" className="ml-auto h-5 px-1.5 text-xs">
+                      {pendingRequestsCount}
+                    </Badge>
+                  )}
                 </Link>
               );
             })}
@@ -139,6 +151,7 @@ function CoachDashboard() {
         <div className="p-6">
           <Routes>
             <Route index element={<CoachHome />} />
+            <Route path="requests" element={<RequestsPage />} />
             <Route path="clients" element={<ClientsPage />} />
             <Route path="programs" element={<WorkoutTemplatesPage />} />
             <Route path="diet-plans" element={<DietPlansPage />} />
