@@ -20,6 +20,8 @@ import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import ExercisesPage from "@/pages/shared/ExercisesPage";
 import WorkoutTemplatesPage from "@/pages/shared/WorkoutTemplatesPage";
+import ProgressPage from "@/pages/client/ProgressPage";
+import { NotificationBell } from "@/components/notifications/NotificationBell";
 
 const sidebarItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/client" },
@@ -117,7 +119,8 @@ function ClientDashboard() {
             >
               {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </Button>
-            <h1 className="text-xl font-semibold">My Fitness Journey</h1>
+            <h1 className="text-xl font-semibold flex-1">My Fitness Journey</h1>
+            <NotificationBell />
           </div>
         </header>
 
@@ -129,7 +132,7 @@ function ClientDashboard() {
             <Route path="programs" element={<WorkoutTemplatesPage />} />
             <Route path="exercises" element={<ExercisesPage />} />
             <Route path="nutrition" element={<div className="text-muted-foreground">Nutrition tracking coming soon...</div>} />
-            <Route path="progress" element={<div className="text-muted-foreground">Progress tracking coming soon...</div>} />
+            <Route path="progress" element={<ProgressPage />} />
             <Route path="checkins" element={<div className="text-muted-foreground">Check-ins coming soon...</div>} />
             <Route path="messages" element={<div className="text-muted-foreground">Messages coming soon...</div>} />
             <Route path="profile" element={<div className="text-muted-foreground">Profile settings coming soon...</div>} />
