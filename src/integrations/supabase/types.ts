@@ -152,6 +152,111 @@ export type Database = {
         }
         Relationships: []
       }
+      exercise_alternatives: {
+        Row: {
+          alternative_exercise_id: string
+          created_at: string
+          exercise_id: string
+          id: string
+          notes: string | null
+        }
+        Insert: {
+          alternative_exercise_id: string
+          created_at?: string
+          exercise_id: string
+          id?: string
+          notes?: string | null
+        }
+        Update: {
+          alternative_exercise_id?: string
+          created_at?: string
+          exercise_id?: string
+          id?: string
+          notes?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exercise_alternatives_alternative_exercise_id_fkey"
+            columns: ["alternative_exercise_id"]
+            isOneToOne: false
+            referencedRelation: "exercises"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "exercise_alternatives_exercise_id_fkey"
+            columns: ["exercise_id"]
+            isOneToOne: false
+            referencedRelation: "exercises"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      exercises: {
+        Row: {
+          common_mistakes: string[] | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          difficulty: Database["public"]["Enums"]["difficulty_level"]
+          equipment: Database["public"]["Enums"]["equipment_type"]
+          exercise_type: Database["public"]["Enums"]["exercise_type"]
+          id: string
+          image_url: string | null
+          instructions: string[] | null
+          is_system: boolean
+          name: string
+          primary_muscle: Database["public"]["Enums"]["muscle_group"]
+          secondary_muscles:
+            | Database["public"]["Enums"]["muscle_group"][]
+            | null
+          tips: string[] | null
+          updated_at: string
+          video_url: string | null
+        }
+        Insert: {
+          common_mistakes?: string[] | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          difficulty?: Database["public"]["Enums"]["difficulty_level"]
+          equipment: Database["public"]["Enums"]["equipment_type"]
+          exercise_type?: Database["public"]["Enums"]["exercise_type"]
+          id?: string
+          image_url?: string | null
+          instructions?: string[] | null
+          is_system?: boolean
+          name: string
+          primary_muscle: Database["public"]["Enums"]["muscle_group"]
+          secondary_muscles?:
+            | Database["public"]["Enums"]["muscle_group"][]
+            | null
+          tips?: string[] | null
+          updated_at?: string
+          video_url?: string | null
+        }
+        Update: {
+          common_mistakes?: string[] | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          difficulty?: Database["public"]["Enums"]["difficulty_level"]
+          equipment?: Database["public"]["Enums"]["equipment_type"]
+          exercise_type?: Database["public"]["Enums"]["exercise_type"]
+          id?: string
+          image_url?: string | null
+          instructions?: string[] | null
+          is_system?: boolean
+          name?: string
+          primary_muscle?: Database["public"]["Enums"]["muscle_group"]
+          secondary_muscles?:
+            | Database["public"]["Enums"]["muscle_group"][]
+            | null
+          tips?: string[] | null
+          updated_at?: string
+          video_url?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -215,6 +320,208 @@ export type Database = {
         }
         Relationships: []
       }
+      workout_template_days: {
+        Row: {
+          created_at: string
+          day_number: number
+          id: string
+          name: string
+          notes: string | null
+          template_id: string
+          week_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          day_number: number
+          id?: string
+          name: string
+          notes?: string | null
+          template_id: string
+          week_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          day_number?: number
+          id?: string
+          name?: string
+          notes?: string | null
+          template_id?: string
+          week_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workout_template_days_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "workout_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workout_template_days_week_id_fkey"
+            columns: ["week_id"]
+            isOneToOne: false
+            referencedRelation: "workout_template_weeks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workout_template_exercises: {
+        Row: {
+          created_at: string
+          custom_exercise_name: string | null
+          day_id: string
+          exercise_id: string | null
+          id: string
+          notes: string | null
+          order_index: number
+          reps_max: number | null
+          reps_min: number
+          rest_seconds_max: number | null
+          rest_seconds_min: number | null
+          sets_max: number | null
+          sets_min: number
+        }
+        Insert: {
+          created_at?: string
+          custom_exercise_name?: string | null
+          day_id: string
+          exercise_id?: string | null
+          id?: string
+          notes?: string | null
+          order_index?: number
+          reps_max?: number | null
+          reps_min?: number
+          rest_seconds_max?: number | null
+          rest_seconds_min?: number | null
+          sets_max?: number | null
+          sets_min?: number
+        }
+        Update: {
+          created_at?: string
+          custom_exercise_name?: string | null
+          day_id?: string
+          exercise_id?: string | null
+          id?: string
+          notes?: string | null
+          order_index?: number
+          reps_max?: number | null
+          reps_min?: number
+          rest_seconds_max?: number | null
+          rest_seconds_min?: number | null
+          sets_max?: number | null
+          sets_min?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workout_template_exercises_day_id_fkey"
+            columns: ["day_id"]
+            isOneToOne: false
+            referencedRelation: "workout_template_days"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workout_template_exercises_exercise_id_fkey"
+            columns: ["exercise_id"]
+            isOneToOne: false
+            referencedRelation: "exercises"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workout_template_weeks: {
+        Row: {
+          created_at: string
+          focus: string | null
+          id: string
+          name: string | null
+          notes: string | null
+          template_id: string
+          week_number: number
+        }
+        Insert: {
+          created_at?: string
+          focus?: string | null
+          id?: string
+          name?: string | null
+          notes?: string | null
+          template_id: string
+          week_number: number
+        }
+        Update: {
+          created_at?: string
+          focus?: string | null
+          id?: string
+          name?: string | null
+          notes?: string | null
+          template_id?: string
+          week_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workout_template_weeks_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "workout_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workout_templates: {
+        Row: {
+          cloned_from: string | null
+          created_at: string
+          created_by: string | null
+          days_per_week: number
+          description: string | null
+          difficulty: Database["public"]["Enums"]["difficulty_level"]
+          duration_weeks: number | null
+          goal: string | null
+          id: string
+          is_periodized: boolean
+          is_system: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          cloned_from?: string | null
+          created_at?: string
+          created_by?: string | null
+          days_per_week?: number
+          description?: string | null
+          difficulty?: Database["public"]["Enums"]["difficulty_level"]
+          duration_weeks?: number | null
+          goal?: string | null
+          id?: string
+          is_periodized?: boolean
+          is_system?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          cloned_from?: string | null
+          created_at?: string
+          created_by?: string | null
+          days_per_week?: number
+          description?: string | null
+          difficulty?: Database["public"]["Enums"]["difficulty_level"]
+          duration_weeks?: number | null
+          goal?: string | null
+          id?: string
+          is_periodized?: boolean
+          is_system?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workout_templates_cloned_from_fkey"
+            columns: ["cloned_from"]
+            isOneToOne: false
+            referencedRelation: "workout_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -238,6 +545,44 @@ export type Database = {
     }
     Enums: {
       app_role: "super_admin" | "coach" | "client"
+      difficulty_level: "beginner" | "intermediate" | "advanced"
+      equipment_type:
+        | "barbell"
+        | "dumbbell"
+        | "cable"
+        | "machine"
+        | "bodyweight"
+        | "kettlebell"
+        | "resistance_band"
+        | "ez_bar"
+        | "smith_machine"
+        | "pull_up_bar"
+        | "dip_station"
+        | "bench"
+        | "cardio_machine"
+        | "other"
+      exercise_type:
+        | "compound"
+        | "isolation"
+        | "cardio"
+        | "plyometric"
+        | "stretching"
+      muscle_group:
+        | "chest"
+        | "back"
+        | "shoulders"
+        | "biceps"
+        | "triceps"
+        | "forearms"
+        | "quadriceps"
+        | "hamstrings"
+        | "glutes"
+        | "calves"
+        | "abs"
+        | "obliques"
+        | "lower_back"
+        | "traps"
+        | "lats"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -366,6 +711,47 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["super_admin", "coach", "client"],
+      difficulty_level: ["beginner", "intermediate", "advanced"],
+      equipment_type: [
+        "barbell",
+        "dumbbell",
+        "cable",
+        "machine",
+        "bodyweight",
+        "kettlebell",
+        "resistance_band",
+        "ez_bar",
+        "smith_machine",
+        "pull_up_bar",
+        "dip_station",
+        "bench",
+        "cardio_machine",
+        "other",
+      ],
+      exercise_type: [
+        "compound",
+        "isolation",
+        "cardio",
+        "plyometric",
+        "stretching",
+      ],
+      muscle_group: [
+        "chest",
+        "back",
+        "shoulders",
+        "biceps",
+        "triceps",
+        "forearms",
+        "quadriceps",
+        "hamstrings",
+        "glutes",
+        "calves",
+        "abs",
+        "obliques",
+        "lower_back",
+        "traps",
+        "lats",
+      ],
     },
   },
 } as const
