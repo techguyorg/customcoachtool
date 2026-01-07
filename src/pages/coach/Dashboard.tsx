@@ -19,13 +19,15 @@ import {
   UserCheck,
   Clock,
   Target,
-  Utensils
+  Utensils,
+  ChefHat
 } from "lucide-react";
 import ExercisesPage from "@/pages/shared/ExercisesPage";
 import WorkoutTemplatesPage from "@/pages/shared/WorkoutTemplatesPage";
 import ClientsPage from "@/pages/coach/ClientsPage";
 import CoachCheckinsPage from "@/pages/coach/CheckinsPage";
 import DietPlansPage from "@/pages/coach/DietPlansPage";
+import RecipesPage from "@/pages/coach/RecipesPage";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { useCoachClients, useClientStats } from "@/hooks/useCoachClients";
 import { useCoachCheckins } from "@/hooks/useCheckins";
@@ -36,6 +38,7 @@ const sidebarItems = [
   { icon: Users, label: "My Clients", path: "/coach/clients" },
   { icon: ClipboardList, label: "Programs", path: "/coach/programs" },
   { icon: Utensils, label: "Diet Plans", path: "/coach/diet-plans" },
+  { icon: ChefHat, label: "Recipes", path: "/coach/recipes" },
   { icon: Library, label: "Exercises", path: "/coach/exercises" },
   { icon: CalendarCheck, label: "Check-ins", path: "/coach/checkins" },
   { icon: MessageSquare, label: "Messages", path: "/coach/messages" },
@@ -139,6 +142,7 @@ function CoachDashboard() {
             <Route path="clients" element={<ClientsPage />} />
             <Route path="programs" element={<WorkoutTemplatesPage />} />
             <Route path="diet-plans" element={<DietPlansPage />} />
+            <Route path="recipes" element={<RecipesPage />} />
             <Route path="exercises" element={<ExercisesPage />} />
             <Route path="checkins" element={<CoachCheckinsPage />} />
             <Route path="messages" element={<div className="text-muted-foreground">Messages coming soon...</div>} />
