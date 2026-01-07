@@ -22,7 +22,7 @@ import {
   Utensils,
   ChefHat
 } from "lucide-react";
-import ExercisesPage from "@/pages/shared/ExercisesPage";
+import CoachExercisesPage from "@/pages/coach/ExercisesPage";
 import WorkoutTemplatesPage from "@/pages/shared/WorkoutTemplatesPage";
 import ClientsPage from "@/pages/coach/ClientsPage";
 import CoachCheckinsPage from "@/pages/coach/CheckinsPage";
@@ -143,7 +143,7 @@ function CoachDashboard() {
             <Route path="programs" element={<WorkoutTemplatesPage />} />
             <Route path="diet-plans" element={<DietPlansPage />} />
             <Route path="recipes" element={<RecipesPage />} />
-            <Route path="exercises" element={<ExercisesPage />} />
+            <Route path="exercises" element={<CoachExercisesPage />} />
             <Route path="checkins" element={<CoachCheckinsPage />} />
             <Route path="messages" element={<div className="text-muted-foreground">Messages coming soon...</div>} />
             <Route path="analytics" element={<div className="text-muted-foreground">Analytics coming soon...</div>} />
