@@ -25,12 +25,13 @@ import {
   UserPlus
 } from "lucide-react";
 import CoachExercisesPage from "@/pages/coach/ExercisesPage";
-import WorkoutTemplatesPage from "@/pages/shared/WorkoutTemplatesPage";
+import CoachWorkoutProgramsPage from "@/pages/coach/WorkoutProgramsPage";
 import ClientsPage from "@/pages/coach/ClientsPage";
 import CoachCheckinsPage from "@/pages/coach/CheckinsPage";
 import DietPlansPage from "@/pages/coach/DietPlansPage";
 import RecipesPage from "@/pages/coach/RecipesPage";
 import RequestsPage from "@/pages/coach/RequestsPage";
+import CoachSettingsPage from "@/pages/coach/SettingsPage";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { useCoachClients, useClientStats } from "@/hooks/useCoachClients";
 import { useCoachCheckins } from "@/hooks/useCheckins";
@@ -153,14 +154,14 @@ function CoachDashboard() {
             <Route index element={<CoachHome />} />
             <Route path="requests" element={<RequestsPage />} />
             <Route path="clients" element={<ClientsPage />} />
-            <Route path="programs" element={<WorkoutTemplatesPage />} />
+            <Route path="programs" element={<CoachWorkoutProgramsPage />} />
             <Route path="diet-plans" element={<DietPlansPage />} />
             <Route path="recipes" element={<RecipesPage />} />
             <Route path="exercises" element={<CoachExercisesPage />} />
             <Route path="checkins" element={<CoachCheckinsPage />} />
             <Route path="messages" element={<div className="text-muted-foreground">Messages coming soon...</div>} />
             <Route path="analytics" element={<div className="text-muted-foreground">Analytics coming soon...</div>} />
-            <Route path="settings" element={<div className="text-muted-foreground">Settings coming soon...</div>} />
+            <Route path="settings" element={<CoachSettingsPage />} />
           </Routes>
         </div>
       </main>

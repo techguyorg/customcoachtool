@@ -20,12 +20,14 @@ import {
   Target, 
   Zap, 
   Dumbbell,
-  ChevronRight,
   Play,
-  Copy
+  Copy,
+  Loader2
 } from "lucide-react";
 import { useWorkoutTemplateDetail } from "@/hooks/useWorkoutTemplates";
+import { useStartProgram } from "@/hooks/useStartProgram";
 import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "sonner";
 
 interface TemplateDetailSheetProps {
   templateId: string | null;
@@ -59,6 +61,12 @@ const typeColors: Record<string, string> = {
 
 export function TemplateDetailSheet({ templateId, open, onOpenChange }: TemplateDetailSheetProps) {
   const { data: template, isLoading } = useWorkoutTemplateDetail(templateId);
+  const startProgram = useStartProgram();
+
+  const handleStartProgram = () => {
+    if (!templateId) return;
+    startProgram.mutate({ templateId });
+  };
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -132,8 +140,16 @@ export function TemplateDetailSheet({ templateId, open, onOpenChange }: Template
 
                 {/* Action Buttons */}
                 <div className="flex gap-3">
-                  <Button className="flex-1 gap-2">
-                    <Play className="w-4 h-4" />
+                  <Button 
+                    className="flex-1 gap-2" 
+                    onClick={handleStartProgram}
+                    disabled={startProgram.isPending}
+                  >
+                    {startProgram.isPending ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Play className="w-4 h-4" />
+                    )}
                     Start Program
                   </Button>
                   <Button variant="outline" className="gap-2">
