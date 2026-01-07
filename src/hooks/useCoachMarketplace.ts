@@ -35,18 +35,10 @@ export function useCoachMarketplace(filters: CoachFilters) {
   return useQuery({
     queryKey: ["coach-marketplace", filters],
     queryFn: async () => {
-      // Get all coach profiles with their user profiles
+      // Get all coach profiles
       let query = supabase
         .from("coach_profiles")
-        .select(`
-          *,
-          profile:profiles!coach_profiles_user_id_fkey(
-            full_name,
-            email,
-            avatar_url,
-            bio
-          )
-        `)
+        .select("*")
         .order("rating", { ascending: false, nullsFirst: false });
 
       if (filters.acceptingOnly) {
@@ -61,9 +53,27 @@ export function useCoachMarketplace(filters: CoachFilters) {
         query = query.lte("hourly_rate", filters.maxRate);
       }
 
-      const { data, error } = await query;
+      const { data: coachProfiles, error } = await query;
 
       if (error) throw error;
+      if (!coachProfiles || coachProfiles.length === 0) return [];
+
+      // Get profiles for these coaches
+      const userIds = coachProfiles.map(cp => cp.user_id);
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("user_id, full_name, email, avatar_url, bio")
+        .in("user_id", userIds);
+
+      const profileMap = new Map(
+        (profiles || []).map(p => [p.user_id, p])
+      );
+
+      // Combine the data
+      const data = coachProfiles.map(cp => ({
+        ...cp,
+        profile: profileMap.get(cp.user_id) || null,
+      }));
 
       // Filter by search and specialization in memory
       let coaches = (data || []) as unknown as CoachProfile[];
