@@ -24,6 +24,7 @@ import {
   ChefHat,
   UserPlus
 } from "lucide-react";
+import { useState } from "react";
 import CoachExercisesPage from "@/pages/coach/ExercisesPage";
 import CoachWorkoutProgramsPage from "@/pages/coach/WorkoutProgramsPage";
 import ClientsPage from "@/pages/coach/ClientsPage";
@@ -37,6 +38,20 @@ import { useCoachClients, useClientStats } from "@/hooks/useCoachClients";
 import { useCoachCheckins } from "@/hooks/useCheckins";
 import { usePendingRequestsCount } from "@/hooks/useCoachRequests";
 import { Skeleton } from "@/components/ui/skeleton";
+import { QuickAssignDialog } from "@/components/coach/QuickAssignDialog";
+
+function QuickAssignButton() {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <Button variant="default" className="w-full justify-start text-sm h-9" onClick={() => setOpen(true)}>
+        <ClipboardList className="w-4 h-4 mr-2" />
+        Assign Plan
+      </Button>
+      <QuickAssignDialog open={open} onOpenChange={setOpen} />
+    </>
+  );
+}
 
 const sidebarItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/coach" },
@@ -328,33 +343,28 @@ function CoachHome() {
 
         {/* Quick Actions */}
         <div className="bg-card border border-border rounded-xl p-6">
-          <h3 className="font-semibold mb-4 flex items-center gap-2">
-            <Target className="w-5 h-5 text-primary" />
+          <h3 className="font-semibold mb-4 flex items-center gap-2 text-sm">
+            <Target className="w-4 h-4 text-primary" />
             Quick Actions
           </h3>
-          <div className="space-y-3">
+          <div className="space-y-2">
+            <QuickAssignButton />
             <Link to="/coach/clients">
-              <Button variant="outline" className="w-full justify-start">
+              <Button variant="outline" className="w-full justify-start text-sm h-9">
                 <Users className="w-4 h-4 mr-2" />
                 Manage Clients
               </Button>
             </Link>
             <Link to="/coach/programs">
-              <Button variant="outline" className="w-full justify-start">
+              <Button variant="outline" className="w-full justify-start text-sm h-9">
                 <ClipboardList className="w-4 h-4 mr-2" />
                 Browse Programs
               </Button>
             </Link>
             <Link to="/coach/checkins">
-              <Button variant="outline" className="w-full justify-start">
+              <Button variant="outline" className="w-full justify-start text-sm h-9">
                 <CalendarCheck className="w-4 h-4 mr-2" />
                 Review Check-ins
-              </Button>
-            </Link>
-            <Link to="/coach/exercises">
-              <Button variant="outline" className="w-full justify-start">
-                <Dumbbell className="w-4 h-4 mr-2" />
-                Exercise Library
               </Button>
             </Link>
           </div>
