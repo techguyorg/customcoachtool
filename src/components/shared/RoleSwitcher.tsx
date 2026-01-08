@@ -1,7 +1,6 @@
-import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
 import { AppRole } from "@/lib/auth";
+import { useActiveRole } from "@/contexts/ActiveRoleContext";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,7 +10,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Repeat, Shield, Users, Dumbbell, Check } from "lucide-react";
 
 const ROLE_CONFIG: Record<AppRole, { label: string; icon: typeof Shield; path: string; color: string }> = {
@@ -35,41 +33,20 @@ const ROLE_CONFIG: Record<AppRole, { label: string; icon: typeof Shield; path: s
   },
 };
 
-const STORAGE_KEY = "customcoachpro_active_role";
-
 export function RoleSwitcher() {
-  const { user } = useAuth();
   const navigate = useNavigate();
-  const [activeRole, setActiveRole] = useState<AppRole | null>(null);
-
-  const allRoles = user?.allRoles || [];
-
-  // Initialize active role from localStorage or use highest priority role
-  useEffect(() => {
-    if (!user || allRoles.length === 0) return;
-
-    const savedRole = localStorage.getItem(STORAGE_KEY) as AppRole | null;
-    
-    if (savedRole && allRoles.includes(savedRole)) {
-      setActiveRole(savedRole);
-    } else {
-      // Use the current role (highest priority) as default
-      setActiveRole(user.role);
-      localStorage.setItem(STORAGE_KEY, user.role);
-    }
-  }, [user, allRoles]);
+  const { activeRole, setActiveRole, availableRoles } = useActiveRole();
 
   // Don't show if user has only one role
-  if (!user || allRoles.length <= 1) {
+  if (availableRoles.length <= 1) {
     return null;
   }
 
   const handleRoleSwitch = (role: AppRole) => {
     setActiveRole(role);
-    localStorage.setItem(STORAGE_KEY, role);
-    
     const config = ROLE_CONFIG[role];
-    navigate(config.path);
+    // Force navigation to the new dashboard
+    navigate(config.path, { replace: true });
   };
 
   const currentConfig = activeRole ? ROLE_CONFIG[activeRole] : null;
@@ -87,7 +64,7 @@ export function RoleSwitcher() {
       <DropdownMenuContent align="end" className="w-48">
         <DropdownMenuLabel className="text-xs">Switch Role</DropdownMenuLabel>
         <DropdownMenuSeparator />
-        {allRoles.map((role) => {
+        {availableRoles.map((role) => {
           const config = ROLE_CONFIG[role];
           const isActive = role === activeRole;
           const Icon = config.icon;
@@ -107,28 +84,4 @@ export function RoleSwitcher() {
       </DropdownMenuContent>
     </DropdownMenu>
   );
-}
-
-// Hook to get the active role
-export function useActiveRole(): AppRole | null {
-  const { user } = useAuth();
-  const [activeRole, setActiveRole] = useState<AppRole | null>(null);
-
-  useEffect(() => {
-    if (!user) {
-      setActiveRole(null);
-      return;
-    }
-
-    const savedRole = localStorage.getItem(STORAGE_KEY) as AppRole | null;
-    const allRoles = user.allRoles || [];
-
-    if (savedRole && allRoles.includes(savedRole)) {
-      setActiveRole(savedRole);
-    } else {
-      setActiveRole(user.role);
-    }
-  }, [user]);
-
-  return activeRole;
 }

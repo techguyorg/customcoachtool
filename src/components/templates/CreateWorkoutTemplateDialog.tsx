@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -51,14 +51,33 @@ const templateSchema = z.object({
 
 type TemplateFormData = z.infer<typeof templateSchema>;
 
-interface CreateWorkoutTemplateDialogProps {
-  onCreated?: (templateId: string) => void;
+interface WorkoutTemplateData {
+  id?: string;
+  name: string;
+  description?: string | null;
+  goal?: string | null;
+  template_type?: string | null;
+  difficulty: "beginner" | "intermediate" | "advanced";
+  days_per_week: number;
+  duration_weeks?: number | null;
+  is_periodized: boolean;
 }
 
-export function CreateWorkoutTemplateDialog({ onCreated }: CreateWorkoutTemplateDialogProps) {
-  const [open, setOpen] = useState(false);
+interface CreateWorkoutTemplateDialogProps {
+  onCreated?: (templateId: string) => void;
+  initialData?: WorkoutTemplateData | null;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+}
+
+export function CreateWorkoutTemplateDialog({ onCreated, initialData, open: controlledOpen, onOpenChange }: CreateWorkoutTemplateDialogProps) {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = controlledOpen !== undefined ? controlledOpen : internalOpen;
+  const setOpen = onOpenChange || setInternalOpen;
+  
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const isEditing = !!initialData?.id;
 
   const form = useForm<TemplateFormData>({
     resolver: zodResolver(templateSchema),
@@ -74,11 +93,29 @@ export function CreateWorkoutTemplateDialog({ onCreated }: CreateWorkoutTemplate
     },
   });
 
-  const createMutation = useMutation({
+  // Populate form when editing
+  useEffect(() => {
+    if (initialData && open) {
+      form.reset({
+        name: initialData.name || "",
+        description: initialData.description || "",
+        goal: initialData.goal || "",
+        template_type: initialData.template_type || "",
+        difficulty: initialData.difficulty || "intermediate",
+        days_per_week: initialData.days_per_week || 4,
+        duration_weeks: initialData.duration_weeks || undefined,
+        is_periodized: initialData.is_periodized || false,
+      });
+    } else if (!open) {
+      form.reset();
+    }
+  }, [initialData, open, form]);
+
+  const saveMutation = useMutation({
     mutationFn: async (data: TemplateFormData) => {
       if (!user?.id) throw new Error("Not authenticated");
 
-      const insertData = {
+      const templateData = {
         name: data.name,
         description: data.description || null,
         goal: data.goal || null,
@@ -87,67 +124,81 @@ export function CreateWorkoutTemplateDialog({ onCreated }: CreateWorkoutTemplate
         days_per_week: data.days_per_week,
         duration_weeks: data.duration_weeks || null,
         is_periodized: data.is_periodized,
-        is_system: false,
-        created_by: user.id,
       };
 
-      const { data: template, error } = await supabase
-        .from("workout_templates")
-        .insert(insertData)
-        .select()
-        .single();
+      if (isEditing && initialData?.id) {
+        const { data: template, error } = await supabase
+          .from("workout_templates")
+          .update(templateData)
+          .eq("id", initialData.id)
+          .select()
+          .single();
+        if (error) throw error;
+        return template;
+      } else {
+        const { data: template, error } = await supabase
+          .from("workout_templates")
+          .insert({
+            ...templateData,
+            is_system: false,
+            created_by: user.id,
+          })
+          .select()
+          .single();
 
-      if (error) throw error;
+        if (error) throw error;
 
-      // Create a default week
-      const { data: week, error: weekError } = await supabase
-        .from("workout_template_weeks")
-        .insert({
+        // Create a default week
+        const { data: week, error: weekError } = await supabase
+          .from("workout_template_weeks")
+          .insert({
+            template_id: template.id,
+            week_number: 1,
+            name: "Week 1",
+          })
+          .select()
+          .single();
+
+        if (weekError) throw weekError;
+
+        // Create default days based on days_per_week
+        const dayNames = [
+          "Day 1", "Day 2", "Day 3", "Day 4", "Day 5", "Day 6", "Day 7"
+        ];
+        
+        const daysToCreate = Array.from({ length: data.days_per_week }, (_, i) => ({
           template_id: template.id,
-          week_number: 1,
-          name: "Week 1",
-        })
-        .select()
-        .single();
+          week_id: week.id,
+          day_number: i + 1,
+          name: dayNames[i],
+        }));
 
-      if (weekError) throw weekError;
+        const { error: daysError } = await supabase
+          .from("workout_template_days")
+          .insert(daysToCreate);
 
-      // Create default days based on days_per_week
-      const dayNames = [
-        "Day 1", "Day 2", "Day 3", "Day 4", "Day 5", "Day 6", "Day 7"
-      ];
-      
-      const daysToCreate = Array.from({ length: data.days_per_week }, (_, i) => ({
-        template_id: template.id,
-        week_id: week.id,
-        day_number: i + 1,
-        name: dayNames[i],
-      }));
+        if (daysError) throw daysError;
 
-      const { error: daysError } = await supabase
-        .from("workout_template_days")
-        .insert(daysToCreate);
-
-      if (daysError) throw daysError;
-
-      return template;
+        return template;
+      }
     },
     onSuccess: (template) => {
       queryClient.invalidateQueries({ queryKey: ["workout-templates"] });
       queryClient.invalidateQueries({ queryKey: ["coach-workout-templates"] });
-      toast.success("Workout template created successfully!");
+      queryClient.invalidateQueries({ queryKey: ["admin-workout-templates"] });
+      toast.success(isEditing ? "Workout template updated!" : "Workout template created!");
       form.reset();
       setOpen(false);
       onCreated?.(template.id);
     },
     onError: (error) => {
       console.error(error);
-      toast.error("Failed to create template");
+      toast.error(isEditing ? "Failed to update template" : "Failed to create template");
     },
   });
 
   const onSubmit = (data: TemplateFormData) => {
-    createMutation.mutate(data);
+    saveMutation.mutate(data);
   };
 
   const formatLabel = (value: string) =>
@@ -163,9 +214,9 @@ export function CreateWorkoutTemplateDialog({ onCreated }: CreateWorkoutTemplate
       </DialogTrigger>
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Create Workout Program</DialogTitle>
+          <DialogTitle>{isEditing ? "Edit Workout Program" : "Create Workout Program"}</DialogTitle>
           <DialogDescription>
-            Create a custom workout program for yourself or your clients
+            {isEditing ? "Update the workout program details" : "Create a custom workout program for yourself or your clients"}
           </DialogDescription>
         </DialogHeader>
 
@@ -348,9 +399,9 @@ export function CreateWorkoutTemplateDialog({ onCreated }: CreateWorkoutTemplate
               >
                 Cancel
               </Button>
-              <Button type="submit" className="flex-1" disabled={createMutation.isPending}>
-                {createMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                Create Program
+              <Button type="submit" className="flex-1" disabled={saveMutation.isPending}>
+                {saveMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                {isEditing ? "Save Changes" : "Create Program"}
               </Button>
             </div>
           </form>

@@ -112,6 +112,8 @@ function ExercisesTab({ search, setSearch }: TabProps) {
   const queryClient = useQueryClient();
   const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [editingExercise, setEditingExercise] = useState<any>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
   
   const { data: exercises, isLoading } = useQuery({
     queryKey: ["admin-exercises"],
@@ -147,6 +149,11 @@ function ExercisesTab({ search, setSearch }: TabProps) {
   const handleView = (id: string) => {
     setSelectedExerciseId(id);
     setSheetOpen(true);
+  };
+
+  const handleEdit = (exercise: any) => {
+    setEditingExercise(exercise);
+    setEditDialogOpen(true);
   };
 
   return (
@@ -208,6 +215,7 @@ function ExercisesTab({ search, setSearch }: TabProps) {
                       <TableCell onClick={(e) => e.stopPropagation()}>
                         <ActionsMenu 
                           onView={() => handleView(ex.id)}
+                          onEdit={() => handleEdit(ex)}
                           onDelete={() => deleteMutation.mutate(ex.id)}
                           itemName={ex.name}
                         />
@@ -231,6 +239,15 @@ function ExercisesTab({ search, setSearch }: TabProps) {
         open={sheetOpen} 
         onOpenChange={setSheetOpen} 
       />
+      
+      <CreateExerciseDialog
+        initialData={editingExercise}
+        open={editDialogOpen}
+        onOpenChange={(open) => {
+          setEditDialogOpen(open);
+          if (!open) setEditingExercise(null);
+        }}
+      />
     </Card>
   );
 }
@@ -239,6 +256,8 @@ function WorkoutsTab({ search, setSearch }: TabProps) {
   const queryClient = useQueryClient();
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [editingTemplate, setEditingTemplate] = useState<any>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
   
   const { data: templates, isLoading } = useQuery({
     queryKey: ["admin-workout-templates"],
@@ -274,6 +293,11 @@ function WorkoutsTab({ search, setSearch }: TabProps) {
   const handleView = (id: string) => {
     setSelectedTemplateId(id);
     setSheetOpen(true);
+  };
+
+  const handleEdit = (template: any) => {
+    setEditingTemplate(template);
+    setEditDialogOpen(true);
   };
 
   return (
@@ -326,6 +350,7 @@ function WorkoutsTab({ search, setSearch }: TabProps) {
                       <TableCell onClick={(e) => e.stopPropagation()}>
                         <ActionsMenu 
                           onView={() => handleView(t.id)}
+                          onEdit={() => handleEdit(t)}
                           onDelete={() => deleteMutation.mutate(t.id)}
                           itemName={t.name}
                         />
@@ -343,6 +368,15 @@ function WorkoutsTab({ search, setSearch }: TabProps) {
         templateId={selectedTemplateId} 
         open={sheetOpen} 
         onOpenChange={setSheetOpen} 
+      />
+      
+      <CreateWorkoutTemplateDialog
+        initialData={editingTemplate}
+        open={editDialogOpen}
+        onOpenChange={(open) => {
+          setEditDialogOpen(open);
+          if (!open) setEditingTemplate(null);
+        }}
       />
     </Card>
   );
