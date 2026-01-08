@@ -23,6 +23,7 @@ import { PlatformAnalytics } from "@/components/admin/PlatformAnalytics";
 import { SuperAdminManagement } from "@/components/admin/SuperAdminManagement";
 import { PlatformSettings } from "@/components/admin/PlatformSettings";
 import { ChangePasswordCard } from "@/components/shared/ChangePasswordCard";
+import { ThemeSwitcher } from "@/components/shared/ThemeSwitcher";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Shield, UserCheck, Handshake, Clock } from "lucide-react";
 import { AdminUser } from "@/hooks/useAdminUsers";
@@ -113,16 +114,19 @@ function AdminDashboard() {
       <main className="flex-1 lg:ml-64">
         {/* Top bar */}
         <header className="sticky top-0 z-30 bg-background/80 backdrop-blur-sm border-b border-border">
-          <div className="flex items-center gap-4 px-6 py-4">
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="lg:hidden"
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-            >
-              {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-            </Button>
-            <h1 className="text-xl font-semibold">Super Admin Dashboard</h1>
+          <div className="flex items-center justify-between px-6 py-4">
+            <div className="flex items-center gap-4">
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="lg:hidden"
+                onClick={() => setSidebarOpen(!sidebarOpen)}
+              >
+                {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              </Button>
+              <h1 className="text-xl font-semibold">Super Admin Dashboard</h1>
+            </div>
+            <ThemeSwitcher />
           </div>
         </header>
 

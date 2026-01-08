@@ -35,6 +35,7 @@ import CoachMarketplacePage from "@/pages/client/CoachMarketplacePage";
 import ClientProfilePage from "@/pages/client/ProfilePage";
 import MessagesPage from "@/pages/shared/MessagesPage";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
+import { ThemeSwitcher } from "@/components/shared/ThemeSwitcher";
 import { MyCoachCard } from "@/components/client/MyCoachCard";
 import { ClientOnboardingDialog } from "@/components/client/ClientOnboardingDialog";
 import { useClientProfile } from "@/hooks/useClientProfile";
@@ -141,17 +142,22 @@ function ClientDashboard() {
       <main className="flex-1 lg:ml-64">
         {/* Top bar */}
         <header className="sticky top-0 z-30 bg-background/80 backdrop-blur-sm border-b border-border">
-          <div className="flex items-center gap-4 px-6 py-4">
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="lg:hidden"
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-            >
-              {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-            </Button>
-            <h1 className="text-xl font-semibold flex-1">My Fitness Journey</h1>
-            <NotificationBell />
+          <div className="flex items-center justify-between px-6 py-4">
+            <div className="flex items-center gap-4">
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="lg:hidden"
+                onClick={() => setSidebarOpen(!sidebarOpen)}
+              >
+                {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              </Button>
+              <h1 className="text-xl font-semibold">My Fitness Journey</h1>
+            </div>
+            <div className="flex items-center gap-2">
+              <ThemeSwitcher />
+              <NotificationBell />
+            </div>
           </div>
         </header>
 

@@ -35,6 +35,7 @@ import CoachSettingsPage from "@/pages/coach/SettingsPage";
 import MessagesPage from "@/pages/shared/MessagesPage";
 import AnalyticsPage from "@/pages/coach/AnalyticsPage";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
+import { ThemeSwitcher } from "@/components/shared/ThemeSwitcher";
 import { useCoachClients, useClientStats } from "@/hooks/useCoachClients";
 import { useCoachCheckins } from "@/hooks/useCheckins";
 import { usePendingRequestsCount } from "@/hooks/useCoachRequests";
@@ -150,17 +151,22 @@ function CoachDashboard() {
       <main className="flex-1 lg:ml-64">
         {/* Top bar */}
         <header className="sticky top-0 z-30 bg-background/80 backdrop-blur-sm border-b border-border">
-          <div className="flex items-center gap-4 px-6 py-4">
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="lg:hidden"
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-            >
-              {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-            </Button>
-            <h1 className="text-xl font-semibold flex-1">Coach Dashboard</h1>
-            <NotificationBell />
+          <div className="flex items-center justify-between px-6 py-4">
+            <div className="flex items-center gap-4">
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="lg:hidden"
+                onClick={() => setSidebarOpen(!sidebarOpen)}
+              >
+                {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              </Button>
+              <h1 className="text-xl font-semibold">Coach Dashboard</h1>
+            </div>
+            <div className="flex items-center gap-2">
+              <ThemeSwitcher />
+              <NotificationBell />
+            </div>
           </div>
         </header>
 

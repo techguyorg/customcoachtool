@@ -1,9 +1,11 @@
+import { useNavigate } from "react-router-dom";
 import { useAdminStats } from "@/hooks/useAdminStats";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Users, UserCheck, Shield, Handshake, Dumbbell, UtensilsCrossed, ChefHat, Apple } from "lucide-react";
+import { Loader2, Users, UserCheck, Shield, Handshake, Dumbbell, UtensilsCrossed, ChefHat, Apple, ArrowRight } from "lucide-react";
 
 export function PlatformAnalytics() {
   const { data: stats, isLoading } = useAdminStats();
+  const navigate = useNavigate();
 
   if (isLoading) {
     return (
@@ -26,24 +28,28 @@ export function PlatformAnalytics() {
             label="Total Users"
             value={stats.totalUsers}
             color="text-primary"
+            onClick={() => navigate("/admin/users")}
           />
           <StatCard
             icon={Shield}
             label="Super Admins"
             value={stats.totalAdmins}
             color="text-red-500"
+            onClick={() => navigate("/admin/super-admins")}
           />
           <StatCard
             icon={UserCheck}
             label="Coaches"
             value={stats.totalCoaches}
             color="text-blue-500"
+            onClick={() => navigate("/admin/users?filter=coach")}
           />
           <StatCard
             icon={Users}
             label="Clients"
             value={stats.totalClients}
             color="text-green-500"
+            onClick={() => navigate("/admin/users?filter=client")}
           />
         </div>
       </div>
@@ -57,12 +63,14 @@ export function PlatformAnalytics() {
             label="Active Coach-Client Relationships"
             value={stats.activeCoachings}
             color="text-purple-500"
+            onClick={() => navigate("/admin/users")}
           />
           <StatCard
             icon={Users}
             label="Pending Coaching Requests"
             value={stats.pendingRequests}
             color="text-amber-500"
+            onClick={() => navigate("/admin/users")}
           />
         </div>
       </div>
@@ -77,6 +85,7 @@ export function PlatformAnalytics() {
             value={stats.systemExercises}
             color="text-primary"
             compact
+            onClick={() => navigate("/admin/content")}
           />
           <StatCard
             icon={Dumbbell}
@@ -84,6 +93,7 @@ export function PlatformAnalytics() {
             value={stats.systemWorkoutTemplates}
             color="text-primary"
             compact
+            onClick={() => navigate("/admin/content")}
           />
           <StatCard
             icon={UtensilsCrossed}
@@ -91,6 +101,7 @@ export function PlatformAnalytics() {
             value={stats.systemDietPlans}
             color="text-primary"
             compact
+            onClick={() => navigate("/admin/content")}
           />
           <StatCard
             icon={ChefHat}
@@ -98,6 +109,7 @@ export function PlatformAnalytics() {
             value={stats.systemRecipes}
             color="text-primary"
             compact
+            onClick={() => navigate("/admin/content")}
           />
           <StatCard
             icon={Apple}
@@ -105,6 +117,7 @@ export function PlatformAnalytics() {
             value={stats.systemFoods}
             color="text-primary"
             compact
+            onClick={() => navigate("/admin/content")}
           />
         </div>
       </div>
@@ -152,25 +165,39 @@ interface StatCardProps {
   value: number;
   color: string;
   compact?: boolean;
+  onClick?: () => void;
 }
 
-function StatCard({ icon: Icon, label, value, color, compact }: StatCardProps) {
+function StatCard({ icon: Icon, label, value, color, compact, onClick }: StatCardProps) {
   return (
-    <Card className={compact ? "p-4" : ""}>
+    <Card 
+      className={`${compact ? "p-4" : ""} ${onClick ? "cursor-pointer hover:bg-muted/50 transition-colors group" : ""}`}
+      onClick={onClick}
+    >
       {compact ? (
-        <div className="flex items-center gap-3">
-          <Icon className={`w-5 h-5 ${color}`} />
-          <div>
-            <p className="text-2xl font-bold">{value}</p>
-            <p className="text-xs text-muted-foreground">{label}</p>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Icon className={`w-5 h-5 ${color}`} />
+            <div>
+              <p className="text-2xl font-bold">{value}</p>
+              <p className="text-xs text-muted-foreground">{label}</p>
+            </div>
           </div>
+          {onClick && (
+            <ArrowRight className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+          )}
         </div>
       ) : (
         <>
           <CardHeader className="pb-2">
-            <CardDescription className="flex items-center gap-2">
-              <Icon className={`w-4 h-4 ${color}`} />
-              {label}
+            <CardDescription className="flex items-center justify-between">
+              <span className="flex items-center gap-2">
+                <Icon className={`w-4 h-4 ${color}`} />
+                {label}
+              </span>
+              {onClick && (
+                <ArrowRight className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+              )}
             </CardDescription>
           </CardHeader>
           <CardContent>
