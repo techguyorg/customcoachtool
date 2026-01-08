@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -92,6 +92,34 @@ export function RecipeBuilderDialog({ open, onOpenChange, editingRecipe }: Props
       tags: "",
     },
   });
+
+  // Populate form when editing
+  useEffect(() => {
+    if (editingRecipe && open) {
+      form.reset({
+        name: editingRecipe.name,
+        description: editingRecipe.description || "",
+        instructions: editingRecipe.instructions || "",
+        prep_time_minutes: editingRecipe.prep_time_minutes || undefined,
+        cook_time_minutes: editingRecipe.cook_time_minutes || undefined,
+        servings: editingRecipe.servings || 1,
+        tags: editingRecipe.category || "",
+      });
+      // Populate ingredients if available
+      if (editingRecipe.ingredients) {
+        setIngredients(editingRecipe.ingredients.map(ing => ({
+          id: ing.id,
+          food: ing.food as unknown as Food,
+          quantity: ing.quantity,
+          unit: ing.unit,
+          notes: ing.notes || undefined,
+        })).filter(ing => ing.food));
+      }
+    } else if (!open) {
+      form.reset();
+      setIngredients([]);
+    }
+  }, [editingRecipe, open, form]);
 
   const addIngredient = () => {
     if (!selectedFood) return;
