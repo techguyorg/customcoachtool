@@ -20,9 +20,10 @@ import { useSendCoachingRequest, useCoachingRequests } from "@/hooks/useCoachMar
 
 interface CoachCardProps {
   coach: CoachProfile;
+  onClick?: () => void;
 }
 
-export function CoachCard({ coach }: CoachCardProps) {
+export function CoachCard({ coach, onClick }: CoachCardProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [message, setMessage] = useState("");
   const { toast } = useToast();
@@ -61,8 +62,11 @@ export function CoachCard({ coach }: CoachCardProps) {
   };
 
   return (
-    <Card className="overflow-hidden hover:border-primary/50 transition-colors">
-      <CardContent className="p-6">
+    <Card 
+      className="overflow-hidden hover:border-primary/50 transition-colors cursor-pointer"
+      onClick={onClick}
+    >
+      <CardContent className="p-5">
         <div className="flex gap-4">
           {/* Avatar */}
           <Avatar className="w-16 h-16 flex-shrink-0">
@@ -76,8 +80,8 @@ export function CoachCard({ coach }: CoachCardProps) {
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-2">
               <div>
-                <h3 className="font-semibold text-lg truncate">
-                  {coach.profile?.full_name || "Coach"}
+                <h3 className="font-semibold text-base truncate">
+                  {coach.profile?.full_name || "Unknown Coach"}
                 </h3>
                 <div className="flex items-center gap-2 mt-1">
                   {coach.rating ? (

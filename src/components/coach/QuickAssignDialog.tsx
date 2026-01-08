@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { format } from "date-fns";
-import { Loader2, ClipboardList, Utensils, User } from "lucide-react";
+import { Loader2, ClipboardList, Utensils, User, Plus } from "lucide-react";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -178,6 +179,9 @@ export function QuickAssignDialog({ open, onOpenChange }: QuickAssignDialogProps
                         ))}
                       </SelectContent>
                     </Select>
+                    <Link to="/coach/programs" className="text-xs text-primary hover:underline flex items-center gap-1 mt-1">
+                      <Plus className="w-3 h-3" /> Create New Program
+                    </Link>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -206,6 +210,9 @@ export function QuickAssignDialog({ open, onOpenChange }: QuickAssignDialogProps
                         ))}
                       </SelectContent>
                     </Select>
+                    <Link to="/coach/diet-plans" className="text-xs text-primary hover:underline flex items-center gap-1 mt-1">
+                      <Plus className="w-3 h-3" /> Create New Diet Plan
+                    </Link>
                     <FormMessage />
                   </FormItem>
                 )}

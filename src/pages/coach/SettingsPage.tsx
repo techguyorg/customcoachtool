@@ -181,9 +181,12 @@ export default function CoachSettingsPage() {
   };
 
   const addCustomCertification = () => {
-    if (customCertification.trim() && !certifications.includes(customCertification.trim())) {
-      setCertifications([...certifications, customCertification.trim()]);
+    const trimmed = customCertification.trim();
+    if (trimmed && !certifications.includes(trimmed)) {
+      const updated = [...certifications, trimmed];
+      setCertifications(updated);
       setCustomCertification("");
+      toast.success(`Added: ${trimmed}`);
     }
   };
 

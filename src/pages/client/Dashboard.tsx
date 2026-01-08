@@ -18,9 +18,10 @@ import {
   ChefHat,
   Apple,
   Heart,
-  Users
+  Users,
+  AlertCircle
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import ExercisesPage from "@/pages/shared/ExercisesPage";
 import WorkoutTemplatesPage from "@/pages/shared/WorkoutTemplatesPage";
@@ -32,7 +33,13 @@ import NutritionLogPage from "@/pages/client/NutritionLogPage";
 import FavoritesPage from "@/pages/client/FavoritesPage";
 import CoachMarketplacePage from "@/pages/client/CoachMarketplacePage";
 import ClientProfilePage from "@/pages/client/ProfilePage";
+import MessagesPage from "@/pages/shared/MessagesPage";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
+import { MyCoachCard } from "@/components/client/MyCoachCard";
+import { ClientOnboardingDialog } from "@/components/client/ClientOnboardingDialog";
+import { useClientProfile } from "@/hooks/useClientProfile";
+import { useTotalUnreadCount } from "@/hooks/useMessages";
+import { Badge } from "@/components/ui/badge";
 
 const sidebarItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/client" },
@@ -54,6 +61,7 @@ function ClientDashboard() {
   const { user, signOut } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
+  const unreadCount = useTotalUnreadCount();
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -71,22 +79,30 @@ function ClientDashboard() {
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 p-4 space-y-2">
+          <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
             {sidebarItems.map((item) => {
               const isActive = location.pathname === item.path;
+              const showBadge = item.label === "Messages" && unreadCount > 0;
               return (
                 <Link
                   key={item.path}
                   to={item.path}
                   onClick={() => setSidebarOpen(false)}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                  className={`flex items-center justify-between px-3 py-2.5 rounded-lg transition-colors text-sm ${
                     isActive 
                       ? 'bg-primary text-primary-foreground' 
                       : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                   }`}
                 >
-                  <item.icon className="w-5 h-5" />
-                  {item.label}
+                  <div className="flex items-center gap-3">
+                    <item.icon className="w-4 h-4" />
+                    {item.label}
+                  </div>
+                  {showBadge && (
+                    <Badge variant="secondary" className="h-5 w-5 p-0 flex items-center justify-center text-xs">
+                      {unreadCount}
+                    </Badge>
+                  )}
                 </Link>
               );
             })}
@@ -152,7 +168,7 @@ function ClientDashboard() {
             <Route path="recipes" element={<RecipesPage viewOnly />} />
             <Route path="progress" element={<ProgressPage />} />
             <Route path="checkins" element={<CheckinsPage />} />
-            <Route path="messages" element={<div className="text-muted-foreground">Messages coming soon...</div>} />
+            <Route path="messages" element={<MessagesPage />} />
             <Route path="profile" element={<ClientProfilePage />} />
           </Routes>
         </div>
@@ -163,53 +179,102 @@ function ClientDashboard() {
 
 function ClientHome() {
   const { user } = useAuth();
+  const { data: profileData, isLoading } = useClientProfile();
+  const [showOnboarding, setShowOnboarding] = useState(false);
+
+  // Show onboarding if profile is incomplete
+  useEffect(() => {
+    if (!isLoading && profileData && !profileData.isComplete) {
+      // Small delay so page loads first
+      const timer = setTimeout(() => setShowOnboarding(true), 500);
+      return () => clearTimeout(timer);
+    }
+  }, [isLoading, profileData]);
   
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
+      {/* Onboarding Dialog */}
+      <ClientOnboardingDialog 
+        open={showOnboarding} 
+        onOpenChange={setShowOnboarding}
+      />
+
+      {/* Incomplete Profile Banner */}
+      {profileData && !profileData.isComplete && !showOnboarding && (
+        <div className="bg-warning/10 border border-warning/30 rounded-lg p-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <AlertCircle className="w-5 h-5 text-warning" />
+            <div>
+              <p className="font-medium text-sm">Complete Your Profile</p>
+              <p className="text-xs text-muted-foreground">
+                Missing: {profileData.missingFields.join(", ")}
+              </p>
+            </div>
+          </div>
+          <Button size="sm" onClick={() => setShowOnboarding(true)}>
+            Complete Now
+          </Button>
+        </div>
+      )}
+
       {/* Welcome */}
-      <div className="bg-gradient-to-r from-primary/20 to-accent/10 rounded-xl p-6 border border-primary/20">
-        <h2 className="text-2xl font-bold">Hey {user?.fullName?.split(' ')[0] || 'there'}! 💪</h2>
-        <p className="text-muted-foreground mt-1">Ready to crush your goals today?</p>
+      <div className="bg-gradient-to-r from-primary/20 to-accent/10 rounded-xl p-5 border border-primary/20">
+        <h2 className="text-xl font-bold">Hey {user?.fullName?.split(' ')[0] || 'there'}! 💪</h2>
+        <p className="text-sm text-muted-foreground mt-1">Ready to crush your goals today?</p>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           { label: "Workouts This Week", value: "0", icon: Dumbbell },
           { label: "Calories Today", value: "0", icon: UtensilsCrossed },
           { label: "Current Streak", value: "0 days", icon: TrendingUp },
           { label: "Next Check-in", value: "—", icon: CalendarCheck },
         ].map((stat, i) => (
-          <div key={i} className="bg-card border border-border rounded-xl p-6">
+          <div key={i} className="bg-card border border-border rounded-xl p-4">
             <div className="flex items-center justify-between">
-              <p className="text-sm text-muted-foreground">{stat.label}</p>
-              <stat.icon className="w-5 h-5 text-muted-foreground" />
+              <p className="text-xs text-muted-foreground">{stat.label}</p>
+              <stat.icon className="w-4 h-4 text-muted-foreground" />
             </div>
-            <p className="text-3xl font-bold mt-2">{stat.value}</p>
+            <p className="text-2xl font-bold mt-1">{stat.value}</p>
           </div>
         ))}
       </div>
 
-      {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-card border border-border rounded-xl p-6">
-          <h3 className="font-semibold mb-4">Today's Plan</h3>
-          <p className="text-muted-foreground text-sm mb-4">No workout assigned for today.</p>
-          <Button variant="outline" className="w-full justify-start">
-            <Search className="w-4 h-4 mr-2" />
-            Browse Workout Plans
-          </Button>
-        </div>
+      {/* Main Content Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* My Coach Card */}
+        <MyCoachCard />
 
-        <div className="bg-card border border-border rounded-xl p-6">
-          <h3 className="font-semibold mb-4">Find a Coach</h3>
-          <p className="text-muted-foreground text-sm mb-4">Get personalized guidance from a certified coach.</p>
-          <Link to="/client/coaches">
-            <Button variant="outline" className="w-full justify-start">
-              <Users className="w-4 h-4 mr-2" />
-              Browse Coaches
+        {/* Today's Plan */}
+        <div className="bg-card border border-border rounded-xl p-4">
+          <h3 className="font-semibold text-sm mb-3">Today's Plan</h3>
+          <p className="text-muted-foreground text-xs mb-3">No workout assigned for today.</p>
+          <Link to="/client/programs">
+            <Button variant="outline" size="sm" className="w-full justify-start text-xs">
+              <Search className="w-3 h-3 mr-2" />
+              Browse Workout Plans
             </Button>
           </Link>
+        </div>
+
+        {/* Quick Actions */}
+        <div className="bg-card border border-border rounded-xl p-4">
+          <h3 className="font-semibold text-sm mb-3">Quick Actions</h3>
+          <div className="space-y-2">
+            <Link to="/client/nutrition-log">
+              <Button variant="outline" size="sm" className="w-full justify-start text-xs">
+                <Apple className="w-3 h-3 mr-2" />
+                Log Nutrition
+              </Button>
+            </Link>
+            <Link to="/client/progress">
+              <Button variant="outline" size="sm" className="w-full justify-start text-xs">
+                <TrendingUp className="w-3 h-3 mr-2" />
+                Track Progress
+              </Button>
+            </Link>
+          </div>
         </div>
       </div>
     </div>
