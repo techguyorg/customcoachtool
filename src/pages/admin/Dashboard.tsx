@@ -63,7 +63,7 @@ function AdminDashboard() {
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 p-4 space-y-2">
+          <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
             {sidebarItems.map((item) => {
               const isActive = location.pathname === item.path || 
                 (item.path !== "/admin" && location.pathname.startsWith(item.path));
@@ -72,13 +72,13 @@ function AdminDashboard() {
                   key={item.path}
                   to={item.path}
                   onClick={() => setSidebarOpen(false)}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                  className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-sm ${
                     isActive 
                       ? 'bg-primary text-primary-foreground' 
                       : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                   }`}
                 >
-                  <item.icon className="w-5 h-5" />
+                  <item.icon className="w-4 h-4" />
                   {item.label}
                 </Link>
               );
@@ -180,7 +180,7 @@ function AdminHome() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-bold">{stats?.totalUsers || 0}</p>
+            <p className="text-2xl font-bold">{stats?.totalUsers || 0}</p>
           </CardContent>
         </Card>
         <Card 
@@ -194,7 +194,7 @@ function AdminHome() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-bold">{stats?.totalCoaches || 0}</p>
+            <p className="text-2xl font-bold">{stats?.totalCoaches || 0}</p>
           </CardContent>
         </Card>
         <Card 
@@ -208,7 +208,7 @@ function AdminHome() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-bold">{stats?.activeCoachings || 0}</p>
+            <p className="text-2xl font-bold">{stats?.activeCoachings || 0}</p>
           </CardContent>
         </Card>
         <Card 
@@ -222,7 +222,7 @@ function AdminHome() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-bold">{stats?.pendingRequests || 0}</p>
+            <p className="text-2xl font-bold">{stats?.pendingRequests || 0}</p>
           </CardContent>
         </Card>
       </div>

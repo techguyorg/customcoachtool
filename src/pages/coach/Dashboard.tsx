@@ -91,7 +91,7 @@ function CoachDashboard() {
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 p-4 space-y-2">
+          <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
             {sidebarItems.map((item) => {
               const isActive = location.pathname === item.path;
               const showBadge = (item as any).badge && pendingRequestsCount > 0;
@@ -100,13 +100,13 @@ function CoachDashboard() {
                   key={item.path}
                   to={item.path}
                   onClick={() => setSidebarOpen(false)}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                  className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-sm ${
                     isActive 
                       ? 'bg-primary text-primary-foreground' 
                       : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                   }`}
                 >
-                  <item.icon className="w-5 h-5" />
+                  <item.icon className="w-4 h-4" />
                   {item.label}
                   {showBadge && (
                     <Badge variant="destructive" className="ml-auto h-5 px-1.5 text-xs">
@@ -218,7 +218,7 @@ function CoachHome() {
           {loadingClients ? (
             <Skeleton className="h-9 w-16 mt-2" />
           ) : (
-            <p className="text-3xl font-bold mt-2">{stats.total}</p>
+            <p className="text-2xl font-bold mt-2">{stats.total}</p>
           )}
         </div>
         
@@ -230,7 +230,7 @@ function CoachHome() {
           {loadingClients ? (
             <Skeleton className="h-9 w-16 mt-2" />
           ) : (
-            <p className="text-3xl font-bold mt-2 text-success">{stats.active}</p>
+            <p className="text-2xl font-bold mt-2 text-success">{stats.active}</p>
           )}
         </div>
         
@@ -242,7 +242,7 @@ function CoachHome() {
           {loadingCheckins ? (
             <Skeleton className="h-9 w-16 mt-2" />
           ) : (
-            <p className="text-3xl font-bold mt-2 text-warning">{pendingCheckins.length}</p>
+            <p className="text-2xl font-bold mt-2 text-warning">{pendingCheckins.length}</p>
           )}
         </div>
         
@@ -254,7 +254,7 @@ function CoachHome() {
           {loadingClients ? (
             <Skeleton className="h-9 w-16 mt-2" />
           ) : (
-            <p className="text-3xl font-bold mt-2">{stats.pending}</p>
+            <p className="text-2xl font-bold mt-2">{stats.pending}</p>
           )}
         </div>
       </div>
