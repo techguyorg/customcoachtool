@@ -72,8 +72,6 @@ export function RelationshipsView() {
       <PageHeader
         title="Active Coach-Client Relationships"
         description="View all active coaching relationships on the platform"
-        backTo="/admin/analytics"
-        backLabel="Back to Analytics"
       />
 
       <Card>

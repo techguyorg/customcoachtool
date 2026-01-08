@@ -36,16 +36,60 @@ export function SuperAdminManagement() {
     },
   });
 
+  const logAuditAction = async (actionType: string, targetUserId: string, details: Record<string, string>) => {
+    try {
+      await supabase.from("admin_audit_logs").insert([{
+        admin_user_id: user?.id,
+        action_type: actionType,
+        target_user_id: targetUserId,
+        target_resource_type: "user",
+        details: details as any,
+      }]);
+    } catch (error) {
+      console.error("Failed to log audit action:", error);
+    }
+  };
+
+  const sendNotification = async (type: "super_admin_granted" | "super_admin_revoked", targetEmail: string, targetName: string) => {
+    try {
+      await supabase.functions.invoke("send-admin-notification", {
+        body: {
+          type,
+          targetEmail,
+          targetName,
+          performedByName: user?.fullName || "System Admin",
+        },
+      });
+    } catch (error) {
+      console.error("Failed to send notification:", error);
+    }
+  };
+
   const assignMutation = useMutation({
     mutationFn: async (targetEmail: string) => {
       const { data, error } = await supabase.rpc("assign_super_admin_by_email", {
         target_email: targetEmail,
       });
       if (error) throw error;
-      return data as string;
+      return { result: data as string, email: targetEmail };
     },
-    onSuccess: (result) => {
+    onSuccess: async ({ result, email: targetEmail }) => {
       if (result.startsWith("SUCCESS")) {
+        // Get the user info for audit log
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("user_id, full_name")
+          .eq("email", targetEmail)
+          .single();
+        
+        if (profile) {
+          await logAuditAction("super_admin_granted", profile.user_id, { 
+            target_email: targetEmail,
+            target_name: profile.full_name 
+          });
+          await sendNotification("super_admin_granted", targetEmail, profile.full_name);
+        }
+        
         toast.success("Super admin role assigned successfully");
         queryClient.invalidateQueries({ queryKey: ["super-admins"] });
         setEmail("");
@@ -62,15 +106,21 @@ export function SuperAdminManagement() {
   });
 
   const revokeMutation = useMutation({
-    mutationFn: async (targetEmail: string) => {
+    mutationFn: async (admin: SuperAdmin) => {
       const { data, error } = await supabase.rpc("revoke_super_admin_by_email", {
-        target_email: targetEmail,
+        target_email: admin.email,
       });
       if (error) throw error;
-      return data as string;
+      return { result: data as string, admin };
     },
-    onSuccess: (result) => {
+    onSuccess: async ({ result, admin }) => {
       if (result.startsWith("SUCCESS")) {
+        await logAuditAction("super_admin_revoked", admin.user_id, { 
+          target_email: admin.email,
+          target_name: admin.full_name 
+        });
+        await sendNotification("super_admin_revoked", admin.email, admin.full_name);
+        
         toast.success("Super admin role revoked");
         queryClient.invalidateQueries({ queryKey: ["super-admins"] });
       } else {
@@ -91,12 +141,12 @@ export function SuperAdminManagement() {
     assignMutation.mutate(email.trim());
   };
 
-  const handleRevoke = (targetEmail: string) => {
-    if (targetEmail === user?.email) {
+  const handleRevoke = (admin: SuperAdmin) => {
+    if (admin.email === user?.email) {
       toast.error("You cannot revoke your own super admin role");
       return;
     }
-    revokeMutation.mutate(targetEmail);
+    revokeMutation.mutate(admin);
   };
 
   return (
@@ -188,7 +238,7 @@ export function SuperAdminManagement() {
                             <Button
                               size="sm"
                               variant="destructive"
-                              onClick={() => handleRevoke(admin.email)}
+                              onClick={() => handleRevoke(admin)}
                               disabled={revokeMutation.isPending}
                             >
                               {revokeMutation.isPending ? (
@@ -243,7 +293,7 @@ export function SuperAdminManagement() {
             role to trusted team members.
           </p>
           <p>
-            All super admin actions are logged for audit purposes.
+            All super admin actions are logged for audit purposes. Email notifications are sent when access is granted or revoked.
           </p>
         </CardContent>
       </Card>
