@@ -3,17 +3,21 @@ import { useCoachClients, useUpdateClientStatus, useClientStats, type CoachClien
 import { ClientCard } from "@/components/coach/ClientCard";
 import { InviteClientDialog } from "@/components/coach/InviteClientDialog";
 import { ClientDetailSheet } from "@/components/coach/ClientDetailSheet";
+import { AssignPlanDialog } from "@/components/coach/AssignPlanDialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Users, Search, UserPlus, UserCheck, Clock, Pause } from "lucide-react";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 export default function ClientsPage() {
+  const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [selectedClient, setSelectedClient] = useState<CoachClient | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("all");
+  const [assignPlanClient, setAssignPlanClient] = useState<CoachClient | null>(null);
 
   const { data: clients, isLoading, error } = useCoachClients();
   const updateStatus = useUpdateClientStatus();
@@ -31,6 +35,14 @@ export default function ClientsPage() {
   const handleViewDetails = (client: CoachClient) => {
     setSelectedClient(client);
     setSheetOpen(true);
+  };
+
+  const handleAssignPlan = (client: CoachClient) => {
+    setAssignPlanClient(client);
+  };
+
+  const handleMessage = (client: CoachClient) => {
+    navigate("/coach/messages");
   };
 
   // Filter clients
@@ -135,6 +147,8 @@ export default function ClientsPage() {
               client={client}
               onStatusChange={handleStatusChange}
               onViewDetails={handleViewDetails}
+              onAssignPlan={handleAssignPlan}
+              onMessage={handleMessage}
             />
           ))}
         </div>
@@ -162,6 +176,14 @@ export default function ClientsPage() {
         client={selectedClient}
         open={sheetOpen}
         onOpenChange={setSheetOpen}
+      />
+
+      {/* Assign Plan Dialog */}
+      <AssignPlanDialog
+        open={!!assignPlanClient}
+        onOpenChange={(open) => !open && setAssignPlanClient(null)}
+        clientId={assignPlanClient?.client_id || ""}
+        clientName={assignPlanClient?.profile?.full_name || "Client"}
       />
     </div>
   );
