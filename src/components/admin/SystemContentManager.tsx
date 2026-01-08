@@ -697,11 +697,12 @@ function LoadingState() {
 
 interface ActionsMenuProps {
   onView?: () => void;
+  onEdit?: () => void;
   onDelete: () => void;
   itemName: string;
 }
 
-function ActionsMenu({ onView, onDelete, itemName }: ActionsMenuProps) {
+function ActionsMenu({ onView, onEdit, onDelete, itemName }: ActionsMenuProps) {
   return (
     <AlertDialog>
       <DropdownMenu>
@@ -715,6 +716,12 @@ function ActionsMenu({ onView, onDelete, itemName }: ActionsMenuProps) {
             <DropdownMenuItem onClick={onView} className="gap-2">
               <Eye className="h-4 w-4" />
               View Details
+            </DropdownMenuItem>
+          )}
+          {onEdit && (
+            <DropdownMenuItem onClick={onEdit} className="gap-2">
+              <Edit className="h-4 w-4" />
+              Edit
             </DropdownMenuItem>
           )}
           <AlertDialogTrigger asChild>

@@ -36,6 +36,7 @@ import ClientProfilePage from "@/pages/client/ProfilePage";
 import MessagesPage from "@/pages/shared/MessagesPage";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { ThemeSwitcher } from "@/components/shared/ThemeSwitcher";
+import { RoleSwitcher } from "@/components/shared/RoleSwitcher";
 import { MyCoachCard } from "@/components/client/MyCoachCard";
 import { ClientOnboardingDialog } from "@/components/client/ClientOnboardingDialog";
 import { useClientProfile } from "@/hooks/useClientProfile";
@@ -152,9 +153,10 @@ function ClientDashboard() {
               >
                 {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
               </Button>
-              <h1 className="text-xl font-semibold">My Fitness Journey</h1>
+              <h1 className="text-lg font-semibold">My Fitness Journey</h1>
             </div>
             <div className="flex items-center gap-2">
+              <RoleSwitcher />
               <ThemeSwitcher />
               <NotificationBell />
             </div>
