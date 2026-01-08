@@ -23,13 +23,23 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { MoreVertical, Search, Shield, UserPlus, Eye, Loader2 } from "lucide-react";
+import { MoreVertical, Search, Shield, UserPlus, Eye, Loader2, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 
 interface UserManagementTableProps {
@@ -51,12 +61,12 @@ const ROLE_LABELS: Record<AppRole, string> = {
 
 export function UserManagementTable({ onImpersonate, initialRoleFilter = "all" }: UserManagementTableProps) {
   const { user: currentUser } = useAuth();
-  const { users, isLoading, addRole, removeRole, isAddingRole, isRemovingRole } = useAdminUsers();
+  const { users, isLoading, addRole, removeRole, deleteUser, isAddingRole, isRemovingRole, isDeletingUser } = useAdminUsers();
   
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>(initialRoleFilter);
+  const [userToDelete, setUserToDelete] = useState<AdminUser | null>(null);
 
-  // Update filter when initialRoleFilter changes (from URL param)
   useEffect(() => {
     if (initialRoleFilter && initialRoleFilter !== "all") {
       setRoleFilter(initialRoleFilter);
@@ -75,6 +85,13 @@ export function UserManagementTable({ onImpersonate, initialRoleFilter = "all" }
     return matchesSearch && matchesRole;
   });
 
+  const handleDeleteUser = () => {
+    if (userToDelete) {
+      deleteUser(userToDelete.user_id);
+      setUserToDelete(null);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -85,6 +102,28 @@ export function UserManagementTable({ onImpersonate, initialRoleFilter = "all" }
 
   return (
     <div className="space-y-4">
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!userToDelete} onOpenChange={(open) => !open && setUserToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete User "{userToDelete?.full_name}"?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the user's profile and all associated data including their roles, measurements, and check-ins.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteUser} 
+              className="bg-destructive hover:bg-destructive/90"
+              disabled={isDeletingUser}
+            >
+              {isDeletingUser ? "Deleting..." : "Delete User"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="relative flex-1">
@@ -153,7 +192,7 @@ export function UserManagementTable({ onImpersonate, initialRoleFilter = "all" }
                         </AvatarFallback>
                       </Avatar>
                       <div>
-                        <p className="font-medium">
+                        <p className="font-medium text-sm">
                           {user.full_name}
                           {isCurrentUser && (
                             <span className="text-xs text-muted-foreground ml-2">(you)</span>
@@ -165,7 +204,7 @@ export function UserManagementTable({ onImpersonate, initialRoleFilter = "all" }
                       </div>
                     </div>
                   </TableCell>
-                  <TableCell className="text-muted-foreground">
+                  <TableCell className="text-muted-foreground text-sm">
                     {user.email}
                   </TableCell>
                   <TableCell>
@@ -239,6 +278,19 @@ export function UserManagementTable({ onImpersonate, initialRoleFilter = "all" }
                                 Remove {ROLE_LABELS[role]}
                               </DropdownMenuItem>
                             ))}
+                          </>
+                        )}
+
+                        {!isCurrentUser && (
+                          <>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              onClick={() => setUserToDelete(user)}
+                              className="text-destructive focus:text-destructive"
+                            >
+                              <Trash2 className="w-4 h-4 mr-2" />
+                              Delete User
+                            </DropdownMenuItem>
                           </>
                         )}
                       </DropdownMenuContent>

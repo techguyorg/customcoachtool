@@ -102,13 +102,49 @@ export function useAdminUsers() {
     },
   });
 
+  const deleteUserMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      // Delete all roles first
+      const { error: rolesError } = await supabase
+        .from("user_roles")
+        .delete()
+        .eq("user_id", userId);
+      
+      if (rolesError) throw rolesError;
+
+      // Delete coach profile if exists
+      await supabase.from("coach_profiles").delete().eq("user_id", userId);
+      
+      // Delete client profile if exists
+      await supabase.from("client_profiles").delete().eq("user_id", userId);
+      
+      // Delete main profile
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .delete()
+        .eq("user_id", userId);
+      
+      if (profileError) throw profileError;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+      toast.success("User deleted successfully");
+    },
+    onError: (error: any) => {
+      console.error("Delete user error:", error);
+      toast.error("Failed to delete user. They may have related data.");
+    },
+  });
+
   return {
     users: usersQuery.data || [],
     isLoading: usersQuery.isLoading,
     error: usersQuery.error,
     addRole: addRoleMutation.mutate,
     removeRole: removeRoleMutation.mutate,
+    deleteUser: deleteUserMutation.mutate,
     isAddingRole: addRoleMutation.isPending,
     isRemovingRole: removeRoleMutation.isPending,
+    isDeletingUser: deleteUserMutation.isPending,
   };
 }

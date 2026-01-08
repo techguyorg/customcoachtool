@@ -24,6 +24,7 @@ import { SuperAdminManagement } from "@/components/admin/SuperAdminManagement";
 import { PlatformSettings } from "@/components/admin/PlatformSettings";
 import { ChangePasswordCard } from "@/components/shared/ChangePasswordCard";
 import { ThemeSwitcher } from "@/components/shared/ThemeSwitcher";
+import { RoleSwitcher } from "@/components/shared/RoleSwitcher";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { RelationshipsView } from "@/components/admin/RelationshipsView";
 import { PendingRequestsView } from "@/components/admin/PendingRequestsView";
@@ -128,9 +129,12 @@ function AdminDashboard() {
               >
                 {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
               </Button>
-              <h1 className="text-xl font-semibold">Super Admin Dashboard</h1>
+              <h1 className="text-lg font-semibold">Super Admin Dashboard</h1>
             </div>
-            <ThemeSwitcher />
+            <div className="flex items-center gap-2">
+              <RoleSwitcher />
+              <ThemeSwitcher />
+            </div>
           </div>
         </header>
 

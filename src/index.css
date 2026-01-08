@@ -208,7 +208,7 @@
 
   /* Stat card styling */
   .stat-card {
-    @apply relative overflow-hidden rounded-xl bg-card p-6 border border-border/50;
+    @apply relative overflow-hidden rounded-xl bg-card p-4 border border-border/50;
     background: var(--gradient-card);
   }
 
@@ -216,6 +216,23 @@
     content: '';
     @apply absolute top-0 left-0 right-0 h-[1px];
     background: linear-gradient(90deg, transparent 0%, hsl(var(--primary) / 0.5) 50%, transparent 100%);
+  }
+
+  /* Compact dashboard cards */
+  .dashboard-card {
+    @apply bg-card border border-border rounded-xl p-4;
+  }
+
+  .dashboard-card-header {
+    @apply text-sm font-semibold mb-3;
+  }
+
+  .dashboard-stat {
+    @apply text-xl font-bold;
+  }
+
+  .dashboard-label {
+    @apply text-xs text-muted-foreground;
   }
 }
 

@@ -36,6 +36,7 @@ import MessagesPage from "@/pages/shared/MessagesPage";
 import AnalyticsPage from "@/pages/coach/AnalyticsPage";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { ThemeSwitcher } from "@/components/shared/ThemeSwitcher";
+import { RoleSwitcher } from "@/components/shared/RoleSwitcher";
 import { useCoachClients, useClientStats } from "@/hooks/useCoachClients";
 import { useCoachCheckins } from "@/hooks/useCheckins";
 import { usePendingRequestsCount } from "@/hooks/useCoachRequests";
@@ -161,9 +162,10 @@ function CoachDashboard() {
               >
                 {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
               </Button>
-              <h1 className="text-xl font-semibold">Coach Dashboard</h1>
+              <h1 className="text-lg font-semibold">Coach Dashboard</h1>
             </div>
             <div className="flex items-center gap-2">
+              <RoleSwitcher />
               <ThemeSwitcher />
               <NotificationBell />
             </div>
@@ -201,70 +203,70 @@ function CoachHome() {
   const recentClients = clients?.slice(0, 5) || [];
   
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Welcome */}
-      <div className="bg-gradient-to-r from-primary/20 to-accent/10 rounded-xl p-6 border border-primary/20">
-        <h2 className="text-2xl font-bold">Welcome back, {user?.fullName?.split(' ')[0] || 'Coach'}! 👋</h2>
-        <p className="text-muted-foreground mt-1">Here's what's happening with your clients today.</p>
+      <div className="bg-gradient-to-r from-primary/20 to-accent/10 rounded-xl p-4 border border-primary/20">
+        <h2 className="text-lg font-bold">Welcome back, {user?.fullName?.split(' ')[0] || 'Coach'}! 👋</h2>
+        <p className="text-muted-foreground text-sm mt-1">Here's what's happening with your clients today.</p>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-card border border-border rounded-xl p-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="bg-card border border-border rounded-xl p-4">
           <div className="flex items-center justify-between">
-            <p className="text-sm text-muted-foreground">Total Clients</p>
-            <Users className="w-5 h-5 text-muted-foreground" />
+            <p className="text-xs text-muted-foreground">Total Clients</p>
+            <Users className="w-4 h-4 text-muted-foreground" />
           </div>
           {loadingClients ? (
-            <Skeleton className="h-9 w-16 mt-2" />
+            <Skeleton className="h-7 w-12 mt-2" />
           ) : (
-            <p className="text-2xl font-bold mt-2">{stats.total}</p>
+            <p className="text-xl font-bold mt-1">{stats.total}</p>
           )}
         </div>
         
-        <div className="bg-card border border-border rounded-xl p-6">
+        <div className="bg-card border border-border rounded-xl p-4">
           <div className="flex items-center justify-between">
-            <p className="text-sm text-muted-foreground">Active Clients</p>
-            <UserCheck className="w-5 h-5 text-success" />
+            <p className="text-xs text-muted-foreground">Active Clients</p>
+            <UserCheck className="w-4 h-4 text-success" />
           </div>
           {loadingClients ? (
-            <Skeleton className="h-9 w-16 mt-2" />
+            <Skeleton className="h-7 w-12 mt-2" />
           ) : (
-            <p className="text-2xl font-bold mt-2 text-success">{stats.active}</p>
+            <p className="text-xl font-bold mt-1 text-success">{stats.active}</p>
           )}
         </div>
         
-        <div className="bg-card border border-border rounded-xl p-6">
+        <div className="bg-card border border-border rounded-xl p-4">
           <div className="flex items-center justify-between">
-            <p className="text-sm text-muted-foreground">Pending Check-ins</p>
-            <CalendarCheck className="w-5 h-5 text-warning" />
+            <p className="text-xs text-muted-foreground">Pending Check-ins</p>
+            <CalendarCheck className="w-4 h-4 text-warning" />
           </div>
           {loadingCheckins ? (
-            <Skeleton className="h-9 w-16 mt-2" />
+            <Skeleton className="h-7 w-12 mt-2" />
           ) : (
-            <p className="text-2xl font-bold mt-2 text-warning">{pendingCheckins.length}</p>
+            <p className="text-xl font-bold mt-1 text-warning">{pendingCheckins.length}</p>
           )}
         </div>
         
-        <div className="bg-card border border-border rounded-xl p-6">
+        <div className="bg-card border border-border rounded-xl p-4">
           <div className="flex items-center justify-between">
-            <p className="text-sm text-muted-foreground">Pending Invites</p>
-            <Clock className="w-5 h-5 text-muted-foreground" />
+            <p className="text-xs text-muted-foreground">Pending Invites</p>
+            <Clock className="w-4 h-4 text-muted-foreground" />
           </div>
           {loadingClients ? (
-            <Skeleton className="h-9 w-16 mt-2" />
+            <Skeleton className="h-7 w-12 mt-2" />
           ) : (
-            <p className="text-2xl font-bold mt-2">{stats.pending}</p>
+            <p className="text-xl font-bold mt-1">{stats.pending}</p>
           )}
         </div>
       </div>
 
       {/* Analytics Overview */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Client Distribution */}
-        <div className="bg-card border border-border rounded-xl p-6">
-          <h3 className="font-semibold mb-4 flex items-center gap-2">
-            <BarChart3 className="w-5 h-5 text-primary" />
+        <div className="bg-card border border-border rounded-xl p-4">
+          <h3 className="font-semibold text-sm mb-3 flex items-center gap-2">
+            <BarChart3 className="w-4 h-4 text-primary" />
             Client Status
           </h3>
           <div className="space-y-4">
@@ -308,26 +310,26 @@ function CoachHome() {
         </div>
 
         {/* Pending Check-ins */}
-        <div className="bg-card border border-border rounded-xl p-6">
-          <h3 className="font-semibold mb-4 flex items-center gap-2">
-            <CalendarCheck className="w-5 h-5 text-primary" />
+        <div className="bg-card border border-border rounded-xl p-4">
+          <h3 className="font-semibold text-sm mb-3 flex items-center gap-2">
+            <CalendarCheck className="w-4 h-4 text-primary" />
             Pending Check-ins
           </h3>
           {loadingCheckins ? (
-            <div className="space-y-3">
+            <div className="space-y-2">
               {[...Array(3)].map((_, i) => (
-                <Skeleton key={i} className="h-12 w-full" />
+                <Skeleton key={i} className="h-10 w-full" />
               ))}
             </div>
           ) : pendingCheckins.length > 0 ? (
-            <div className="space-y-3">
+            <div className="space-y-2">
               {pendingCheckins.slice(0, 4).map((checkin) => (
                 <div key={checkin.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors">
-                  <div className="w-8 h-8 rounded-full bg-warning/20 flex items-center justify-center">
-                    <Clock className="w-4 h-4 text-warning" />
+                  <div className="w-7 h-7 rounded-full bg-warning/20 flex items-center justify-center">
+                    <Clock className="w-3.5 h-3.5 text-warning" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm truncate">Check-in #{checkin.id.slice(0, 8)}</p>
+                    <p className="font-medium text-xs truncate">Check-in #{checkin.id.slice(0, 8)}</p>
                     <p className="text-xs text-muted-foreground">
                       {new Date(checkin.checkin_date).toLocaleDateString()}
                     </p>
@@ -335,22 +337,22 @@ function CoachHome() {
                 </div>
               ))}
               {pendingCheckins.length > 4 && (
-                <Link to="/coach/checkins" className="text-sm text-primary hover:underline block text-center">
+                <Link to="/coach/checkins" className="text-xs text-primary hover:underline block text-center">
                   View all {pendingCheckins.length} pending
                 </Link>
               )}
             </div>
           ) : (
-            <div className="text-center py-6">
-              <CalendarCheck className="w-10 h-10 text-muted-foreground mx-auto mb-2" />
-              <p className="text-muted-foreground text-sm">No pending check-ins</p>
+            <div className="text-center py-4">
+              <CalendarCheck className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+              <p className="text-muted-foreground text-xs">No pending check-ins</p>
             </div>
           )}
         </div>
 
         {/* Quick Actions */}
-        <div className="bg-card border border-border rounded-xl p-6">
-          <h3 className="font-semibold mb-4 flex items-center gap-2 text-sm">
+        <div className="bg-card border border-border rounded-xl p-4">
+          <h3 className="font-semibold text-sm mb-3 flex items-center gap-2">
             <Target className="w-4 h-4 text-primary" />
             Quick Actions
           </h3>

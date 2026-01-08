@@ -120,11 +120,15 @@ export function useInviteClient() {
 
   return useMutation({
     mutationFn: async (invitation: ClientInvitation) => {
+      // Get the app URL from current location
+      const appUrl = window.location.origin;
+      
       const response = await supabase.functions.invoke("send-client-invitation", {
         body: {
           ...invitation,
           coachId: user?.id,
           coachName: user?.fullName,
+          appUrl,
         },
       });
 
