@@ -13,6 +13,7 @@ export interface AuthUser {
   email: string;
   fullName: string;
   role: AppRole;
+  allRoles?: AppRole[];
   avatarUrl?: string;
 }
 
@@ -180,6 +181,31 @@ export async function getUserProfile(userId: string) {
 }
 
 /**
+ * Get the highest priority role from a list of roles
+ * Priority: super_admin > coach > client
+ */
+function getHighestPriorityRole(roles: AppRole[]): AppRole {
+  const rolePriority: Record<AppRole, number> = {
+    super_admin: 3,
+    coach: 2,
+    client: 1,
+  };
+  
+  if (roles.length === 0) return "client";
+  
+  return roles.reduce((highest, current) => 
+    rolePriority[current] > rolePriority[highest] ? current : highest
+  , roles[0]);
+}
+
+/**
+ * Get all roles for the current user
+ */
+export async function getAllUserRoles(userId: string): Promise<AppRole[]> {
+  return getUserRoles(userId);
+}
+
+/**
  * Get full auth user with profile and roles
  */
 export async function getAuthUser(): Promise<AuthUser | null> {
@@ -197,7 +223,15 @@ export async function getAuthUser(): Promise<AuthUser | null> {
     id: user.id,
     email: profile.email,
     fullName: profile.full_name,
-    role: roles[0] || "client",
+    role: getHighestPriorityRole(roles),
     avatarUrl: profile.avatar_url,
-  };
+    allRoles: roles,
+  } as AuthUser;
+}
+
+/**
+ * Extended AuthUser with all roles for impersonation feature
+ */
+export interface AuthUserWithRoles extends AuthUser {
+  allRoles: AppRole[];
 }

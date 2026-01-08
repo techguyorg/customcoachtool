@@ -1,5 +1,6 @@
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useImpersonation } from "@/contexts/ImpersonationContext";
 import { Button } from "@/components/ui/button";
 import { 
   LayoutDashboard, 
@@ -9,7 +10,9 @@ import {
   Settings,
   LogOut,
   Menu,
-  X
+  X,
+  ShieldCheck,
+  Sliders
 } from "lucide-react";
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
@@ -17,15 +20,20 @@ import { useAdminStats } from "@/hooks/useAdminStats";
 import { UserManagementTable } from "@/components/admin/UserManagementTable";
 import { SystemContentManager } from "@/components/admin/SystemContentManager";
 import { PlatformAnalytics } from "@/components/admin/PlatformAnalytics";
+import { SuperAdminManagement } from "@/components/admin/SuperAdminManagement";
+import { PlatformSettings } from "@/components/admin/PlatformSettings";
 import { ChangePasswordCard } from "@/components/shared/ChangePasswordCard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Shield, UserCheck, Handshake, Clock } from "lucide-react";
+import { AdminUser } from "@/hooks/useAdminUsers";
 
 const sidebarItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/admin" },
   { icon: Users, label: "Users", path: "/admin/users" },
+  { icon: ShieldCheck, label: "Super Admins", path: "/admin/super-admins" },
   { icon: Dumbbell, label: "Content", path: "/admin/content" },
   { icon: BarChart3, label: "Analytics", path: "/admin/analytics" },
+  { icon: Sliders, label: "Platform", path: "/admin/platform" },
   { icon: Settings, label: "Settings", path: "/admin/settings" },
 ];
 
@@ -123,8 +131,10 @@ function AdminDashboard() {
           <Routes>
             <Route index element={<AdminHome />} />
             <Route path="users" element={<UsersPage />} />
+            <Route path="super-admins" element={<SuperAdminsPage />} />
             <Route path="content" element={<ContentPage />} />
             <Route path="analytics" element={<AnalyticsPage />} />
+            <Route path="platform" element={<PlatformPage />} />
             <Route path="settings" element={<SettingsPage />} />
           </Routes>
         </div>
@@ -225,13 +235,45 @@ function AdminHome() {
 }
 
 function UsersPage() {
+  const navigate = useNavigate();
+  const { startImpersonation } = useImpersonation();
+
+  const handleImpersonate = (user: AdminUser) => {
+    // Get the primary role (first non-super_admin role, or client as fallback)
+    const impersonateRole = user.roles.find(r => r !== "super_admin") || "client";
+    startImpersonation(user.user_id, impersonateRole, user.full_name);
+    
+    // Navigate to the appropriate dashboard
+    if (impersonateRole === "coach") {
+      navigate("/coach");
+    } else {
+      navigate("/client");
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold">User Management</h2>
         <p className="text-muted-foreground">View and manage all platform users and their roles</p>
       </div>
-      <UserManagementTable />
+      <UserManagementTable onImpersonate={handleImpersonate} />
+    </div>
+  );
+}
+
+function SuperAdminsPage() {
+  return (
+    <div className="space-y-6">
+      <SuperAdminManagement />
+    </div>
+  );
+}
+
+function PlatformPage() {
+  return (
+    <div className="space-y-6">
+      <PlatformSettings />
     </div>
   );
 }
