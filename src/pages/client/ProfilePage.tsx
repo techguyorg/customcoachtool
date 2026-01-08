@@ -20,6 +20,7 @@ import {
 import { 
   User, Scale, Target, Heart, Utensils, Save, Loader2, Camera, X
 } from "lucide-react";
+import { ChangePasswordCard } from "@/components/shared/ChangePasswordCard";
 import { toast } from "sonner";
 
 const FITNESS_GOALS = [
@@ -459,6 +460,9 @@ export default function ClientProfilePage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Change Password */}
+      <ChangePasswordCard />
 
       {/* Save Button */}
       <div className="flex justify-end">
