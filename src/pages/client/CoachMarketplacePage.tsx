@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { Search, SlidersHorizontal, X, Users } from "lucide-react";
+import { Search, SlidersHorizontal, X, Users, AlertCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Select,
   SelectContent,
@@ -20,10 +21,13 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CoachCard } from "@/components/marketplace/CoachCard";
+import { CoachDetailSheet } from "@/components/marketplace/CoachDetailSheet";
+import { useMyCoach } from "@/hooks/useMyCoach";
 import {
   useCoachMarketplace,
   useSpecializations,
   type CoachFilters,
+  type CoachProfile,
 } from "@/hooks/useCoachMarketplace";
 
 export default function CoachMarketplacePage() {
@@ -35,9 +39,12 @@ export default function CoachMarketplacePage() {
     acceptingOnly: true,
   });
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [selectedCoach, setSelectedCoach] = useState<CoachProfile | null>(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
 
   const { data: coaches, isLoading, error } = useCoachMarketplace(filters);
   const { data: specializations } = useSpecializations();
+  const { data: myCoach } = useMyCoach();
 
   const activeFilterCount = [
     filters.specialization !== "all",
@@ -56,18 +63,33 @@ export default function CoachMarketplacePage() {
     });
   };
 
+  const handleCoachClick = (coach: CoachProfile) => {
+    setSelectedCoach(coach);
+    setSheetOpen(true);
+  };
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold flex items-center gap-3">
-          <Users className="w-7 h-7 text-primary" />
+        <h1 className="text-xl font-bold flex items-center gap-2">
+          <Users className="w-6 h-6 text-primary" />
           Find Your Coach
         </h1>
-        <p className="text-muted-foreground mt-1">
+        <p className="text-sm text-muted-foreground mt-1">
           Browse certified fitness coaches and find the perfect match for your goals
         </p>
       </div>
+
+      {/* Current Coach Warning */}
+      {myCoach && (
+        <Alert>
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription className="text-sm">
+            You currently have a coach ({myCoach.fullName}). Requesting a new coach will end your current relationship upon acceptance.
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* Search and Filters */}
       <div className="space-y-4">
@@ -206,11 +228,22 @@ export default function CoachMarketplacePage() {
           <p className="text-destructive">Failed to load coaches. Please try again.</p>
         </div>
       ) : coaches && coaches.length > 0 ? (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {coaches.map((coach) => (
-            <CoachCard key={coach.id} coach={coach} />
-          ))}
-        </div>
+        <>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {coaches.map((coach) => (
+              <CoachCard 
+                key={coach.id} 
+                coach={coach} 
+                onClick={() => handleCoachClick(coach)}
+              />
+            ))}
+          </div>
+          <CoachDetailSheet 
+            coach={selectedCoach} 
+            open={sheetOpen} 
+            onOpenChange={setSheetOpen} 
+          />
+        </>
       ) : (
         <div className="text-center py-12 border border-dashed border-border rounded-xl">
           <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
