@@ -121,6 +121,13 @@ export default function CoachSettingsPage() {
     mutationFn: async () => {
       if (!user?.id) throw new Error("Not authenticated");
 
+      // Auto-add any pending custom certification before saving
+      let finalCertifications = [...certifications];
+      const pendingCert = customCertification.trim();
+      if (pendingCert && !finalCertifications.includes(pendingCert)) {
+        finalCertifications = [...finalCertifications, pendingCert];
+      }
+
       // Update profile
       const { error: profileError } = await supabase
         .from("profiles")
@@ -139,7 +146,7 @@ export default function CoachSettingsPage() {
         .from("coach_profiles")
         .update({
           specializations,
-          certifications,
+          certifications: finalCertifications,
           experience_years: experienceYears,
           hourly_rate: hourlyRate,
           currency,
@@ -151,6 +158,7 @@ export default function CoachSettingsPage() {
       if (coachError) throw coachError;
     },
     onSuccess: () => {
+      setCustomCertification(""); // Clear the input after successful save
       queryClient.invalidateQueries({ queryKey: ["coach-settings"] });
       queryClient.invalidateQueries({ queryKey: ["coach-marketplace"] });
       toast.success("Settings saved successfully!");

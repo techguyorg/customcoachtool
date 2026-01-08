@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Search, Utensils, Flame, Beef, Wheat, Droplet, Edit, Trash2 } from "lucide-react";
+import { Plus, Search, Utensils, Flame, Beef, Wheat, Droplet, Edit, Trash2, MoreVertical, Eye, ClipboardList } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { useDietPlans, useDeleteDietPlan, DietPlan } from "@/hooks/useDietPlans";
 import { CreateDietPlanDialog } from "@/components/diet/CreateDietPlanDialog";
 import { DietPlanDetailSheet } from "@/components/diet/DietPlanDetailSheet";
+import { QuickAssignDialog } from "@/components/coach/QuickAssignDialog";
 import { FavoriteButton } from "@/components/favorites/FavoriteButton";
 import { toast } from "sonner";
 import {
@@ -19,6 +20,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useAuth } from "@/contexts/AuthContext";
 
 const goalLabels: Record<string, string> = {
   weight_loss: "Weight Loss",
@@ -40,11 +49,13 @@ const dietaryLabels: Record<string, string> = {
 };
 
 export default function DietPlansPage() {
+  const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<DietPlan | null>(null);
   const [editingPlan, setEditingPlan] = useState<DietPlan | null>(null);
   const [deletingPlan, setDeletingPlan] = useState<DietPlan | null>(null);
+  const [assignPlanId, setAssignPlanId] = useState<string | null>(null);
 
   const { data: plans = [], isLoading } = useDietPlans();
   const deleteMutation = useDeleteDietPlan();
@@ -118,6 +129,8 @@ export default function DietPlansPage() {
                     onView={() => setSelectedPlan(plan)}
                     onEdit={() => setEditingPlan(plan)}
                     onDelete={() => setDeletingPlan(plan)}
+                    onAssign={() => setAssignPlanId(plan.id)}
+                    isOwner={plan.created_by === user?.id}
                   />
                 ))}
               </div>
@@ -133,6 +146,7 @@ export default function DietPlansPage() {
                     key={plan.id}
                     plan={plan}
                     onView={() => setSelectedPlan(plan)}
+                    onAssign={() => setAssignPlanId(plan.id)}
                     isSystem
                   />
                 ))}
@@ -186,6 +200,13 @@ export default function DietPlansPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Quick Assign Dialog */}
+      <QuickAssignDialog
+        open={!!assignPlanId}
+        onOpenChange={(open) => !open && setAssignPlanId(null)}
+        preselectedDietId={assignPlanId || undefined}
+      />
     </div>
   );
 }
@@ -195,13 +216,17 @@ function DietPlanCard({
   onView,
   onEdit,
   onDelete,
+  onAssign,
   isSystem,
+  isOwner,
 }: {
   plan: DietPlan;
   onView: () => void;
   onEdit?: () => void;
   onDelete?: () => void;
+  onAssign?: () => void;
   isSystem?: boolean;
+  isOwner?: boolean;
 }) {
   return (
     <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={onView}>
@@ -215,16 +240,40 @@ function DietPlanCard({
           </div>
           <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
             <FavoriteButton itemType="diet_plan" itemId={plan.id} size="sm" />
-            {!isSystem && (
-              <>
-                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onEdit}>
-                  <Edit className="h-4 w-4" />
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8">
+                  <MoreVertical className="h-4 w-4" />
                 </Button>
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={onDelete}>
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </>
-            )}
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={onView}>
+                  <Eye className="w-4 h-4 mr-2" />
+                  View Details
+                </DropdownMenuItem>
+                {onAssign && (
+                  <DropdownMenuItem onClick={onAssign}>
+                    <ClipboardList className="w-4 h-4 mr-2" />
+                    Assign to Client
+                  </DropdownMenuItem>
+                )}
+                {!isSystem && isOwner && onEdit && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={onEdit}>
+                      <Edit className="w-4 h-4 mr-2" />
+                      Edit
+                    </DropdownMenuItem>
+                  </>
+                )}
+                {!isSystem && isOwner && onDelete && (
+                  <DropdownMenuItem onClick={onDelete} className="text-destructive focus:text-destructive">
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Delete
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </CardHeader>

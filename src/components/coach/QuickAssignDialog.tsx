@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { format } from "date-fns";
 import { Loader2, ClipboardList, Utensils, User, Plus } from "lucide-react";
@@ -31,6 +31,8 @@ import { toast } from "sonner";
 interface QuickAssignDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  preselectedWorkoutId?: string;
+  preselectedDietId?: string;
 }
 
 interface FormData {
@@ -43,7 +45,7 @@ interface FormData {
   notes: string;
 }
 
-export function QuickAssignDialog({ open, onOpenChange }: QuickAssignDialogProps) {
+export function QuickAssignDialog({ open, onOpenChange, preselectedWorkoutId, preselectedDietId }: QuickAssignDialogProps) {
   const { data: clients } = useCoachClients();
   const { data: workoutTemplates } = useWorkoutTemplates({ search: "", templateType: "all", difficulty: "all", daysPerWeek: "all" });
   const { data: dietPlans } = useDietPlans();
@@ -51,17 +53,37 @@ export function QuickAssignDialog({ open, onOpenChange }: QuickAssignDialogProps
 
   const activeClients = clients?.filter(c => c.status === "active") || [];
 
+  // Determine initial plan type based on preselection
+  const initialPlanType = preselectedDietId ? "diet" : "workout";
+  const initialWorkoutId = preselectedWorkoutId || "";
+  const initialDietId = preselectedDietId || "";
+
   const form = useForm<FormData>({
     defaultValues: {
       clientId: "",
-      planType: "workout",
-      workoutTemplateId: "",
-      dietPlanId: "",
+      planType: initialPlanType,
+      workoutTemplateId: initialWorkoutId,
+      dietPlanId: initialDietId,
       startDate: format(new Date(), "yyyy-MM-dd"),
       endDate: "",
       notes: "",
     },
   });
+
+  // Reset form when dialog opens with preselection
+  useEffect(() => {
+    if (open) {
+      form.reset({
+        clientId: "",
+        planType: preselectedDietId ? "diet" : "workout",
+        workoutTemplateId: preselectedWorkoutId || "",
+        dietPlanId: preselectedDietId || "",
+        startDate: format(new Date(), "yyyy-MM-dd"),
+        endDate: "",
+        notes: "",
+      });
+    }
+  }, [open, preselectedWorkoutId, preselectedDietId, form]);
 
   const planType = form.watch("planType");
 

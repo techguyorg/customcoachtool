@@ -1,18 +1,31 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { TemplateCard } from "@/components/templates/TemplateCard";
 import { TemplateFilters } from "@/components/templates/TemplateFilters";
 import { TemplateDetailSheet } from "@/components/templates/TemplateDetailSheet";
 import { CreateWorkoutTemplateDialog } from "@/components/templates/CreateWorkoutTemplateDialog";
+import { QuickAssignDialog } from "@/components/coach/QuickAssignDialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ClipboardList, Search, Library, User } from "lucide-react";
+import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import type { TemplateFilters as Filters } from "@/hooks/useWorkoutTemplates";
 
 export default function CoachWorkoutProgramsPage() {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [filters, setFilters] = useState<Filters>({
     search: "",
     templateType: "all",
@@ -22,6 +35,8 @@ export default function CoachWorkoutProgramsPage() {
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("my-programs");
+  const [assignTemplateId, setAssignTemplateId] = useState<string | null>(null);
+  const [deleteTemplateId, setDeleteTemplateId] = useState<string | null>(null);
 
   // Fetch coach's own programs
   const { data: myPrograms, isLoading: loadingMy } = useQuery({
@@ -116,6 +131,24 @@ export default function CoachWorkoutProgramsPage() {
     setSheetOpen(true);
   };
 
+  const deleteMutation = useMutation({
+    mutationFn: async (templateId: string) => {
+      const { error } = await supabase
+        .from("workout_templates")
+        .delete()
+        .eq("id", templateId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["coach-workout-templates"] });
+      toast.success("Program deleted successfully");
+      setDeleteTemplateId(null);
+    },
+    onError: () => {
+      toast.error("Failed to delete program");
+    },
+  });
+
   const isLoading = activeTab === "my-programs" ? loadingMy : loadingLibrary;
   const templates = activeTab === "my-programs" ? myPrograms : libraryPrograms;
 
@@ -173,6 +206,10 @@ export default function CoachWorkoutProgramsPage() {
               key={template.id}
               template={template}
               onClick={() => handleTemplateClick(template.id)}
+              showQuickActions
+              isOwner={template.created_by === user?.id}
+              onAssign={() => setAssignTemplateId(template.id)}
+              onDelete={() => setDeleteTemplateId(template.id)}
             />
           ))}
         </div>
@@ -196,6 +233,34 @@ export default function CoachWorkoutProgramsPage() {
         open={sheetOpen}
         onOpenChange={setSheetOpen}
       />
+
+      {/* Quick Assign Dialog */}
+      <QuickAssignDialog
+        open={!!assignTemplateId}
+        onOpenChange={(open) => !open && setAssignTemplateId(null)}
+        preselectedWorkoutId={assignTemplateId || undefined}
+      />
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={!!deleteTemplateId} onOpenChange={(open) => !open && setDeleteTemplateId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Program</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this workout program? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteTemplateId && deleteMutation.mutate(deleteTemplateId)}
+              className="bg-destructive text-destructive-foreground"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
