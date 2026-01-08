@@ -345,7 +345,7 @@ function RecipesTab({ search, setSearch }: TabProps) {
             <CardTitle>System Recipes</CardTitle>
             <CardDescription>Manage platform-wide recipe library</CardDescription>
           </div>
-          <RecipeBuilderDialog />
+          <RecipeBuilderDialog open={false} onOpenChange={() => {}} />
         </div>
       </CardHeader>
       <CardContent>

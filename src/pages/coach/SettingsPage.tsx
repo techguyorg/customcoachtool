@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/select";
 import { Settings, User, Award, DollarSign, Users, X, Plus, Save, Loader2, Upload, Camera } from "lucide-react";
 import { toast } from "sonner";
+import { ChangePasswordCard } from "@/components/shared/ChangePasswordCard";
 
 const SPECIALIZATION_OPTIONS = [
   "Weight Loss",
@@ -520,6 +521,9 @@ export default function CoachSettingsPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Change Password */}
+      <ChangePasswordCard />
 
       {/* Save Button */}
       <div className="flex justify-end">
