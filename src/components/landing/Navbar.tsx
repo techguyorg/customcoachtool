@@ -3,6 +3,7 @@ import { Menu, X } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import logo from "@/assets/logo.png";
+import { ThemeSwitcher } from "@/components/shared/ThemeSwitcher";
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -41,6 +42,7 @@ const Navbar = () => {
 
             {/* Desktop CTA */}
             <div className="hidden md:flex items-center gap-3">
+              <ThemeSwitcher />
               <Link to="/login">
                 <Button variant="ghost" size="sm">Log In</Button>
               </Link>

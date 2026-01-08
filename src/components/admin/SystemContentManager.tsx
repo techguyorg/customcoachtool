@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
@@ -14,7 +14,25 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Search, Dumbbell, Calendar, UtensilsCrossed, ChefHat, Apple, Loader2, Plus } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Search, Dumbbell, Calendar, UtensilsCrossed, ChefHat, Apple, Loader2, Plus, Trash2, Edit, MoreHorizontal } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { toast } from "@/hooks/use-toast";
 
 // Import dialogs for creating content
 import { CreateExerciseDialog } from "@/components/exercises/CreateExerciseDialog";
@@ -81,6 +99,8 @@ interface TabProps {
 }
 
 function ExercisesTab({ search, setSearch }: TabProps) {
+  const queryClient = useQueryClient();
+  
   const { data: exercises, isLoading } = useQuery({
     queryKey: ["admin-exercises"],
     queryFn: async () => {
@@ -91,6 +111,20 @@ function ExercisesTab({ search, setSearch }: TabProps) {
         .order("name");
       if (error) throw error;
       return data;
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("exercises").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-exercises"] });
+      toast({ title: "Exercise deleted successfully" });
+    },
+    onError: () => {
+      toast({ title: "Failed to delete exercise", variant: "destructive" });
     },
   });
   
@@ -134,6 +168,7 @@ function ExercisesTab({ search, setSearch }: TabProps) {
                     <TableHead>Muscle</TableHead>
                     <TableHead>Equipment</TableHead>
                     <TableHead>Difficulty</TableHead>
+                    <TableHead className="w-[60px]">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -149,6 +184,12 @@ function ExercisesTab({ search, setSearch }: TabProps) {
                         {ex.equipment.replace("_", " ")}
                       </TableCell>
                       <TableCell className="capitalize">{ex.difficulty}</TableCell>
+                      <TableCell>
+                        <ActionsMenu 
+                          onDelete={() => deleteMutation.mutate(ex.id)}
+                          itemName={ex.name}
+                        />
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -167,6 +208,8 @@ function ExercisesTab({ search, setSearch }: TabProps) {
 }
 
 function WorkoutsTab({ search, setSearch }: TabProps) {
+  const queryClient = useQueryClient();
+  
   const { data: templates, isLoading } = useQuery({
     queryKey: ["admin-workout-templates"],
     queryFn: async () => {
@@ -177,6 +220,20 @@ function WorkoutsTab({ search, setSearch }: TabProps) {
         .order("name");
       if (error) throw error;
       return data;
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("workout_templates").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-workout-templates"] });
+      toast({ title: "Workout template deleted successfully" });
+    },
+    onError: () => {
+      toast({ title: "Failed to delete template", variant: "destructive" });
     },
   });
   
@@ -213,6 +270,7 @@ function WorkoutsTab({ search, setSearch }: TabProps) {
                     <TableHead>Type</TableHead>
                     <TableHead>Days/Week</TableHead>
                     <TableHead>Difficulty</TableHead>
+                    <TableHead className="w-[60px]">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -226,6 +284,12 @@ function WorkoutsTab({ search, setSearch }: TabProps) {
                       </TableCell>
                       <TableCell>{t.days_per_week} days</TableCell>
                       <TableCell className="capitalize">{t.difficulty}</TableCell>
+                      <TableCell>
+                        <ActionsMenu 
+                          onDelete={() => deleteMutation.mutate(t.id)}
+                          itemName={t.name}
+                        />
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -240,6 +304,7 @@ function WorkoutsTab({ search, setSearch }: TabProps) {
 
 function DietsTab({ search, setSearch }: TabProps) {
   const [showCreate, setShowCreate] = useState(false);
+  const queryClient = useQueryClient();
   
   const { data: plans, isLoading } = useQuery({
     queryKey: ["admin-diet-plans"],
@@ -251,6 +316,20 @@ function DietsTab({ search, setSearch }: TabProps) {
         .order("name");
       if (error) throw error;
       return data;
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("diet_plans").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-diet-plans"] });
+      toast({ title: "Diet plan deleted successfully" });
+    },
+    onError: () => {
+      toast({ title: "Failed to delete diet plan", variant: "destructive" });
     },
   });
   
@@ -294,6 +373,7 @@ function DietsTab({ search, setSearch }: TabProps) {
                     <TableHead>Type</TableHead>
                     <TableHead>Calories</TableHead>
                     <TableHead>Meals/Day</TableHead>
+                    <TableHead className="w-[60px]">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -307,6 +387,12 @@ function DietsTab({ search, setSearch }: TabProps) {
                       </TableCell>
                       <TableCell>{p.calories_target || "—"} kcal</TableCell>
                       <TableCell>{p.meals_per_day || "—"}</TableCell>
+                      <TableCell>
+                        <ActionsMenu 
+                          onDelete={() => deleteMutation.mutate(p.id)}
+                          itemName={p.name}
+                        />
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -320,6 +406,9 @@ function DietsTab({ search, setSearch }: TabProps) {
 }
 
 function RecipesTab({ search, setSearch }: TabProps) {
+  const [showCreate, setShowCreate] = useState(false);
+  const queryClient = useQueryClient();
+  
   const { data: recipes, isLoading } = useQuery({
     queryKey: ["admin-recipes"],
     queryFn: async () => {
@@ -330,6 +419,20 @@ function RecipesTab({ search, setSearch }: TabProps) {
         .order("name");
       if (error) throw error;
       return data;
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("recipes").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-recipes"] });
+      toast({ title: "Recipe deleted successfully" });
+    },
+    onError: () => {
+      toast({ title: "Failed to delete recipe", variant: "destructive" });
     },
   });
   
@@ -345,7 +448,11 @@ function RecipesTab({ search, setSearch }: TabProps) {
             <CardTitle>System Recipes</CardTitle>
             <CardDescription>Manage platform-wide recipe library</CardDescription>
           </div>
-          <RecipeBuilderDialog open={false} onOpenChange={() => {}} />
+          <Button size="sm" onClick={() => setShowCreate(true)}>
+            <Plus className="w-4 h-4 mr-2" />
+            Add Recipe
+          </Button>
+          <RecipeBuilderDialog open={showCreate} onOpenChange={setShowCreate} />
         </div>
       </CardHeader>
       <CardContent>
@@ -366,6 +473,7 @@ function RecipesTab({ search, setSearch }: TabProps) {
                     <TableHead>Category</TableHead>
                     <TableHead>Calories</TableHead>
                     <TableHead>Servings</TableHead>
+                    <TableHead className="w-[60px]">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -379,6 +487,12 @@ function RecipesTab({ search, setSearch }: TabProps) {
                       </TableCell>
                       <TableCell>{r.calories_per_serving || "—"} kcal</TableCell>
                       <TableCell>{r.servings}</TableCell>
+                      <TableCell>
+                        <ActionsMenu 
+                          onDelete={() => deleteMutation.mutate(r.id)}
+                          itemName={r.name}
+                        />
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -392,6 +506,8 @@ function RecipesTab({ search, setSearch }: TabProps) {
 }
 
 function FoodsTab({ search, setSearch }: TabProps) {
+  const queryClient = useQueryClient();
+  
   const { data: foods, isLoading } = useQuery({
     queryKey: ["admin-foods"],
     queryFn: async () => {
@@ -402,6 +518,20 @@ function FoodsTab({ search, setSearch }: TabProps) {
         .order("name");
       if (error) throw error;
       return data;
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("foods").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-foods"] });
+      toast({ title: "Food deleted successfully" });
+    },
+    onError: () => {
+      toast({ title: "Failed to delete food", variant: "destructive" });
     },
   });
   
@@ -438,6 +568,7 @@ function FoodsTab({ search, setSearch }: TabProps) {
                     <TableHead>Category</TableHead>
                     <TableHead>Calories</TableHead>
                     <TableHead>Protein</TableHead>
+                    <TableHead className="w-[60px]">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -451,6 +582,12 @@ function FoodsTab({ search, setSearch }: TabProps) {
                       </TableCell>
                       <TableCell>{f.calories_per_100g} /100g</TableCell>
                       <TableCell>{f.protein_per_100g}g</TableCell>
+                      <TableCell>
+                        <ActionsMenu 
+                          onDelete={() => deleteMutation.mutate(f.id)}
+                          itemName={f.name}
+                        />
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -487,5 +624,50 @@ function LoadingState() {
     <div className="flex items-center justify-center py-12">
       <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
     </div>
+  );
+}
+
+interface ActionsMenuProps {
+  onDelete: () => void;
+  itemName: string;
+}
+
+function ActionsMenu({ onDelete, itemName }: ActionsMenuProps) {
+  return (
+    <AlertDialog>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="icon" className="h-8 w-8">
+            <MoreHorizontal className="h-4 w-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem className="gap-2">
+            <Edit className="h-4 w-4" />
+            Edit
+          </DropdownMenuItem>
+          <AlertDialogTrigger asChild>
+            <DropdownMenuItem className="gap-2 text-destructive focus:text-destructive">
+              <Trash2 className="h-4 w-4" />
+              Delete
+            </DropdownMenuItem>
+          </AlertDialogTrigger>
+        </DropdownMenuContent>
+      </DropdownMenu>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Delete "{itemName}"?</AlertDialogTitle>
+          <AlertDialogDescription>
+            This action cannot be undone. This will permanently delete this item from the system.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction onClick={onDelete} className="bg-destructive hover:bg-destructive/90">
+            Delete
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }
