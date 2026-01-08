@@ -39,7 +39,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { MoreVertical, Search, Shield, UserPlus, Eye, Loader2, Trash2 } from "lucide-react";
+import { MoreVertical, Search, Shield, UserPlus, Eye, Loader2, Trash2, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { format } from "date-fns";
 
 interface UserManagementTableProps {
@@ -66,6 +66,8 @@ export function UserManagementTable({ onImpersonate, initialRoleFilter = "all" }
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>(initialRoleFilter);
   const [userToDelete, setUserToDelete] = useState<AdminUser | null>(null);
+  const [sortBy, setSortBy] = useState<"name" | "date" | "roles">("date");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
 
   useEffect(() => {
     if (initialRoleFilter && initialRoleFilter !== "all") {
@@ -73,17 +75,29 @@ export function UserManagementTable({ onImpersonate, initialRoleFilter = "all" }
     }
   }, [initialRoleFilter]);
 
-  const filteredUsers = users.filter((user) => {
-    const matchesSearch =
-      user.full_name.toLowerCase().includes(search.toLowerCase()) ||
-      user.email.toLowerCase().includes(search.toLowerCase());
-    
-    const matchesRole =
-      roleFilter === "all" ||
-      user.roles.includes(roleFilter as AppRole);
+  const filteredUsers = users
+    .filter((user) => {
+      const matchesSearch =
+        user.full_name.toLowerCase().includes(search.toLowerCase()) ||
+        user.email.toLowerCase().includes(search.toLowerCase());
+      
+      const matchesRole =
+        roleFilter === "all" ||
+        user.roles.includes(roleFilter as AppRole);
 
-    return matchesSearch && matchesRole;
-  });
+      return matchesSearch && matchesRole;
+    })
+    .sort((a, b) => {
+      let cmp = 0;
+      if (sortBy === "name") {
+        cmp = a.full_name.localeCompare(b.full_name);
+      } else if (sortBy === "date") {
+        cmp = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      } else if (sortBy === "roles") {
+        cmp = b.roles.length - a.roles.length;
+      }
+      return sortOrder === "asc" ? cmp : -cmp;
+    });
 
   const handleDeleteUser = () => {
     if (userToDelete) {
@@ -136,7 +150,7 @@ export function UserManagementTable({ onImpersonate, initialRoleFilter = "all" }
           />
         </div>
         <Select value={roleFilter} onValueChange={setRoleFilter}>
-          <SelectTrigger className="w-[180px]">
+          <SelectTrigger className="w-[150px]">
             <SelectValue placeholder="Filter by role" />
           </SelectTrigger>
           <SelectContent>
@@ -144,6 +158,24 @@ export function UserManagementTable({ onImpersonate, initialRoleFilter = "all" }
             <SelectItem value="super_admin">Super Admins</SelectItem>
             <SelectItem value="coach">Coaches</SelectItem>
             <SelectItem value="client">Clients</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={`${sortBy}-${sortOrder}`} onValueChange={(v) => {
+          const [field, order] = v.split("-") as ["name" | "date" | "roles", "asc" | "desc"];
+          setSortBy(field);
+          setSortOrder(order);
+        }}>
+          <SelectTrigger className="w-[160px]">
+            <ArrowUpDown className="w-4 h-4 mr-2" />
+            <SelectValue placeholder="Sort by" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="date-desc">Newest First</SelectItem>
+            <SelectItem value="date-asc">Oldest First</SelectItem>
+            <SelectItem value="name-asc">Name A-Z</SelectItem>
+            <SelectItem value="name-desc">Name Z-A</SelectItem>
+            <SelectItem value="roles-desc">Most Roles</SelectItem>
+            <SelectItem value="roles-asc">Fewest Roles</SelectItem>
           </SelectContent>
         </Select>
       </div>

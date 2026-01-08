@@ -12,7 +12,8 @@ import {
   Menu,
   X,
   ShieldCheck,
-  Sliders
+  Sliders,
+  ClipboardList
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
@@ -29,6 +30,7 @@ import { PageHeader } from "@/components/shared/PageHeader";
 import { RelationshipsView } from "@/components/admin/RelationshipsView";
 import { PendingRequestsView } from "@/components/admin/PendingRequestsView";
 import { BulkImportExport } from "@/components/admin/BulkImportExport";
+import { AuditLogViewer } from "@/components/admin/AuditLogViewer";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Shield, UserCheck, Handshake, Clock } from "lucide-react";
 import { AdminUser } from "@/hooks/useAdminUsers";
@@ -38,6 +40,7 @@ const sidebarItems = [
   { icon: Users, label: "Users", path: "/admin/users" },
   { icon: ShieldCheck, label: "Super Admins", path: "/admin/super-admins" },
   { icon: Dumbbell, label: "Content", path: "/admin/content" },
+  { icon: ClipboardList, label: "Audit Logs", path: "/admin/audit-logs" },
   { icon: BarChart3, label: "Analytics", path: "/admin/analytics" },
   { icon: Sliders, label: "Platform", path: "/admin/platform" },
   { icon: Settings, label: "Settings", path: "/admin/settings" },
@@ -146,6 +149,7 @@ function AdminDashboard() {
             <Route path="super-admins" element={<SuperAdminsPage />} />
             <Route path="content" element={<ContentPage />} />
             <Route path="content/import-export" element={<ImportExportPage />} />
+            <Route path="audit-logs" element={<AuditLogsPage />} />
             <Route path="analytics" element={<AnalyticsPage />} />
             <Route path="analytics/relationships" element={<RelationshipsPage />} />
             <Route path="analytics/requests" element={<RequestsPage />} />
@@ -354,6 +358,18 @@ function AnalyticsPage() {
         description="View platform-wide statistics and metrics"
       />
       <PlatformAnalytics />
+    </div>
+  );
+}
+
+function AuditLogsPage() {
+  return (
+    <div className="space-y-6">
+      <PageHeader
+        title="Audit Logs"
+        description="Track all administrative actions on the platform"
+      />
+      <AuditLogViewer />
     </div>
   );
 }
