@@ -1777,6 +1777,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      assign_super_admin_by_email: {
+        Args: { target_email: string }
+        Returns: string
+      }
       get_user_roles: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"][]
@@ -1791,6 +1795,19 @@ export type Database = {
       is_coach_of_client: {
         Args: { _client_id: string; _coach_id: string }
         Returns: boolean
+      }
+      list_super_admins: {
+        Args: never
+        Returns: {
+          created_at: string
+          email: string
+          full_name: string
+          user_id: string
+        }[]
+      }
+      revoke_super_admin_by_email: {
+        Args: { target_email: string }
+        Returns: string
       }
     }
     Enums: {
