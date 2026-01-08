@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -35,15 +35,37 @@ const EXERCISE_TYPES: ExerciseType[] = ["compound", "isolation", "cardio", "plyo
 const formatLabel = (value: string) =>
   value.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
 
-interface CreateExerciseDialogProps {
-  trigger?: React.ReactNode;
+interface ExerciseData {
+  id?: string;
+  name: string;
+  description?: string | null;
+  primary_muscle: MuscleGroup;
+  secondary_muscles?: MuscleGroup[] | null;
+  equipment: EquipmentType;
+  difficulty: DifficultyLevel;
+  exercise_type: ExerciseType;
+  instructions?: string[] | null;
+  tips?: string[] | null;
+  video_url?: string | null;
+  image_url?: string | null;
 }
 
-export function CreateExerciseDialog({ trigger }: CreateExerciseDialogProps) {
-  const [open, setOpen] = useState(false);
+interface CreateExerciseDialogProps {
+  trigger?: React.ReactNode;
+  initialData?: ExerciseData | null;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+}
+
+export function CreateExerciseDialog({ trigger, initialData, open: controlledOpen, onOpenChange }: CreateExerciseDialogProps) {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = controlledOpen !== undefined ? controlledOpen : internalOpen;
+  const setOpen = onOpenChange || setInternalOpen;
+  
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const isEditing = !!initialData?.id;
 
   const [formData, setFormData] = useState({
     name: "",
@@ -59,35 +81,73 @@ export function CreateExerciseDialog({ trigger }: CreateExerciseDialogProps) {
     image_url: "",
   });
 
-  const createExercise = useMutation({
-    mutationFn: async (data: typeof formData) => {
-      const { error } = await supabase.from("exercises").insert({
-        name: data.name,
-        description: data.description || null,
-        primary_muscle: data.primary_muscle as MuscleGroup,
-        secondary_muscles: data.secondary_muscles.length > 0 ? data.secondary_muscles : null,
-        equipment: data.equipment as EquipmentType,
-        difficulty: data.difficulty,
-        exercise_type: data.exercise_type,
-        instructions: data.instructions.filter((i) => i.trim()),
-        tips: data.tips.filter((t) => t.trim()),
-        video_url: data.video_url || null,
-        image_url: data.image_url || null,
-        is_system: false,
-        created_by: user?.id,
+  // Populate form when editing
+  useEffect(() => {
+    if (initialData && open) {
+      setFormData({
+        name: initialData.name || "",
+        description: initialData.description || "",
+        primary_muscle: initialData.primary_muscle || "",
+        secondary_muscles: initialData.secondary_muscles || [],
+        equipment: initialData.equipment || "",
+        difficulty: initialData.difficulty || "intermediate",
+        exercise_type: initialData.exercise_type || "compound",
+        instructions: initialData.instructions?.length ? initialData.instructions : [""],
+        tips: initialData.tips?.length ? initialData.tips : [""],
+        video_url: initialData.video_url || "",
+        image_url: initialData.image_url || "",
       });
+    } else if (!open) {
+      resetForm();
+    }
+  }, [initialData, open]);
 
-      if (error) throw error;
+  const saveMutation = useMutation({
+    mutationFn: async (data: typeof formData) => {
+      if (isEditing && initialData?.id) {
+        const { error } = await supabase.from("exercises").update({
+          name: data.name,
+          description: data.description || null,
+          primary_muscle: data.primary_muscle as MuscleGroup,
+          secondary_muscles: data.secondary_muscles.length > 0 ? data.secondary_muscles : null,
+          equipment: data.equipment as EquipmentType,
+          difficulty: data.difficulty,
+          exercise_type: data.exercise_type,
+          instructions: data.instructions.filter((i) => i.trim()),
+          tips: data.tips.filter((t) => t.trim()),
+          video_url: data.video_url || null,
+          image_url: data.image_url || null,
+        }).eq("id", initialData.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("exercises").insert({
+          name: data.name,
+          description: data.description || null,
+          primary_muscle: data.primary_muscle as MuscleGroup,
+          secondary_muscles: data.secondary_muscles.length > 0 ? data.secondary_muscles : null,
+          equipment: data.equipment as EquipmentType,
+          difficulty: data.difficulty,
+          exercise_type: data.exercise_type,
+          instructions: data.instructions.filter((i) => i.trim()),
+          tips: data.tips.filter((t) => t.trim()),
+          video_url: data.video_url || null,
+          image_url: data.image_url || null,
+          is_system: false,
+          created_by: user?.id,
+        });
+        if (error) throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["exercises"] });
-      toast({ title: "Exercise created successfully!" });
+      queryClient.invalidateQueries({ queryKey: ["admin-exercises"] });
+      toast({ title: isEditing ? "Exercise updated successfully!" : "Exercise created successfully!" });
       setOpen(false);
       resetForm();
     },
     onError: (error) => {
       toast({
-        title: "Failed to create exercise",
+        title: isEditing ? "Failed to update exercise" : "Failed to create exercise",
         description: error.message,
         variant: "destructive",
       });
@@ -120,7 +180,7 @@ export function CreateExerciseDialog({ trigger }: CreateExerciseDialogProps) {
       });
       return;
     }
-    createExercise.mutate(formData);
+    saveMutation.mutate(formData);
   };
 
   const addInstruction = () => {
@@ -187,7 +247,7 @@ export function CreateExerciseDialog({ trigger }: CreateExerciseDialogProps) {
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Dumbbell className="w-5 h-5 text-primary" />
-            Create Custom Exercise
+            {isEditing ? "Edit Exercise" : "Create Custom Exercise"}
           </DialogTitle>
         </DialogHeader>
 
@@ -443,16 +503,16 @@ export function CreateExerciseDialog({ trigger }: CreateExerciseDialogProps) {
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={createExercise.isPending}>
-              {createExercise.isPending ? (
+            <Button type="submit" disabled={saveMutation.isPending}>
+              {saveMutation.isPending ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Creating...
+                  {isEditing ? "Saving..." : "Creating..."}
                 </>
               ) : (
                 <>
                   <Plus className="w-4 h-4 mr-2" />
-                  Create Exercise
+                  {isEditing ? "Save Changes" : "Create Exercise"}
                 </>
               )}
             </Button>
