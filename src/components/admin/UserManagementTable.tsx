@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AdminUser, useAdminUsers } from "@/hooks/useAdminUsers";
 import { AppRole } from "@/lib/auth";
 import { useAuth } from "@/contexts/AuthContext";
@@ -34,6 +34,7 @@ import { format } from "date-fns";
 
 interface UserManagementTableProps {
   onImpersonate?: (user: AdminUser) => void;
+  initialRoleFilter?: string;
 }
 
 const ROLE_COLORS: Record<AppRole, string> = {
@@ -48,12 +49,19 @@ const ROLE_LABELS: Record<AppRole, string> = {
   client: "Client",
 };
 
-export function UserManagementTable({ onImpersonate }: UserManagementTableProps) {
+export function UserManagementTable({ onImpersonate, initialRoleFilter = "all" }: UserManagementTableProps) {
   const { user: currentUser } = useAuth();
   const { users, isLoading, addRole, removeRole, isAddingRole, isRemovingRole } = useAdminUsers();
   
   const [search, setSearch] = useState("");
-  const [roleFilter, setRoleFilter] = useState<string>("all");
+  const [roleFilter, setRoleFilter] = useState<string>(initialRoleFilter);
+
+  // Update filter when initialRoleFilter changes (from URL param)
+  useEffect(() => {
+    if (initialRoleFilter && initialRoleFilter !== "all") {
+      setRoleFilter(initialRoleFilter);
+    }
+  }, [initialRoleFilter]);
 
   const filteredUsers = users.filter((user) => {
     const matchesSearch =
@@ -104,6 +112,11 @@ export function UserManagementTable({ onImpersonate }: UserManagementTableProps)
       {/* Stats */}
       <div className="text-sm text-muted-foreground">
         Showing {filteredUsers.length} of {users.length} users
+        {roleFilter !== "all" && (
+          <span className="ml-2">
+            (filtered by: <Badge variant="outline" className="ml-1">{ROLE_LABELS[roleFilter as AppRole] || roleFilter}</Badge>)
+          </span>
+        )}
       </div>
 
       {/* Table */}
@@ -185,7 +198,7 @@ export function UserManagementTable({ onImpersonate }: UserManagementTableProps)
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
                         <DropdownMenuSeparator />
                         
-                        {!isCurrentUser && onImpersonate && (
+                        {!isCurrentUser && onImpersonate && (user.roles.includes("coach") || user.roles.includes("client")) && (
                           <DropdownMenuItem onClick={() => onImpersonate(user)}>
                             <Eye className="w-4 h-4 mr-2" />
                             View as User
