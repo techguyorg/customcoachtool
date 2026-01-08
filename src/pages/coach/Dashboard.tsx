@@ -24,7 +24,6 @@ import {
   ChefHat,
   UserPlus
 } from "lucide-react";
-import { useState } from "react";
 import CoachExercisesPage from "@/pages/coach/ExercisesPage";
 import CoachWorkoutProgramsPage from "@/pages/coach/WorkoutProgramsPage";
 import ClientsPage from "@/pages/coach/ClientsPage";

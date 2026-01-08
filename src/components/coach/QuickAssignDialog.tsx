@@ -11,12 +11,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
@@ -50,7 +44,7 @@ interface FormData {
 
 export function QuickAssignDialog({ open, onOpenChange }: QuickAssignDialogProps) {
   const { data: clients } = useCoachClients();
-  const { data: workoutTemplates } = useWorkoutTemplates();
+  const { data: workoutTemplates } = useWorkoutTemplates({ search: "", templateType: "all", difficulty: "all", daysPerWeek: "all" });
   const { data: dietPlans } = useDietPlans();
   const assignPlan = useAssignPlan();
 
