@@ -265,11 +265,9 @@ function UsersPage() {
   const initialFilter = searchParams.get("filter") || "all";
 
   const handleImpersonate = (user: AdminUser) => {
-    // Get the primary role (first non-super_admin role, or client as fallback)
     const impersonateRole = user.roles.find(r => r !== "super_admin") || "client";
     startImpersonation(user.user_id, impersonateRole, user.full_name);
     
-    // Navigate to the appropriate dashboard
     if (impersonateRole === "coach") {
       navigate("/coach");
     } else {
@@ -282,8 +280,6 @@ function UsersPage() {
       <PageHeader
         title="User Management"
         description="View and manage all platform users and their roles"
-        backTo="/admin"
-        backLabel="Back to Dashboard"
       />
       <UserManagementTable onImpersonate={handleImpersonate} initialRoleFilter={initialFilter} />
     </div>
@@ -296,8 +292,6 @@ function SuperAdminsPage() {
       <PageHeader
         title="Super Admin Management"
         description="Manage super administrator access"
-        backTo="/admin"
-        backLabel="Back to Dashboard"
       />
       <SuperAdminManagement />
     </div>
@@ -310,8 +304,6 @@ function PlatformPage() {
       <PageHeader
         title="Platform Settings"
         description="Configure platform-wide settings and feature flags"
-        backTo="/admin"
-        backLabel="Back to Dashboard"
       />
       <PlatformSettings />
     </div>
@@ -327,8 +319,6 @@ function ContentPage() {
       <PageHeader
         title="Content Management"
         description="Manage system exercises, workout templates, diet plans, recipes, and foods"
-        backTo="/admin"
-        backLabel="Back to Dashboard"
         actions={
           <Link to="/admin/content/import-export">
             <Button variant="outline">Bulk Import/Export</Button>
@@ -346,8 +336,6 @@ function ImportExportPage() {
       <PageHeader
         title="Bulk Import/Export"
         description="Import or export system content using CSV files"
-        backTo="/admin/content"
-        backLabel="Back to Content"
       />
       <BulkImportExport />
     </div>
@@ -360,8 +348,6 @@ function AnalyticsPage() {
       <PageHeader
         title="Platform Analytics"
         description="View platform-wide statistics and metrics"
-        backTo="/admin"
-        backLabel="Back to Dashboard"
       />
       <PlatformAnalytics />
     </div>
@@ -382,8 +368,6 @@ function SettingsPage() {
       <PageHeader
         title="Settings"
         description="Manage your account settings"
-        backTo="/admin"
-        backLabel="Back to Dashboard"
       />
       <ChangePasswordCard />
     </div>

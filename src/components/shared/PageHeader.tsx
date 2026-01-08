@@ -5,31 +5,25 @@ import { ArrowLeft } from "lucide-react";
 interface PageHeaderProps {
   title: string;
   description?: string;
-  backTo?: string;
-  backLabel?: string;
+  showBackButton?: boolean;
   actions?: React.ReactNode;
 }
 
 export function PageHeader({ 
   title, 
   description, 
-  backTo, 
-  backLabel = "Back",
+  showBackButton = true,
   actions 
 }: PageHeaderProps) {
   const navigate = useNavigate();
 
   const handleBack = () => {
-    if (backTo) {
-      navigate(backTo);
-    } else {
-      navigate(-1);
-    }
+    navigate(-1);
   };
 
   return (
     <div className="space-y-4">
-      {backTo && (
+      {showBackButton && (
         <Button 
           variant="ghost" 
           size="sm" 
@@ -37,7 +31,7 @@ export function PageHeader({
           className="gap-2 -ml-2 text-muted-foreground hover:text-foreground"
         >
           <ArrowLeft className="w-4 h-4" />
-          {backLabel}
+          Back
         </Button>
       )}
       <div className="flex items-start justify-between gap-4">

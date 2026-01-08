@@ -71,8 +71,6 @@ export function PendingRequestsView() {
       <PageHeader
         title="Pending Coaching Requests"
         description="View all pending coaching requests awaiting response"
-        backTo="/admin/analytics"
-        backLabel="Back to Analytics"
       />
 
       <Card>

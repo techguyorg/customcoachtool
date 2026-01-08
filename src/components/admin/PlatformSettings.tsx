@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,47 +9,147 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { Settings, Shield, Bell, Globe, Database } from "lucide-react";
+import { Settings, Shield, Bell, Database, Loader2 } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+
+interface PlatformSetting {
+  id: string;
+  setting_key: string;
+  setting_value: string | boolean | number;
+  setting_type: string;
+  category: string;
+  description: string | null;
+}
 
 export function PlatformSettings() {
-  // Feature flags
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  const { data: settings, isLoading } = useQuery({
+    queryKey: ["platform-settings"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("platform_settings")
+        .select("*")
+        .order("category", { ascending: true });
+      
+      if (error) throw error;
+      
+      // Parse JSON values
+      return (data || []).map(s => ({
+        ...s,
+        setting_value: JSON.parse(s.setting_value as string)
+      })) as PlatformSetting[];
+    },
+  });
+
+  // Local state for form
   const [features, setFeatures] = useState({
-    coachMarketplace: true,
-    clientSelfSignup: true,
-    progressPhotos: true,
-    nutritionTracking: true,
-    workoutLogging: true,
-    messaging: true,
+    coach_marketplace_enabled: true,
+    client_self_signup_enabled: true,
+    workout_logging_enabled: true,
+    nutrition_logging_enabled: true,
+    progress_photos_enabled: true,
+    messaging_enabled: true,
   });
 
-  // Default values
   const [defaults, setDefaults] = useState({
-    maxClientsPerCoach: "50",
-    defaultTrialDays: "14",
-    checkinFrequencyDays: "7",
-    sessionTimeout: "60",
+    max_clients_per_coach: "50",
+    default_trial_period_days: "14",
+    checkin_frequency_days: "7",
+    session_timeout_hours: "24",
   });
 
-  // Notification settings
   const [notifications, setNotifications] = useState({
-    emailNotifications: true,
-    checkinReminders: true,
-    newClientAlerts: true,
-    systemAlerts: true,
+    email_notifications_enabled: true,
+    checkin_reminders_enabled: true,
+    new_client_alerts_enabled: true,
+    system_alerts_enabled: true,
   });
 
-  const handleSaveFeatures = () => {
-    // In a real app, this would save to database
-    toast.success("Feature flags updated successfully");
+  // Sync settings from database to local state
+  useEffect(() => {
+    if (settings) {
+      const newFeatures = { ...features };
+      const newDefaults = { ...defaults };
+      const newNotifications = { ...notifications };
+
+      settings.forEach((s) => {
+        if (s.category === "features" && s.setting_key in newFeatures) {
+          (newFeatures as any)[s.setting_key] = s.setting_value === true || s.setting_value === "true";
+        } else if (s.category === "defaults" && s.setting_key in newDefaults) {
+          (newDefaults as any)[s.setting_key] = String(s.setting_value);
+        } else if (s.category === "notifications" && s.setting_key in newNotifications) {
+          (newNotifications as any)[s.setting_key] = s.setting_value === true || s.setting_value === "true";
+        }
+      });
+
+      setFeatures(newFeatures);
+      setDefaults(newDefaults);
+      setNotifications(newNotifications);
+    }
+  }, [settings]);
+
+  const updateSettingMutation = useMutation({
+    mutationFn: async ({ key, value }: { key: string; value: any }) => {
+      const { error } = await supabase
+        .from("platform_settings")
+        .update({ 
+          setting_value: JSON.stringify(value),
+          updated_by: user?.id
+        })
+        .eq("setting_key", key);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["platform-settings"] });
+    },
+  });
+
+  const handleSaveFeatures = async () => {
+    try {
+      const updates = Object.entries(features).map(([key, value]) => 
+        updateSettingMutation.mutateAsync({ key, value })
+      );
+      await Promise.all(updates);
+      toast.success("Feature flags updated successfully");
+    } catch (error) {
+      toast.error("Failed to update feature flags");
+    }
   };
 
-  const handleSaveDefaults = () => {
-    toast.success("Default values updated successfully");
+  const handleSaveDefaults = async () => {
+    try {
+      const updates = Object.entries(defaults).map(([key, value]) => 
+        updateSettingMutation.mutateAsync({ key, value: Number(value) })
+      );
+      await Promise.all(updates);
+      toast.success("Default values updated successfully");
+    } catch (error) {
+      toast.error("Failed to update default values");
+    }
   };
 
-  const handleSaveNotifications = () => {
-    toast.success("Notification settings updated successfully");
+  const handleSaveNotifications = async () => {
+    try {
+      const updates = Object.entries(notifications).map(([key, value]) => 
+        updateSettingMutation.mutateAsync({ key, value })
+      );
+      await Promise.all(updates);
+      toast.success("Notification settings updated successfully");
+    } catch (error) {
+      toast.error("Failed to update notification settings");
+    }
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -81,23 +183,17 @@ export function PlatformSettings() {
           <Card>
             <CardHeader>
               <CardTitle>Feature Flags</CardTitle>
-              <CardDescription>
-                Enable or disable platform features globally
-              </CardDescription>
+              <CardDescription>Enable or disable platform features globally</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
                   <Label>Coach Marketplace</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Allow clients to discover and request coaches
-                  </p>
+                  <p className="text-sm text-muted-foreground">Allow clients to discover and request coaches</p>
                 </div>
                 <Switch
-                  checked={features.coachMarketplace}
-                  onCheckedChange={(checked) =>
-                    setFeatures({ ...features, coachMarketplace: checked })
-                  }
+                  checked={features.coach_marketplace_enabled}
+                  onCheckedChange={(checked) => setFeatures({ ...features, coach_marketplace_enabled: checked })}
                 />
               </div>
               <Separator />
@@ -105,15 +201,11 @@ export function PlatformSettings() {
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
                   <Label>Client Self-Signup</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Allow clients to sign up without coach invitation
-                  </p>
+                  <p className="text-sm text-muted-foreground">Allow clients to sign up without coach invitation</p>
                 </div>
                 <Switch
-                  checked={features.clientSelfSignup}
-                  onCheckedChange={(checked) =>
-                    setFeatures({ ...features, clientSelfSignup: checked })
-                  }
+                  checked={features.client_self_signup_enabled}
+                  onCheckedChange={(checked) => setFeatures({ ...features, client_self_signup_enabled: checked })}
                 />
               </div>
               <Separator />
@@ -121,15 +213,11 @@ export function PlatformSettings() {
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
                   <Label>Progress Photos</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Enable progress photo uploads and tracking
-                  </p>
+                  <p className="text-sm text-muted-foreground">Enable progress photo uploads and tracking</p>
                 </div>
                 <Switch
-                  checked={features.progressPhotos}
-                  onCheckedChange={(checked) =>
-                    setFeatures({ ...features, progressPhotos: checked })
-                  }
+                  checked={features.progress_photos_enabled}
+                  onCheckedChange={(checked) => setFeatures({ ...features, progress_photos_enabled: checked })}
                 />
               </div>
               <Separator />
@@ -137,15 +225,11 @@ export function PlatformSettings() {
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
                   <Label>Nutrition Tracking</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Enable nutrition logging and diet plan features
-                  </p>
+                  <p className="text-sm text-muted-foreground">Enable nutrition logging and diet plan features</p>
                 </div>
                 <Switch
-                  checked={features.nutritionTracking}
-                  onCheckedChange={(checked) =>
-                    setFeatures({ ...features, nutritionTracking: checked })
-                  }
+                  checked={features.nutrition_logging_enabled}
+                  onCheckedChange={(checked) => setFeatures({ ...features, nutrition_logging_enabled: checked })}
                 />
               </div>
               <Separator />
@@ -153,15 +237,11 @@ export function PlatformSettings() {
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
                   <Label>Workout Logging</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Enable workout tracking and exercise logging
-                  </p>
+                  <p className="text-sm text-muted-foreground">Enable workout tracking and exercise logging</p>
                 </div>
                 <Switch
-                  checked={features.workoutLogging}
-                  onCheckedChange={(checked) =>
-                    setFeatures({ ...features, workoutLogging: checked })
-                  }
+                  checked={features.workout_logging_enabled}
+                  onCheckedChange={(checked) => setFeatures({ ...features, workout_logging_enabled: checked })}
                 />
               </div>
               <Separator />
@@ -169,20 +249,19 @@ export function PlatformSettings() {
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
                   <Label>In-App Messaging</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Enable coach-client messaging
-                  </p>
+                  <p className="text-sm text-muted-foreground">Enable coach-client messaging</p>
                 </div>
                 <Switch
-                  checked={features.messaging}
-                  onCheckedChange={(checked) =>
-                    setFeatures({ ...features, messaging: checked })
-                  }
+                  checked={features.messaging_enabled}
+                  onCheckedChange={(checked) => setFeatures({ ...features, messaging_enabled: checked })}
                 />
               </div>
 
               <div className="pt-4">
-                <Button onClick={handleSaveFeatures}>Save Feature Settings</Button>
+                <Button onClick={handleSaveFeatures} disabled={updateSettingMutation.isPending}>
+                  {updateSettingMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                  Save Feature Settings
+                </Button>
               </div>
             </CardContent>
           </Card>
@@ -192,9 +271,7 @@ export function PlatformSettings() {
           <Card>
             <CardHeader>
               <CardTitle>Default Values</CardTitle>
-              <CardDescription>
-                Configure default settings for new users and features
-              </CardDescription>
+              <CardDescription>Configure default settings for new users and features</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="grid gap-4 md:grid-cols-2">
@@ -203,14 +280,10 @@ export function PlatformSettings() {
                   <Input
                     id="maxClients"
                     type="number"
-                    value={defaults.maxClientsPerCoach}
-                    onChange={(e) =>
-                      setDefaults({ ...defaults, maxClientsPerCoach: e.target.value })
-                    }
+                    value={defaults.max_clients_per_coach}
+                    onChange={(e) => setDefaults({ ...defaults, max_clients_per_coach: e.target.value })}
                   />
-                  <p className="text-xs text-muted-foreground">
-                    Maximum clients a coach can accept
-                  </p>
+                  <p className="text-xs text-muted-foreground">Maximum clients a coach can accept</p>
                 </div>
 
                 <div className="space-y-2">
@@ -218,14 +291,10 @@ export function PlatformSettings() {
                   <Input
                     id="trialDays"
                     type="number"
-                    value={defaults.defaultTrialDays}
-                    onChange={(e) =>
-                      setDefaults({ ...defaults, defaultTrialDays: e.target.value })
-                    }
+                    value={defaults.default_trial_period_days}
+                    onChange={(e) => setDefaults({ ...defaults, default_trial_period_days: e.target.value })}
                   />
-                  <p className="text-xs text-muted-foreground">
-                    Free trial duration for new coaching relationships
-                  </p>
+                  <p className="text-xs text-muted-foreground">Free trial duration for new coaching relationships</p>
                 </div>
 
                 <div className="space-y-2">
@@ -233,34 +302,29 @@ export function PlatformSettings() {
                   <Input
                     id="checkinFreq"
                     type="number"
-                    value={defaults.checkinFrequencyDays}
-                    onChange={(e) =>
-                      setDefaults({ ...defaults, checkinFrequencyDays: e.target.value })
-                    }
+                    value={defaults.checkin_frequency_days}
+                    onChange={(e) => setDefaults({ ...defaults, checkin_frequency_days: e.target.value })}
                   />
-                  <p className="text-xs text-muted-foreground">
-                    Default days between client check-ins
-                  </p>
+                  <p className="text-xs text-muted-foreground">Default days between client check-ins</p>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="sessionTimeout">Session Timeout (minutes)</Label>
+                  <Label htmlFor="sessionTimeout">Session Timeout (hours)</Label>
                   <Input
                     id="sessionTimeout"
                     type="number"
-                    value={defaults.sessionTimeout}
-                    onChange={(e) =>
-                      setDefaults({ ...defaults, sessionTimeout: e.target.value })
-                    }
+                    value={defaults.session_timeout_hours}
+                    onChange={(e) => setDefaults({ ...defaults, session_timeout_hours: e.target.value })}
                   />
-                  <p className="text-xs text-muted-foreground">
-                    Auto-logout after inactivity
-                  </p>
+                  <p className="text-xs text-muted-foreground">Auto-logout after inactivity</p>
                 </div>
               </div>
 
               <div className="pt-4">
-                <Button onClick={handleSaveDefaults}>Save Default Values</Button>
+                <Button onClick={handleSaveDefaults} disabled={updateSettingMutation.isPending}>
+                  {updateSettingMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                  Save Default Values
+                </Button>
               </div>
             </CardContent>
           </Card>
@@ -270,23 +334,17 @@ export function PlatformSettings() {
           <Card>
             <CardHeader>
               <CardTitle>Notification Settings</CardTitle>
-              <CardDescription>
-                Configure platform-wide notification behavior
-              </CardDescription>
+              <CardDescription>Configure platform-wide notification behavior</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
                   <Label>Email Notifications</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Send email notifications for important events
-                  </p>
+                  <p className="text-sm text-muted-foreground">Send email notifications for important events</p>
                 </div>
                 <Switch
-                  checked={notifications.emailNotifications}
-                  onCheckedChange={(checked) =>
-                    setNotifications({ ...notifications, emailNotifications: checked })
-                  }
+                  checked={notifications.email_notifications_enabled}
+                  onCheckedChange={(checked) => setNotifications({ ...notifications, email_notifications_enabled: checked })}
                 />
               </div>
               <Separator />
@@ -294,15 +352,11 @@ export function PlatformSettings() {
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
                   <Label>Check-in Reminders</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Send reminders to clients for scheduled check-ins
-                  </p>
+                  <p className="text-sm text-muted-foreground">Send reminders to clients for scheduled check-ins</p>
                 </div>
                 <Switch
-                  checked={notifications.checkinReminders}
-                  onCheckedChange={(checked) =>
-                    setNotifications({ ...notifications, checkinReminders: checked })
-                  }
+                  checked={notifications.checkin_reminders_enabled}
+                  onCheckedChange={(checked) => setNotifications({ ...notifications, checkin_reminders_enabled: checked })}
                 />
               </div>
               <Separator />
@@ -310,15 +364,11 @@ export function PlatformSettings() {
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
                   <Label>New Client Alerts</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Notify coaches when new clients request coaching
-                  </p>
+                  <p className="text-sm text-muted-foreground">Notify coaches when new clients request coaching</p>
                 </div>
                 <Switch
-                  checked={notifications.newClientAlerts}
-                  onCheckedChange={(checked) =>
-                    setNotifications({ ...notifications, newClientAlerts: checked })
-                  }
+                  checked={notifications.new_client_alerts_enabled}
+                  onCheckedChange={(checked) => setNotifications({ ...notifications, new_client_alerts_enabled: checked })}
                 />
               </div>
               <Separator />
@@ -326,20 +376,19 @@ export function PlatformSettings() {
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
                   <Label>System Alerts</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Notify super admins of system events
-                  </p>
+                  <p className="text-sm text-muted-foreground">Notify super admins of system events</p>
                 </div>
                 <Switch
-                  checked={notifications.systemAlerts}
-                  onCheckedChange={(checked) =>
-                    setNotifications({ ...notifications, systemAlerts: checked })
-                  }
+                  checked={notifications.system_alerts_enabled}
+                  onCheckedChange={(checked) => setNotifications({ ...notifications, system_alerts_enabled: checked })}
                 />
               </div>
 
               <div className="pt-4">
-                <Button onClick={handleSaveNotifications}>Save Notification Settings</Button>
+                <Button onClick={handleSaveNotifications} disabled={updateSettingMutation.isPending}>
+                  {updateSettingMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                  Save Notification Settings
+                </Button>
               </div>
             </CardContent>
           </Card>
