@@ -126,3 +126,40 @@ export function useCreateFood() {
     },
   });
 }
+
+export function useUpdateFood() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, food }: { id: string; food: Partial<Food> }) => {
+      const { data, error } = await supabase
+        .from("foods")
+        .update(food)
+        .eq("id", id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["foods"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-foods"] });
+    },
+  });
+}
+
+export function useDeleteFood() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("foods").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["foods"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-foods"] });
+    },
+  });
+}
