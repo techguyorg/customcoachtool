@@ -113,12 +113,21 @@ export function ExerciseContentFilters({ filters, onChange }: ExerciseFiltersPro
         </Button>
         
         <Button 
-          variant={filters.sortBy === "created_at" ? "secondary" : "outline"} 
+          variant={filters.sortBy === "primary_muscle" ? "secondary" : "outline"} 
           size="sm" 
-          onClick={() => toggleSort("created_at")}
+          onClick={() => toggleSort("primary_muscle")}
           className="gap-1"
         >
-          Date {filters.sortBy === "created_at" && <SortIcon className="w-3 h-3" />}
+          Muscle {filters.sortBy === "primary_muscle" && <SortIcon className="w-3 h-3" />}
+        </Button>
+        
+        <Button 
+          variant={filters.sortBy === "difficulty" ? "secondary" : "outline"} 
+          size="sm" 
+          onClick={() => toggleSort("difficulty")}
+          className="gap-1"
+        >
+          Difficulty {filters.sortBy === "difficulty" && <SortIcon className="w-3 h-3" />}
         </Button>
 
         {hasActiveFilters && (
