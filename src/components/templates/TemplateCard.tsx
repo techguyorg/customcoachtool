@@ -1,13 +1,26 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Calendar, Clock, Zap } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Calendar, Clock, Zap, MoreVertical, Eye, ClipboardList, Edit, Trash2 } from "lucide-react";
 import { FavoriteButton } from "@/components/favorites/FavoriteButton";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import type { TemplateWithStats } from "@/hooks/useWorkoutTemplates";
 
 interface TemplateCardProps {
   template: TemplateWithStats;
   onClick: () => void;
   showFavorite?: boolean;
+  showQuickActions?: boolean;
+  onAssign?: () => void;
+  onEdit?: () => void;
+  onDelete?: () => void;
+  isOwner?: boolean;
 }
 
 const difficultyColors = {
@@ -34,7 +47,16 @@ const typeColors: Record<string, string> = {
 const formatLabel = (value: string) => 
   value.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase());
 
-export function TemplateCard({ template, onClick, showFavorite = true }: TemplateCardProps) {
+export function TemplateCard({ 
+  template, 
+  onClick, 
+  showFavorite = true,
+  showQuickActions = false,
+  onAssign,
+  onEdit,
+  onDelete,
+  isOwner = false,
+}: TemplateCardProps) {
   return (
     <Card 
       className="cursor-pointer transition-all hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5 group h-full"
@@ -53,11 +75,47 @@ export function TemplateCard({ template, onClick, showFavorite = true }: Templat
               </p>
             )}
           </div>
-          {showFavorite && (
-            <div onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+            {showFavorite && (
               <FavoriteButton itemType="workout_template" itemId={template.id} size="sm" />
-            </div>
-          )}
+            )}
+            {showQuickActions && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                    <MoreVertical className="w-4 h-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={onClick}>
+                    <Eye className="w-4 h-4 mr-2" />
+                    View Details
+                  </DropdownMenuItem>
+                  {onAssign && (
+                    <DropdownMenuItem onClick={onAssign}>
+                      <ClipboardList className="w-4 h-4 mr-2" />
+                      Assign to Client
+                    </DropdownMenuItem>
+                  )}
+                  {isOwner && onEdit && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={onEdit}>
+                        <Edit className="w-4 h-4 mr-2" />
+                        Edit
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                  {isOwner && onDelete && (
+                    <DropdownMenuItem onClick={onDelete} className="text-destructive focus:text-destructive">
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      Delete
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          </div>
         </div>
 
         {/* Description */}

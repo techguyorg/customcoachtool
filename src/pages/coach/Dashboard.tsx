@@ -32,6 +32,8 @@ import DietPlansPage from "@/pages/coach/DietPlansPage";
 import RecipesPage from "@/pages/coach/RecipesPage";
 import RequestsPage from "@/pages/coach/RequestsPage";
 import CoachSettingsPage from "@/pages/coach/SettingsPage";
+import MessagesPage from "@/pages/shared/MessagesPage";
+import AnalyticsPage from "@/pages/coach/AnalyticsPage";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { useCoachClients, useClientStats } from "@/hooks/useCoachClients";
 import { useCoachCheckins } from "@/hooks/useCheckins";
@@ -173,8 +175,8 @@ function CoachDashboard() {
             <Route path="recipes" element={<RecipesPage />} />
             <Route path="exercises" element={<CoachExercisesPage />} />
             <Route path="checkins" element={<CoachCheckinsPage />} />
-            <Route path="messages" element={<div className="text-muted-foreground">Messages coming soon...</div>} />
-            <Route path="analytics" element={<div className="text-muted-foreground">Analytics coming soon...</div>} />
+            <Route path="messages" element={<MessagesPage />} />
+            <Route path="analytics" element={<AnalyticsPage />} />
             <Route path="settings" element={<CoachSettingsPage />} />
           </Routes>
         </div>
