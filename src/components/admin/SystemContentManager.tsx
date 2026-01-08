@@ -25,7 +25,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Search, Dumbbell, Calendar, UtensilsCrossed, ChefHat, Apple, Loader2, Plus, Trash2, Edit, MoreHorizontal } from "lucide-react";
+import { Search, Dumbbell, Calendar, UtensilsCrossed, ChefHat, Apple, Loader2, Plus, Trash2, Edit, MoreHorizontal, Eye } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -41,8 +41,18 @@ import { CreateDietPlanDialog } from "@/components/diet/CreateDietPlanDialog";
 import { RecipeBuilderDialog } from "@/components/diet/RecipeBuilderDialog";
 import { CustomFoodDialog } from "@/components/diet/CustomFoodDialog";
 
-export function SystemContentManager() {
-  const [activeTab, setActiveTab] = useState("exercises");
+// Import detail sheets for viewing
+import { ExerciseDetailSheet } from "@/components/exercises/ExerciseDetailSheet";
+import { TemplateDetailSheet } from "@/components/templates/TemplateDetailSheet";
+import { DietPlanDetailSheet } from "@/components/diet/DietPlanDetailSheet";
+import { RecipeDetailSheet } from "@/components/diet/RecipeDetailSheet";
+
+interface SystemContentManagerProps {
+  initialTab?: string;
+}
+
+export function SystemContentManager({ initialTab = "exercises" }: SystemContentManagerProps) {
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [search, setSearch] = useState("");
 
   return (
@@ -100,6 +110,8 @@ interface TabProps {
 
 function ExercisesTab({ search, setSearch }: TabProps) {
   const queryClient = useQueryClient();
+  const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
   
   const { data: exercises, isLoading } = useQuery({
     queryKey: ["admin-exercises"],
@@ -131,6 +143,11 @@ function ExercisesTab({ search, setSearch }: TabProps) {
   const filtered = (exercises || []).filter(e => 
     e.name.toLowerCase().includes(search.toLowerCase())
   );
+
+  const handleView = (id: string) => {
+    setSelectedExerciseId(id);
+    setSheetOpen(true);
+  };
 
   return (
     <Card>
@@ -173,7 +190,11 @@ function ExercisesTab({ search, setSearch }: TabProps) {
                 </TableHeader>
                 <TableBody>
                   {filtered.slice(0, 20).map((ex) => (
-                    <TableRow key={ex.id}>
+                    <TableRow 
+                      key={ex.id} 
+                      className="cursor-pointer hover:bg-muted/50"
+                      onClick={() => handleView(ex.id)}
+                    >
                       <TableCell className="font-medium">{ex.name}</TableCell>
                       <TableCell>
                         <Badge variant="outline" className="capitalize">
@@ -184,8 +205,9 @@ function ExercisesTab({ search, setSearch }: TabProps) {
                         {ex.equipment.replace("_", " ")}
                       </TableCell>
                       <TableCell className="capitalize">{ex.difficulty}</TableCell>
-                      <TableCell>
+                      <TableCell onClick={(e) => e.stopPropagation()}>
                         <ActionsMenu 
+                          onView={() => handleView(ex.id)}
                           onDelete={() => deleteMutation.mutate(ex.id)}
                           itemName={ex.name}
                         />
@@ -203,12 +225,20 @@ function ExercisesTab({ search, setSearch }: TabProps) {
           </div>
         )}
       </CardContent>
+      
+      <ExerciseDetailSheet 
+        exerciseId={selectedExerciseId} 
+        open={sheetOpen} 
+        onOpenChange={setSheetOpen} 
+      />
     </Card>
   );
 }
 
 function WorkoutsTab({ search, setSearch }: TabProps) {
   const queryClient = useQueryClient();
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
   
   const { data: templates, isLoading } = useQuery({
     queryKey: ["admin-workout-templates"],
@@ -240,6 +270,11 @@ function WorkoutsTab({ search, setSearch }: TabProps) {
   const filtered = (templates || []).filter(t => 
     t.name.toLowerCase().includes(search.toLowerCase())
   );
+
+  const handleView = (id: string) => {
+    setSelectedTemplateId(id);
+    setSheetOpen(true);
+  };
 
   return (
     <Card>
@@ -275,7 +310,11 @@ function WorkoutsTab({ search, setSearch }: TabProps) {
                 </TableHeader>
                 <TableBody>
                   {filtered.map((t) => (
-                    <TableRow key={t.id}>
+                    <TableRow 
+                      key={t.id}
+                      className="cursor-pointer hover:bg-muted/50"
+                      onClick={() => handleView(t.id)}
+                    >
                       <TableCell className="font-medium">{t.name}</TableCell>
                       <TableCell>
                         <Badge variant="outline" className="capitalize">
@@ -284,8 +323,9 @@ function WorkoutsTab({ search, setSearch }: TabProps) {
                       </TableCell>
                       <TableCell>{t.days_per_week} days</TableCell>
                       <TableCell className="capitalize">{t.difficulty}</TableCell>
-                      <TableCell>
+                      <TableCell onClick={(e) => e.stopPropagation()}>
                         <ActionsMenu 
+                          onView={() => handleView(t.id)}
                           onDelete={() => deleteMutation.mutate(t.id)}
                           itemName={t.name}
                         />
@@ -298,6 +338,12 @@ function WorkoutsTab({ search, setSearch }: TabProps) {
           </div>
         )}
       </CardContent>
+      
+      <TemplateDetailSheet 
+        templateId={selectedTemplateId} 
+        open={sheetOpen} 
+        onOpenChange={setSheetOpen} 
+      />
     </Card>
   );
 }
@@ -305,6 +351,7 @@ function WorkoutsTab({ search, setSearch }: TabProps) {
 function DietsTab({ search, setSearch }: TabProps) {
   const [showCreate, setShowCreate] = useState(false);
   const queryClient = useQueryClient();
+  const [selectedPlan, setSelectedPlan] = useState<any>(null);
   
   const { data: plans, isLoading } = useQuery({
     queryKey: ["admin-diet-plans"],
@@ -378,7 +425,11 @@ function DietsTab({ search, setSearch }: TabProps) {
                 </TableHeader>
                 <TableBody>
                   {filtered.map((p) => (
-                    <TableRow key={p.id}>
+                    <TableRow 
+                      key={p.id}
+                      className="cursor-pointer hover:bg-muted/50"
+                      onClick={() => setSelectedPlan(p)}
+                    >
                       <TableCell className="font-medium">{p.name}</TableCell>
                       <TableCell>
                         <Badge variant="outline" className="capitalize">
@@ -387,8 +438,9 @@ function DietsTab({ search, setSearch }: TabProps) {
                       </TableCell>
                       <TableCell>{p.calories_target || "—"} kcal</TableCell>
                       <TableCell>{p.meals_per_day || "—"}</TableCell>
-                      <TableCell>
+                      <TableCell onClick={(e) => e.stopPropagation()}>
                         <ActionsMenu 
+                          onView={() => setSelectedPlan(p)}
                           onDelete={() => deleteMutation.mutate(p.id)}
                           itemName={p.name}
                         />
@@ -401,6 +453,11 @@ function DietsTab({ search, setSearch }: TabProps) {
           </div>
         )}
       </CardContent>
+      
+      <DietPlanDetailSheet 
+        plan={selectedPlan} 
+        onOpenChange={(open) => !open && setSelectedPlan(null)} 
+      />
     </Card>
   );
 }
@@ -408,6 +465,7 @@ function DietsTab({ search, setSearch }: TabProps) {
 function RecipesTab({ search, setSearch }: TabProps) {
   const [showCreate, setShowCreate] = useState(false);
   const queryClient = useQueryClient();
+  const [selectedRecipe, setSelectedRecipe] = useState<any>(null);
   
   const { data: recipes, isLoading } = useQuery({
     queryKey: ["admin-recipes"],
@@ -478,7 +536,11 @@ function RecipesTab({ search, setSearch }: TabProps) {
                 </TableHeader>
                 <TableBody>
                   {filtered.map((r) => (
-                    <TableRow key={r.id}>
+                    <TableRow 
+                      key={r.id}
+                      className="cursor-pointer hover:bg-muted/50"
+                      onClick={() => setSelectedRecipe(r)}
+                    >
                       <TableCell className="font-medium">{r.name}</TableCell>
                       <TableCell>
                         <Badge variant="outline" className="capitalize">
@@ -487,8 +549,9 @@ function RecipesTab({ search, setSearch }: TabProps) {
                       </TableCell>
                       <TableCell>{r.calories_per_serving || "—"} kcal</TableCell>
                       <TableCell>{r.servings}</TableCell>
-                      <TableCell>
+                      <TableCell onClick={(e) => e.stopPropagation()}>
                         <ActionsMenu 
+                          onView={() => setSelectedRecipe(r)}
                           onDelete={() => deleteMutation.mutate(r.id)}
                           itemName={r.name}
                         />
@@ -501,6 +564,11 @@ function RecipesTab({ search, setSearch }: TabProps) {
           </div>
         )}
       </CardContent>
+      
+      <RecipeDetailSheet 
+        recipe={selectedRecipe} 
+        onOpenChange={(open) => !open && setSelectedRecipe(null)} 
+      />
     </Card>
   );
 }
@@ -628,11 +696,12 @@ function LoadingState() {
 }
 
 interface ActionsMenuProps {
+  onView?: () => void;
   onDelete: () => void;
   itemName: string;
 }
 
-function ActionsMenu({ onDelete, itemName }: ActionsMenuProps) {
+function ActionsMenu({ onView, onDelete, itemName }: ActionsMenuProps) {
   return (
     <AlertDialog>
       <DropdownMenu>
@@ -642,10 +711,12 @@ function ActionsMenu({ onDelete, itemName }: ActionsMenuProps) {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem className="gap-2">
-            <Edit className="h-4 w-4" />
-            Edit
-          </DropdownMenuItem>
+          {onView && (
+            <DropdownMenuItem onClick={onView} className="gap-2">
+              <Eye className="h-4 w-4" />
+              View Details
+            </DropdownMenuItem>
+          )}
           <AlertDialogTrigger asChild>
             <DropdownMenuItem className="gap-2 text-destructive focus:text-destructive">
               <Trash2 className="h-4 w-4" />

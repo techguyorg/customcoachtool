@@ -1,4 +1,4 @@
-import { Routes, Route, useNavigate } from "react-router-dom";
+import { Routes, Route, useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useImpersonation } from "@/contexts/ImpersonationContext";
 import { Button } from "@/components/ui/button";
@@ -14,8 +14,8 @@ import {
   ShieldCheck,
   Sliders
 } from "lucide-react";
-import { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { useAdminStats } from "@/hooks/useAdminStats";
 import { UserManagementTable } from "@/components/admin/UserManagementTable";
 import { SystemContentManager } from "@/components/admin/SystemContentManager";
@@ -24,6 +24,10 @@ import { SuperAdminManagement } from "@/components/admin/SuperAdminManagement";
 import { PlatformSettings } from "@/components/admin/PlatformSettings";
 import { ChangePasswordCard } from "@/components/shared/ChangePasswordCard";
 import { ThemeSwitcher } from "@/components/shared/ThemeSwitcher";
+import { PageHeader } from "@/components/shared/PageHeader";
+import { RelationshipsView } from "@/components/admin/RelationshipsView";
+import { PendingRequestsView } from "@/components/admin/PendingRequestsView";
+import { BulkImportExport } from "@/components/admin/BulkImportExport";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Shield, UserCheck, Handshake, Clock } from "lucide-react";
 import { AdminUser } from "@/hooks/useAdminUsers";
@@ -137,7 +141,10 @@ function AdminDashboard() {
             <Route path="users" element={<UsersPage />} />
             <Route path="super-admins" element={<SuperAdminsPage />} />
             <Route path="content" element={<ContentPage />} />
+            <Route path="content/import-export" element={<ImportExportPage />} />
             <Route path="analytics" element={<AnalyticsPage />} />
+            <Route path="analytics/relationships" element={<RelationshipsPage />} />
+            <Route path="analytics/requests" element={<RequestsPage />} />
             <Route path="platform" element={<PlatformPage />} />
             <Route path="settings" element={<SettingsPage />} />
           </Routes>
@@ -149,6 +156,7 @@ function AdminDashboard() {
 
 function AdminHome() {
   const { data: stats, isLoading } = useAdminStats();
+  const navigate = useNavigate();
 
   if (isLoading) {
     return (
@@ -161,7 +169,10 @@ function AdminHome() {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card>
+        <Card 
+          className="cursor-pointer hover:bg-muted/50 transition-colors"
+          onClick={() => navigate("/admin/users")}
+        >
           <CardHeader className="pb-2">
             <CardDescription className="flex items-center gap-2">
               <Users className="w-4 h-4" />
@@ -172,7 +183,10 @@ function AdminHome() {
             <p className="text-3xl font-bold">{stats?.totalUsers || 0}</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card 
+          className="cursor-pointer hover:bg-muted/50 transition-colors"
+          onClick={() => navigate("/admin/users?filter=coach")}
+        >
           <CardHeader className="pb-2">
             <CardDescription className="flex items-center gap-2">
               <UserCheck className="w-4 h-4 text-blue-500" />
@@ -183,7 +197,10 @@ function AdminHome() {
             <p className="text-3xl font-bold">{stats?.totalCoaches || 0}</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card 
+          className="cursor-pointer hover:bg-muted/50 transition-colors"
+          onClick={() => navigate("/admin/analytics/relationships")}
+        >
           <CardHeader className="pb-2">
             <CardDescription className="flex items-center gap-2">
               <Handshake className="w-4 h-4 text-green-500" />
@@ -194,7 +211,10 @@ function AdminHome() {
             <p className="text-3xl font-bold">{stats?.activeCoachings || 0}</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card 
+          className="cursor-pointer hover:bg-muted/50 transition-colors"
+          onClick={() => navigate("/admin/analytics/requests")}
+        >
           <CardHeader className="pb-2">
             <CardDescription className="flex items-center gap-2">
               <Clock className="w-4 h-4 text-amber-500" />
@@ -240,7 +260,9 @@ function AdminHome() {
 
 function UsersPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { startImpersonation } = useImpersonation();
+  const initialFilter = searchParams.get("filter") || "all";
 
   const handleImpersonate = (user: AdminUser) => {
     // Get the primary role (first non-super_admin role, or client as fallback)
@@ -257,11 +279,13 @@ function UsersPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold">User Management</h2>
-        <p className="text-muted-foreground">View and manage all platform users and their roles</p>
-      </div>
-      <UserManagementTable onImpersonate={handleImpersonate} />
+      <PageHeader
+        title="User Management"
+        description="View and manage all platform users and their roles"
+        backTo="/admin"
+        backLabel="Back to Dashboard"
+      />
+      <UserManagementTable onImpersonate={handleImpersonate} initialRoleFilter={initialFilter} />
     </div>
   );
 }
@@ -269,6 +293,12 @@ function UsersPage() {
 function SuperAdminsPage() {
   return (
     <div className="space-y-6">
+      <PageHeader
+        title="Super Admin Management"
+        description="Manage super administrator access"
+        backTo="/admin"
+        backLabel="Back to Dashboard"
+      />
       <SuperAdminManagement />
     </div>
   );
@@ -277,19 +307,49 @@ function SuperAdminsPage() {
 function PlatformPage() {
   return (
     <div className="space-y-6">
+      <PageHeader
+        title="Platform Settings"
+        description="Configure platform-wide settings and feature flags"
+        backTo="/admin"
+        backLabel="Back to Dashboard"
+      />
       <PlatformSettings />
     </div>
   );
 }
 
 function ContentPage() {
+  const [searchParams] = useSearchParams();
+  const initialTab = searchParams.get("tab") || "exercises";
+
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold">Content Management</h2>
-        <p className="text-muted-foreground">Manage system exercises, workout templates, diet plans, recipes, and foods</p>
-      </div>
-      <SystemContentManager />
+      <PageHeader
+        title="Content Management"
+        description="Manage system exercises, workout templates, diet plans, recipes, and foods"
+        backTo="/admin"
+        backLabel="Back to Dashboard"
+        actions={
+          <Link to="/admin/content/import-export">
+            <Button variant="outline">Bulk Import/Export</Button>
+          </Link>
+        }
+      />
+      <SystemContentManager initialTab={initialTab} />
+    </div>
+  );
+}
+
+function ImportExportPage() {
+  return (
+    <div className="space-y-6">
+      <PageHeader
+        title="Bulk Import/Export"
+        description="Import or export system content using CSV files"
+        backTo="/admin/content"
+        backLabel="Back to Content"
+      />
+      <BulkImportExport />
     </div>
   );
 }
@@ -297,22 +357,34 @@ function ContentPage() {
 function AnalyticsPage() {
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold">Platform Analytics</h2>
-        <p className="text-muted-foreground">View platform-wide statistics and metrics</p>
-      </div>
+      <PageHeader
+        title="Platform Analytics"
+        description="View platform-wide statistics and metrics"
+        backTo="/admin"
+        backLabel="Back to Dashboard"
+      />
       <PlatformAnalytics />
     </div>
   );
 }
 
+function RelationshipsPage() {
+  return <RelationshipsView />;
+}
+
+function RequestsPage() {
+  return <PendingRequestsView />;
+}
+
 function SettingsPage() {
   return (
     <div className="space-y-6 max-w-2xl">
-      <div>
-        <h2 className="text-2xl font-bold">Settings</h2>
-        <p className="text-muted-foreground">Manage your account settings</p>
-      </div>
+      <PageHeader
+        title="Settings"
+        description="Manage your account settings"
+        backTo="/admin"
+        backLabel="Back to Dashboard"
+      />
       <ChangePasswordCard />
     </div>
   );
