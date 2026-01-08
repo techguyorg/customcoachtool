@@ -5,7 +5,7 @@ import {
   LayoutDashboard, 
   Users, 
   Dumbbell, 
-  UtensilsCrossed,
+  BarChart3,
   Settings,
   LogOut,
   Menu,
@@ -13,12 +13,19 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
+import { useAdminStats } from "@/hooks/useAdminStats";
+import { UserManagementTable } from "@/components/admin/UserManagementTable";
+import { SystemContentManager } from "@/components/admin/SystemContentManager";
+import { PlatformAnalytics } from "@/components/admin/PlatformAnalytics";
+import { ChangePasswordCard } from "@/components/shared/ChangePasswordCard";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Loader2, Shield, UserCheck, Handshake, Clock } from "lucide-react";
 
 const sidebarItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/admin" },
   { icon: Users, label: "Users", path: "/admin/users" },
-  { icon: Dumbbell, label: "Exercises", path: "/admin/exercises" },
-  { icon: UtensilsCrossed, label: "Nutrition", path: "/admin/nutrition" },
+  { icon: Dumbbell, label: "Content", path: "/admin/content" },
+  { icon: BarChart3, label: "Analytics", path: "/admin/analytics" },
   { icon: Settings, label: "Settings", path: "/admin/settings" },
 ];
 
@@ -36,16 +43,17 @@ function AdminDashboard() {
           <div className="p-6 border-b border-border">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-lg bg-gradient-primary flex items-center justify-center">
-                <Dumbbell className="w-5 h-5 text-primary-foreground" />
+                <Shield className="w-5 h-5 text-primary-foreground" />
               </div>
-              <span className="font-display font-bold text-lg">Admin Panel</span>
+              <span className="font-display font-bold text-lg">Super Admin</span>
             </div>
           </div>
 
           {/* Navigation */}
           <nav className="flex-1 p-4 space-y-2">
             {sidebarItems.map((item) => {
-              const isActive = location.pathname === item.path;
+              const isActive = location.pathname === item.path || 
+                (item.path !== "/admin" && location.pathname.startsWith(item.path));
               return (
                 <Link
                   key={item.path}
@@ -67,8 +75,8 @@ function AdminDashboard() {
           {/* User section */}
           <div className="p-4 border-t border-border">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-                <span className="text-primary font-semibold">
+              <div className="w-10 h-10 rounded-full bg-red-500/20 flex items-center justify-center">
+                <span className="text-red-500 font-semibold">
                   {user?.fullName?.charAt(0) || 'A'}
                 </span>
               </div>
@@ -114,10 +122,10 @@ function AdminDashboard() {
         <div className="p-6">
           <Routes>
             <Route index element={<AdminHome />} />
-            <Route path="users" element={<div className="text-muted-foreground">Users management coming soon...</div>} />
-            <Route path="exercises" element={<div className="text-muted-foreground">Exercises database coming soon...</div>} />
-            <Route path="nutrition" element={<div className="text-muted-foreground">Nutrition database coming soon...</div>} />
-            <Route path="settings" element={<div className="text-muted-foreground">Settings coming soon...</div>} />
+            <Route path="users" element={<UsersPage />} />
+            <Route path="content" element={<ContentPage />} />
+            <Route path="analytics" element={<AnalyticsPage />} />
+            <Route path="settings" element={<SettingsPage />} />
           </Routes>
         </div>
       </main>
@@ -126,30 +134,140 @@ function AdminDashboard() {
 }
 
 function AdminHome() {
+  const { data: stats, isLoading } = useAdminStats();
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {[
-          { label: "Total Users", value: "0", change: "+0%" },
-          { label: "Active Coaches", value: "0", change: "+0%" },
-          { label: "Active Clients", value: "0", change: "+0%" },
-          { label: "Revenue", value: "$0", change: "+0%" },
-        ].map((stat, i) => (
-          <div key={i} className="bg-card border border-border rounded-xl p-6">
-            <p className="text-sm text-muted-foreground">{stat.label}</p>
-            <p className="text-3xl font-bold mt-2">{stat.value}</p>
-            <p className="text-sm text-primary mt-1">{stat.change}</p>
-          </div>
-        ))}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardDescription className="flex items-center gap-2">
+              <Users className="w-4 h-4" />
+              Total Users
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-3xl font-bold">{stats?.totalUsers || 0}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardDescription className="flex items-center gap-2">
+              <UserCheck className="w-4 h-4 text-blue-500" />
+              Coaches
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-3xl font-bold">{stats?.totalCoaches || 0}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardDescription className="flex items-center gap-2">
+              <Handshake className="w-4 h-4 text-green-500" />
+              Active Relationships
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-3xl font-bold">{stats?.activeCoachings || 0}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardDescription className="flex items-center gap-2">
+              <Clock className="w-4 h-4 text-amber-500" />
+              Pending Requests
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-3xl font-bold">{stats?.pendingRequests || 0}</p>
+          </CardContent>
+        </Card>
       </div>
 
-      <div className="bg-card border border-border rounded-xl p-6">
-        <h2 className="text-lg font-semibold mb-4">Welcome to the Admin Dashboard</h2>
-        <p className="text-muted-foreground">
-          This is the super admin control panel. From here you'll be able to manage all users, 
-          system exercises, nutrition databases, and platform settings.
-        </p>
+      <Card>
+        <CardHeader>
+          <CardTitle>Welcome to the Admin Dashboard</CardTitle>
+          <CardDescription>
+            Manage users, system content, and platform analytics from here.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Link to="/admin/users" className="p-4 rounded-lg border hover:bg-muted transition-colors">
+              <Users className="w-6 h-6 mb-2 text-primary" />
+              <h3 className="font-medium">User Management</h3>
+              <p className="text-sm text-muted-foreground">View and manage all platform users</p>
+            </Link>
+            <Link to="/admin/content" className="p-4 rounded-lg border hover:bg-muted transition-colors">
+              <Dumbbell className="w-6 h-6 mb-2 text-primary" />
+              <h3 className="font-medium">Content Management</h3>
+              <p className="text-sm text-muted-foreground">Manage exercises, plans, and recipes</p>
+            </Link>
+            <Link to="/admin/analytics" className="p-4 rounded-lg border hover:bg-muted transition-colors">
+              <BarChart3 className="w-6 h-6 mb-2 text-primary" />
+              <h3 className="font-medium">Analytics</h3>
+              <p className="text-sm text-muted-foreground">View platform statistics</p>
+            </Link>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function UsersPage() {
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold">User Management</h2>
+        <p className="text-muted-foreground">View and manage all platform users and their roles</p>
       </div>
+      <UserManagementTable />
+    </div>
+  );
+}
+
+function ContentPage() {
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold">Content Management</h2>
+        <p className="text-muted-foreground">Manage system exercises, workout templates, diet plans, recipes, and foods</p>
+      </div>
+      <SystemContentManager />
+    </div>
+  );
+}
+
+function AnalyticsPage() {
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold">Platform Analytics</h2>
+        <p className="text-muted-foreground">View platform-wide statistics and metrics</p>
+      </div>
+      <PlatformAnalytics />
+    </div>
+  );
+}
+
+function SettingsPage() {
+  return (
+    <div className="space-y-6 max-w-2xl">
+      <div>
+        <h2 className="text-2xl font-bold">Settings</h2>
+        <p className="text-muted-foreground">Manage your account settings</p>
+      </div>
+      <ChangePasswordCard />
     </div>
   );
 }
