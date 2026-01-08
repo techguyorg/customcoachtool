@@ -31,10 +31,24 @@ export interface CoachFilters {
   acceptingOnly: boolean;
 }
 
-export function useCoachMarketplace(filters: CoachFilters) {
+export function useCoachMarketplace(filters: CoachFilters, excludeCurrentCoach = true) {
+  const { user } = useAuth();
+
   return useQuery({
-    queryKey: ["coach-marketplace", filters],
+    queryKey: ["coach-marketplace", filters, user?.id, excludeCurrentCoach],
     queryFn: async () => {
+      // First get current coach if we need to exclude them
+      let currentCoachId: string | null = null;
+      if (excludeCurrentCoach && user?.id) {
+        const { data: relationship } = await supabase
+          .from("coach_client_relationships")
+          .select("coach_id")
+          .eq("client_id", user.id)
+          .eq("status", "active")
+          .maybeSingle();
+        currentCoachId = relationship?.coach_id || null;
+      }
+
       // Get all coach profiles
       let query = supabase
         .from("coach_profiles")
@@ -58,8 +72,15 @@ export function useCoachMarketplace(filters: CoachFilters) {
       if (error) throw error;
       if (!coachProfiles || coachProfiles.length === 0) return [];
 
+      // Filter out current coach
+      const filteredCoachProfiles = currentCoachId
+        ? coachProfiles.filter(cp => cp.user_id !== currentCoachId)
+        : coachProfiles;
+
+      if (filteredCoachProfiles.length === 0) return [];
+
       // Get profiles for these coaches
-      const userIds = coachProfiles.map(cp => cp.user_id);
+      const userIds = filteredCoachProfiles.map(cp => cp.user_id);
       const { data: profiles } = await supabase
         .from("profiles")
         .select("user_id, full_name, email, avatar_url, bio")
@@ -70,7 +91,7 @@ export function useCoachMarketplace(filters: CoachFilters) {
       );
 
       // Combine the data
-      const data = coachProfiles.map(cp => ({
+      const data = filteredCoachProfiles.map(cp => ({
         ...cp,
         profile: profileMap.get(cp.user_id) || null,
       }));
@@ -155,6 +176,15 @@ export function useSendCoachingRequest() {
     }) => {
       if (!user) throw new Error("Not authenticated");
 
+      // Get client's name from profile
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("user_id", user.id)
+        .single();
+
+      const clientName = profile?.full_name || "A client";
+
       const { error } = await supabase.from("coaching_requests").insert({
         client_id: user.id,
         coach_id: coachId,
@@ -168,7 +198,7 @@ export function useSendCoachingRequest() {
         user_id: coachId,
         type: "coaching_request",
         title: "New Coaching Request",
-        message: `${user.fullName} has requested to work with you as their coach.`,
+        message: `${clientName} has requested to work with you as their coach.`,
         reference_type: "coaching_request",
       });
     },

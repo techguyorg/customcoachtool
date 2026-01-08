@@ -82,6 +82,26 @@ export async function signOut(): Promise<{ error: Error | null }> {
 }
 
 /**
+ * Request password reset email
+ */
+export async function resetPassword(email: string): Promise<{ error: Error | null }> {
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${window.location.origin}/login?reset=true`,
+  });
+  return { error: error ? new Error(error.message) : null };
+}
+
+/**
+ * Update password (after reset or for logged in user)
+ */
+export async function updatePassword(newPassword: string): Promise<{ error: Error | null }> {
+  const { error } = await supabase.auth.updateUser({
+    password: newPassword,
+  });
+  return { error: error ? new Error(error.message) : null };
+}
+
+/**
  * Get the current session
  */
 export async function getSession(): Promise<Session | null> {

@@ -18,7 +18,8 @@ import {
   Play,
   Pause,
   UserX,
-  Eye
+  Eye,
+  ClipboardList
 } from "lucide-react";
 import { format } from "date-fns";
 import type { CoachClient } from "@/hooks/useCoachClients";
@@ -27,6 +28,8 @@ interface ClientCardProps {
   client: CoachClient;
   onStatusChange: (relationshipId: string, status: string) => void;
   onViewDetails: (client: CoachClient) => void;
+  onAssignPlan?: (client: CoachClient) => void;
+  onMessage?: (client: CoachClient) => void;
 }
 
 const statusConfig = {
@@ -42,7 +45,7 @@ const fitnessLevelConfig: Record<string, string> = {
   advanced: "Advanced",
 };
 
-export function ClientCard({ client, onStatusChange, onViewDetails }: ClientCardProps) {
+export function ClientCard({ client, onStatusChange, onViewDetails, onAssignPlan, onMessage }: ClientCardProps) {
   const status = statusConfig[client.status as keyof typeof statusConfig] || statusConfig.pending;
   const initials = client.profile?.full_name
     ?.split(" ")
@@ -98,7 +101,13 @@ export function ClientCard({ client, onStatusChange, onViewDetails }: ClientCard
                       <Eye className="w-4 h-4 mr-2" />
                       View Details
                     </DropdownMenuItem>
-                    <DropdownMenuItem>
+                    {client.status === "active" && onAssignPlan && (
+                      <DropdownMenuItem onClick={() => onAssignPlan(client)}>
+                        <ClipboardList className="w-4 h-4 mr-2" />
+                        Assign Plan
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuItem onClick={() => onMessage?.(client)}>
                       <MessageSquare className="w-4 h-4 mr-2" />
                       Send Message
                     </DropdownMenuItem>
