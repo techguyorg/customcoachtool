@@ -31,6 +31,7 @@ import RecipesPage from "@/pages/shared/RecipesPage";
 import NutritionLogPage from "@/pages/client/NutritionLogPage";
 import FavoritesPage from "@/pages/client/FavoritesPage";
 import CoachMarketplacePage from "@/pages/client/CoachMarketplacePage";
+import ClientProfilePage from "@/pages/client/ProfilePage";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 
 const sidebarItems = [
@@ -152,7 +153,7 @@ function ClientDashboard() {
             <Route path="progress" element={<ProgressPage />} />
             <Route path="checkins" element={<CheckinsPage />} />
             <Route path="messages" element={<div className="text-muted-foreground">Messages coming soon...</div>} />
-            <Route path="profile" element={<div className="text-muted-foreground">Profile settings coming soon...</div>} />
+            <Route path="profile" element={<ClientProfilePage />} />
           </Routes>
         </div>
       </main>
