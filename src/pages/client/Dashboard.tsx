@@ -25,6 +25,8 @@ import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import ExercisesPage from "@/pages/shared/ExercisesPage";
 import WorkoutTemplatesPage from "@/pages/shared/WorkoutTemplatesPage";
+import WorkoutsPage from "@/pages/client/WorkoutsPage";
+import ActiveWorkoutPage from "@/pages/client/ActiveWorkoutPage";
 import ProgressPage from "@/pages/client/ProgressPage";
 import CheckinsPage from "@/pages/client/CheckinsPage";
 import ClientDietPlansPage from "@/pages/client/DietPlansPage";
@@ -169,6 +171,8 @@ function ClientDashboard() {
             <Route index element={<ClientHome />} />
             <Route path="coaches" element={<CoachMarketplacePage />} />
             <Route path="favorites" element={<FavoritesPage />} />
+            <Route path="workouts" element={<WorkoutsPage />} />
+            <Route path="workouts/:logId" element={<ActiveWorkoutPage />} />
             <Route path="programs" element={<WorkoutTemplatesPage />} />
             <Route path="exercises" element={<ExercisesPage />} />
             <Route path="diet-plans" element={<ClientDietPlansPage />} />
