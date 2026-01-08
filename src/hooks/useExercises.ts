@@ -47,6 +47,21 @@ export function useExercises(filters: ExerciseFilters) {
   });
 }
 
+export function useAllExercises() {
+  return useQuery({
+    queryKey: ["all-exercises"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("exercises")
+        .select("*")
+        .order("name");
+
+      if (error) throw error;
+      return data as Exercise[];
+    },
+  });
+}
+
 export function useExercise(id: string | null) {
   return useQuery({
     queryKey: ["exercise", id],
