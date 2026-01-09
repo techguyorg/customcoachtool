@@ -588,13 +588,17 @@ Create **TWO** variable groups in Azure DevOps:
 ### Variable Group 2: `CustomCoachPro-Secrets` (All marked as Secret)
 | Variable Name | Value | Secret |
 |--------------|-------|--------|
-| `AZURE_STATIC_WEB_APPS_API_TOKEN` | Get from Azure SWA resource → Deployment Token | ✅ Yes |
-| `AZURE_SQL_CONNECTION_STRING` | `Server=tcp:your-server.database.windows.net,1433;Database=customcoachpro;User ID=your-user;Password=your-password;Encrypt=true;TrustServerCertificate=false;Connection Timeout=30;` | ✅ Yes |
+| `SQL_SERVER` | `your-server.database.windows.net` | ✅ Yes |
+| `SQL_DATABASE` | `CustomCoachProDB` | ✅ Yes |
+| `SQL_USER` | Azure SQL admin username | ✅ Yes |
+| `SQL_PASSWORD` | Azure SQL admin password | ✅ Yes |
 | `JWT_SECRET` | Generate: `openssl rand -base64 64` | ✅ Yes |
-| `JWT_REFRESH_SECRET` | Generate: `openssl rand -base64 64` | ✅ Yes |
+| `GOOGLE_CLIENT_ID` | From Google Cloud Console | ✅ Yes |
 | `GOOGLE_CLIENT_SECRET` | From Google Cloud Console | ✅ Yes |
-| `SENDGRID_API_KEY` | From SendGrid (for emails) | ✅ Yes |
-| `AZURE_STORAGE_CONNECTION_STRING` | From Azure Storage Account | ✅ Yes |
+| `GOOGLE_EMAIL` | Gmail account for sending emails | ✅ Yes |
+| `GOOGLE_APP_PASSWORD` | 16-char app password from Google Account → Security → 2FA → App Passwords | ✅ Yes |
+| `STORAGE_CONNECTION_STRING` | Azure Storage account connection string | ✅ Yes |
+| `AZURE_SERVICE_CONNECTION` | Azure DevOps service connection name | No |
 
 ### How to Create Variable Groups:
 1. Go to Azure DevOps → Your Project → **Pipelines** → **Library**

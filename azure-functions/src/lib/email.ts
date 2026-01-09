@@ -1,8 +1,26 @@
-import { Resend } from "resend";
+import * as nodemailer from "nodemailer";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-const APP_URL = process.env.APP_URL || "https://customcoachpro.azurewebsites.net";
-const FROM_EMAIL = "CustomCoachPro <noreply@customcoachpro.com>";
+const APP_URL = process.env.FRONTEND_URL || "https://customcoachpro.azurewebsites.net";
+const FROM_EMAIL = process.env.GOOGLE_EMAIL || "noreply@customcoachpro.com";
+const FROM_NAME = "CustomCoachPro";
+
+// Create transporter using Google SMTP with App Password
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: process.env.GOOGLE_EMAIL,
+    pass: process.env.GOOGLE_APP_PASSWORD,
+  },
+});
+
+async function sendEmail(to: string, subject: string, html: string): Promise<void> {
+  await transporter.sendMail({
+    from: `${FROM_NAME} <${FROM_EMAIL}>`,
+    to,
+    subject,
+    html,
+  });
+}
 
 export async function sendVerificationEmail(
   email: string,
@@ -11,11 +29,10 @@ export async function sendVerificationEmail(
 ): Promise<void> {
   const verifyUrl = `${APP_URL}/auth/verify-email?token=${token}`;
 
-  await resend.emails.send({
-    from: FROM_EMAIL,
-    to: email,
-    subject: "Verify your email - CustomCoachPro",
-    html: `
+  await sendEmail(
+    email,
+    "Verify your email - CustomCoachPro",
+    `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h1 style="color: #333;">Welcome to CustomCoachPro, ${name}!</h1>
         <p>Thank you for signing up. Please verify your email address by clicking the button below:</p>
@@ -27,8 +44,8 @@ export async function sendVerificationEmail(
         <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;" />
         <p style="color: #999; font-size: 12px;">If you didn't create an account, you can safely ignore this email.</p>
       </div>
-    `,
-  });
+    `
+  );
 }
 
 export async function sendPasswordResetEmail(
@@ -38,11 +55,10 @@ export async function sendPasswordResetEmail(
 ): Promise<void> {
   const resetUrl = `${APP_URL}/reset-password?token=${token}`;
 
-  await resend.emails.send({
-    from: FROM_EMAIL,
-    to: email,
-    subject: "Reset your password - CustomCoachPro",
-    html: `
+  await sendEmail(
+    email,
+    "Reset your password - CustomCoachPro",
+    `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h1 style="color: #333;">Password Reset Request</h1>
         <p>Hi ${name},</p>
@@ -55,16 +71,15 @@ export async function sendPasswordResetEmail(
         <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;" />
         <p style="color: #999; font-size: 12px;">If you didn't request a password reset, you can safely ignore this email.</p>
       </div>
-    `,
-  });
+    `
+  );
 }
 
 export async function sendWelcomeEmail(email: string, name: string): Promise<void> {
-  await resend.emails.send({
-    from: FROM_EMAIL,
-    to: email,
-    subject: "Welcome to CustomCoachPro!",
-    html: `
+  await sendEmail(
+    email,
+    "Welcome to CustomCoachPro!",
+    `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h1 style="color: #333;">Welcome to CustomCoachPro, ${name}!</h1>
         <p>Your account has been created successfully. We're excited to have you on board!</p>
@@ -80,8 +95,8 @@ export async function sendWelcomeEmail(email: string, name: string): Promise<voi
         <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;" />
         <p style="color: #999; font-size: 12px;">Need help? Contact us at support@customcoachpro.com</p>
       </div>
-    `,
-  });
+    `
+  );
 }
 
 export async function sendClientInvitation(
@@ -89,11 +104,10 @@ export async function sendClientInvitation(
   coachName: string,
   message?: string
 ): Promise<void> {
-  await resend.emails.send({
-    from: FROM_EMAIL,
-    to: email,
-    subject: `${coachName} invited you to CustomCoachPro`,
-    html: `
+  await sendEmail(
+    email,
+    `${coachName} invited you to CustomCoachPro`,
+    `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h1 style="color: #333;">You've Been Invited!</h1>
         <p>Coach <strong>${coachName}</strong> has invited you to join CustomCoachPro.</p>
@@ -105,8 +119,8 @@ export async function sendClientInvitation(
         <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;" />
         <p style="color: #999; font-size: 12px;">If you don't want to accept this invitation, you can ignore this email.</p>
       </div>
-    `,
-  });
+    `
+  );
 }
 
 export async function sendCheckinNotification(
@@ -114,11 +128,10 @@ export async function sendCheckinNotification(
   clientName: string,
   checkinDate: string
 ): Promise<void> {
-  await resend.emails.send({
-    from: FROM_EMAIL,
-    to: email,
-    subject: `New check-in from ${clientName}`,
-    html: `
+  await sendEmail(
+    email,
+    `New check-in from ${clientName}`,
+    `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h1 style="color: #333;">New Client Check-in</h1>
         <p><strong>${clientName}</strong> has submitted a check-in for ${checkinDate}.</p>
@@ -126,8 +139,8 @@ export async function sendCheckinNotification(
           Review Check-in
         </a>
       </div>
-    `,
-  });
+    `
+  );
 }
 
 export async function sendPlanAssignmentNotification(
@@ -136,11 +149,10 @@ export async function sendPlanAssignmentNotification(
   planName: string,
   planType: "workout" | "diet"
 ): Promise<void> {
-  await resend.emails.send({
-    from: FROM_EMAIL,
-    to: email,
-    subject: `New ${planType} plan assigned: ${planName}`,
-    html: `
+  await sendEmail(
+    email,
+    `New ${planType} plan assigned: ${planName}`,
+    `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h1 style="color: #333;">New Plan Assigned!</h1>
         <p>Hi ${clientName},</p>
@@ -149,6 +161,6 @@ export async function sendPlanAssignmentNotification(
           View Plan
         </a>
       </div>
-    `,
-  });
+    `
+  );
 }
