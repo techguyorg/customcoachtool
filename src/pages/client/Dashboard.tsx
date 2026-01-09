@@ -62,6 +62,7 @@ import {
 
 const sidebarItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/client" },
+  { icon: Users, label: "Find a Coach", path: "/client/coaches" },
   // Training section
   { icon: Dumbbell, label: "Workouts", path: "/client/workouts" },
   { icon: ClipboardList, label: "Programs", path: "/client/programs" },
@@ -74,7 +75,6 @@ const sidebarItems = [
   { icon: TrendingUp, label: "Progress", path: "/client/progress" },
   { icon: CalendarCheck, label: "Check-ins", path: "/client/checkins" },
   // Coaching & Social section
-  { icon: Users, label: "Find a Coach", path: "/client/coaches" },
   { icon: MessageSquare, label: "Messages", path: "/client/messages" },
   // Preferences section
   { icon: Heart, label: "Favorites", path: "/client/favorites" },
@@ -133,7 +133,7 @@ function ClientDashboard() {
           </nav>
 
           {/* User section */}
-          <div className="p-4 border-t border-border">
+          <div className="p-4 border-t border-border shrink-0">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
                 <span className="text-primary font-semibold">
@@ -145,7 +145,11 @@ function ClientDashboard() {
                 <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
               </div>
             </div>
-            <Button variant="outline" className="w-full" onClick={signOut}>
+            <Button 
+              variant="outline" 
+              className="w-full relative z-10" 
+              onClick={() => signOut()}
+            >
               <LogOut className="w-4 h-4 mr-2" />
               Sign Out
             </Button>
