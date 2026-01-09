@@ -7,6 +7,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { ActiveRoleProvider } from "@/contexts/ActiveRoleContext";
 import { ImpersonationProvider } from "@/contexts/ImpersonationContext";
 import { ImpersonationBanner } from "@/components/admin/ImpersonationBanner";
+import { HelpCenter } from "@/components/shared/HelpCenter";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
@@ -28,6 +29,7 @@ const App = () => (
           <ImpersonationProvider>
             <TooltipProvider>
               <ImpersonationBanner />
+              <HelpCenter />
               <Toaster />
               <Sonner />
               <Routes>
