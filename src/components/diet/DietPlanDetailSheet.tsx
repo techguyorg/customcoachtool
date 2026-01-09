@@ -14,6 +14,8 @@ import { useDietPlanWithMeals, DietPlan } from "@/hooks/useDietPlans";
 import { useStartDietPlan } from "@/hooks/useStartProgram";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { ExportPdfButton } from "@/components/shared/ExportPdfButton";
+import { DietPlanPdf } from "@/components/pdf/DietPlanPdf";
 
 const goalLabels: Record<string, string> = {
   weight_loss: "Weight Loss",
@@ -119,19 +121,57 @@ export function DietPlanDetailSheet({ plan, onOpenChange, open }: Props) {
             </SheetHeader>
 
             <div className="mt-6 space-y-6">
-              {/* Follow Plan Button */}
-              <Button 
-                className="w-full gap-2" 
-                onClick={handleFollowPlan}
-                disabled={startDietPlan.isPending}
-              >
-                {startDietPlan.isPending ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Play className="w-4 h-4" />
-                )}
-                Follow This Plan
-              </Button>
+              {/* Action Buttons */}
+              <div className="flex gap-3">
+                <Button 
+                  className="flex-1 gap-2" 
+                  onClick={handleFollowPlan}
+                  disabled={startDietPlan.isPending}
+                >
+                  {startDietPlan.isPending ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Play className="w-4 h-4" />
+                  )}
+                  Follow This Plan
+                </Button>
+                <ExportPdfButton
+                  document={
+                    <DietPlanPdf
+                      data={{
+                        name: displayPlan.name,
+                        description: displayPlan.description || undefined,
+                        goal: displayPlan.goal || undefined,
+                        dietaryType: displayPlan.dietary_type || undefined,
+                        caloriesTarget: displayPlan.calories_target || undefined,
+                        proteinGrams: displayPlan.protein_grams || undefined,
+                        carbsGrams: displayPlan.carbs_grams || undefined,
+                        fatGrams: displayPlan.fat_grams || undefined,
+                        mealsPerDay: displayPlan.meals_per_day || undefined,
+                        meals: displayPlan.meals?.map(m => ({
+                          name: m.meal_name,
+                          time: m.time_suggestion || undefined,
+                          calories: m.calories || undefined,
+                          protein: m.protein_grams || undefined,
+                          carbs: m.carbs_grams || undefined,
+                          fat: m.fat_grams || undefined,
+                          foods: (foodItemsByMeal[m.id] || []).map(f => ({
+                            name: f.food?.name || f.recipe?.name || "Unknown",
+                            quantity: f.quantity,
+                            unit: f.unit,
+                            calories: f.calculated_calories || undefined,
+                          })),
+                          notes: m.notes || undefined,
+                        })) || [],
+                        notes: displayPlan.notes || undefined,
+                      }}
+                    />
+                  }
+                  filename={`${displayPlan.name.replace(/\s+/g, "-").toLowerCase()}-diet-plan.pdf`}
+                  variant="outline"
+                  label="Export"
+                />
+              </div>
 
               <div className="flex flex-wrap gap-2">
                 {displayPlan.goal && (

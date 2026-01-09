@@ -4,7 +4,9 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Users, UserCheck, Shield, Handshake, Dumbbell, UtensilsCrossed, ChefHat, Apple, ArrowRight, TrendingUp, Activity, Calendar, Star } from "lucide-react";
-import { format, subDays, startOfDay } from "date-fns";
+import { format, subDays } from "date-fns";
+import { ExportPdfButton } from "@/components/shared/ExportPdfButton";
+import { AdminAnalyticsPdf } from "@/components/pdf/AdminAnalyticsPdf";
 
 export function PlatformAnalytics() {
   const { data: stats, isLoading } = useAdminStats();
@@ -65,8 +67,52 @@ export function PlatformAnalytics() {
 
   if (!stats) return null;
 
+  // Prepare PDF data
+  const pdfData = {
+    generatedDate: new Date().toISOString(),
+    userStats: {
+      totalUsers: stats.totalUsers,
+      totalAdmins: stats.totalAdmins,
+      totalCoaches: stats.totalCoaches,
+      totalClients: stats.totalClients,
+    },
+    engagementStats: {
+      activeCoachings: stats.activeCoachings,
+      pendingRequests: stats.pendingRequests,
+    },
+    contentStats: {
+      exercises: stats.systemExercises,
+      workoutTemplates: stats.systemWorkoutTemplates,
+      dietPlans: stats.systemDietPlans,
+      recipes: stats.systemRecipes,
+      foods: stats.systemFoods,
+    },
+    activityStats: {
+      newUsersWeek: recentActivity?.newUsersWeek || 0,
+      checkinsMonth: recentActivity?.checkinsMonth || 0,
+      workoutsMonth: recentActivity?.workoutsMonth || 0,
+      topCoachClients: recentActivity?.topCoachClientCount || 0,
+    },
+    platformHealth: {
+      coachToClientRatio: `1:${stats.totalCoaches > 0 ? Math.round(stats.totalClients / stats.totalCoaches) : 0}`,
+      avgClientsPerCoach: stats.totalCoaches > 0 ? (stats.activeCoachings / stats.totalCoaches).toFixed(1) : "0",
+      requestConversionRate: stats.activeCoachings > 0 && stats.pendingRequests >= 0
+        ? `${Math.round((stats.activeCoachings / (stats.activeCoachings + stats.pendingRequests)) * 100)}%`
+        : "N/A",
+    },
+  };
+
   return (
     <div className="space-y-6">
+      {/* Export Button */}
+      <div className="flex justify-end">
+        <ExportPdfButton
+          document={<AdminAnalyticsPdf data={pdfData} />}
+          filename={`platform-analytics-${format(new Date(), "yyyy-MM-dd")}.pdf`}
+          label="Export Report"
+        />
+      </div>
+
       {/* User Stats */}
       <div>
         <h3 className="text-lg font-semibold mb-4">User Statistics</h3>

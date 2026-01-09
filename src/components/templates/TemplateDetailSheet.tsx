@@ -22,12 +22,15 @@ import {
   Dumbbell,
   Play,
   Copy,
-  Loader2
+  Loader2,
+  FileDown
 } from "lucide-react";
 import { useWorkoutTemplateDetail } from "@/hooks/useWorkoutTemplates";
 import { useStartProgram } from "@/hooks/useStartProgram";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
+import { ExportPdfButton } from "@/components/shared/ExportPdfButton";
+import { WorkoutPlanPdf } from "@/components/pdf/WorkoutPlanPdf";
 
 interface TemplateDetailSheetProps {
   templateId: string | null;
@@ -152,10 +155,40 @@ export function TemplateDetailSheet({ templateId, open, onOpenChange }: Template
                     )}
                     Start Program
                   </Button>
-                  <Button variant="outline" className="gap-2">
-                    <Copy className="w-4 h-4" />
-                    Clone & Edit
-                  </Button>
+                  <ExportPdfButton
+                    document={
+                      <WorkoutPlanPdf
+                        data={{
+                          name: template.name,
+                          description: template.description || undefined,
+                          goal: template.goal || undefined,
+                          difficulty: formatLabel(template.difficulty),
+                          daysPerWeek: template.days_per_week,
+                          durationWeeks: template.duration_weeks || undefined,
+                          templateType: template.template_type || undefined,
+                          weeks: template.weeks?.map(w => ({
+                            weekNumber: w.week_number,
+                            name: w.name || undefined,
+                            focus: w.focus || undefined,
+                            days: w.days.map(d => ({
+                              name: d.name,
+                              dayNumber: d.day_number,
+                              exercises: d.exercises.map(e => ({
+                                name: e.exercise?.name || e.custom_exercise_name || "Unknown",
+                                sets: `${e.sets_min}${e.sets_max && e.sets_max !== e.sets_min ? `-${e.sets_max}` : ""}`,
+                                reps: `${e.reps_min}${e.reps_max && e.reps_max !== e.reps_min ? `-${e.reps_max}` : ""}`,
+                                notes: e.notes || undefined,
+                              })),
+                              notes: d.notes || undefined,
+                            })),
+                          })) || [],
+                        }}
+                      />
+                    }
+                    filename={`${template.name.replace(/\s+/g, "-").toLowerCase()}-workout-plan.pdf`}
+                    variant="outline"
+                    label="Export"
+                  />
                 </div>
 
                 <Separator />
