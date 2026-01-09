@@ -6,7 +6,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { getGoogleAuthUrl } from "@/lib/auth-azure";
 import { AppRole } from "@/lib/auth";
 import logo from "@/assets/logo.png";
 
@@ -58,31 +58,11 @@ const Signup = () => {
     }
   };
 
-  const handleGoogleSignUp = async () => {
+  const handleGoogleSignUp = () => {
     setIsGoogleLoading(true);
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/signup`
-        }
-      });
-      if (error) {
-        toast({
-          title: "Google sign-up failed",
-          description: error.message,
-          variant: "destructive",
-        });
-      }
-    } catch (err: any) {
-      toast({
-        title: "Google sign-up failed",
-        description: "Please try again later.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsGoogleLoading(false);
-    }
+    // Store role in sessionStorage for Google OAuth callback
+    sessionStorage.setItem("signup_role", role);
+    window.location.href = getGoogleAuthUrl(role);
   };
 
   return (
