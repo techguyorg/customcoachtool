@@ -21,6 +21,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "react-router-dom";
 import { StartWorkoutDialog } from "@/components/workout/StartWorkoutDialog";
 import { WorkoutLogCard } from "@/components/workout/WorkoutLogCard";
+import { WorkoutCalendar } from "@/components/client/WorkoutCalendar";
 
 export default function WorkoutsPage() {
   const { data: workoutLogs, isLoading: logsLoading } = useWorkoutLogs();
@@ -204,14 +205,7 @@ export default function WorkoutsPage() {
         </TabsContent>
 
         <TabsContent value="calendar" className="mt-4">
-          <Card>
-            <CardContent className="p-6 text-center">
-              <Calendar className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
-              <p className="text-muted-foreground text-sm">
-                Calendar view coming soon
-              </p>
-            </CardContent>
-          </Card>
+          <WorkoutCalendar />
         </TabsContent>
       </Tabs>
 
