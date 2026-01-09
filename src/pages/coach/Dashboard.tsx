@@ -58,13 +58,16 @@ function QuickAssignButton() {
 
 const sidebarItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/coach" },
+  { type: 'divider', label: 'Clients' },
   { icon: UserPlus, label: "Requests", path: "/coach/requests", badge: true },
   { icon: Users, label: "My Clients", path: "/coach/clients" },
+  { icon: CalendarCheck, label: "Check-ins", path: "/coach/checkins" },
+  { type: 'divider', label: 'Content' },
   { icon: ClipboardList, label: "Programs", path: "/coach/programs" },
   { icon: Utensils, label: "Diet Plans", path: "/coach/diet-plans" },
   { icon: ChefHat, label: "Recipes", path: "/coach/recipes" },
   { icon: Library, label: "Exercises", path: "/coach/exercises" },
-  { icon: CalendarCheck, label: "Check-ins", path: "/coach/checkins" },
+  { type: 'divider', label: 'Business' },
   { icon: MessageSquare, label: "Messages", path: "/coach/messages" },
   { icon: BarChart3, label: "Analytics", path: "/coach/analytics" },
   { icon: Settings, label: "Settings", path: "/coach/settings" },
@@ -93,13 +96,24 @@ function CoachDashboard() {
 
           {/* Navigation */}
           <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
-            {sidebarItems.map((item) => {
-              const isActive = location.pathname === item.path;
-              const showBadge = (item as any).badge && pendingRequestsCount > 0;
+            {sidebarItems.map((item, index) => {
+              if ((item as any).type === 'divider') {
+                return (
+                  <div key={index} className="pt-4 pb-2 px-3">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                      {item.label}
+                    </p>
+                  </div>
+                );
+              }
+              
+              const navItem = item as { icon: any; label: string; path: string; badge?: boolean };
+              const isActive = location.pathname === navItem.path;
+              const showBadge = navItem.badge && pendingRequestsCount > 0;
               return (
                 <Link
-                  key={item.path}
-                  to={item.path}
+                  key={navItem.path}
+                  to={navItem.path}
                   onClick={() => setSidebarOpen(false)}
                   className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-sm ${
                     isActive 
@@ -107,8 +121,8 @@ function CoachDashboard() {
                       : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                   }`}
                 >
-                  <item.icon className="w-4 h-4" />
-                  {item.label}
+                  <navItem.icon className="w-4 h-4" />
+                  {navItem.label}
                   {showBadge && (
                     <Badge variant="destructive" className="ml-auto h-5 px-1.5 text-xs">
                       {pendingRequestsCount}
@@ -132,10 +146,12 @@ function CoachDashboard() {
                 <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
               </div>
             </div>
-            <Button variant="outline" className="w-full" onClick={signOut}>
-              <LogOut className="w-4 h-4 mr-2" />
-              Sign Out
-            </Button>
+            <div className="shrink-0">
+              <Button variant="outline" className="w-full relative z-10" onClick={() => signOut()}>
+                <LogOut className="w-4 h-4 mr-2" />
+                Sign Out
+              </Button>
+            </div>
           </div>
         </div>
       </aside>
