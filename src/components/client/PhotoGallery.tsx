@@ -47,6 +47,17 @@ export function PhotoGallery({ photos, compact = false }: PhotoGalleryProps) {
                 src={photo.photo_url}
                 alt={`Progress photo - ${poseLabels[photo.pose_type]}`}
                 className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                loading="lazy"
+                onError={(e) => {
+                  // Fallback for broken images
+                  const target = e.target as HTMLImageElement;
+                  target.style.display = 'none';
+                  target.parentElement!.innerHTML = `
+                    <div class="w-full h-full flex items-center justify-center bg-muted text-muted-foreground text-xs text-center p-2">
+                      Image unavailable
+                    </div>
+                  `;
+                }}
               />
             </div>
             <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors rounded-lg" />

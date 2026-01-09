@@ -62,9 +62,10 @@ interface MealFoodItem {
 interface Props {
   plan: DietPlan | null;
   onOpenChange: (open: boolean) => void;
+  open?: boolean;
 }
 
-export function DietPlanDetailSheet({ plan, onOpenChange }: Props) {
+export function DietPlanDetailSheet({ plan, onOpenChange, open }: Props) {
   const { data: planWithMeals } = useDietPlanWithMeals(plan?.id);
   const displayPlan = planWithMeals || plan;
   const startDietPlan = useStartDietPlan();
@@ -104,8 +105,11 @@ export function DietPlanDetailSheet({ plan, onOpenChange }: Props) {
     startDietPlan.mutate({ dietPlanId: plan.id });
   };
 
+  // Support both controlled (open prop) and uncontrolled (!!plan) modes
+  const isOpen = open !== undefined ? open : !!plan;
+
   return (
-    <Sheet open={!!plan} onOpenChange={onOpenChange}>
+    <Sheet open={isOpen} onOpenChange={onOpenChange}>
       <SheetContent className="w-full sm:max-w-xl overflow-y-auto">
         {displayPlan && (
           <>
