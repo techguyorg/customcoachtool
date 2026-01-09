@@ -107,6 +107,8 @@ export function useAssignPlan() {
       startDate,
       endDate,
       notes,
+      planName,
+      coachName,
     }: {
       clientId: string;
       planType: 'workout' | 'diet';
@@ -115,6 +117,8 @@ export function useAssignPlan() {
       startDate: string;
       endDate?: string;
       notes?: string;
+      planName?: string;
+      coachName?: string;
     }) => {
       if (!user?.id) throw new Error("Not authenticated");
 
@@ -145,6 +149,22 @@ export function useAssignPlan() {
         reference_type: "plan_assignment",
         reference_id: data.id,
       });
+
+      // Send email notification to client
+      if (planName && coachName) {
+        try {
+          await supabase.functions.invoke("send-plan-notification", {
+            body: { 
+              type: planType, 
+              clientId,
+              planName,
+              coachName,
+            },
+          });
+        } catch (e) {
+          console.log("Email notification failed (non-critical):", e);
+        }
+      }
 
       return data;
     },

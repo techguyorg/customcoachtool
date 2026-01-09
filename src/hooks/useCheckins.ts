@@ -119,6 +119,19 @@ export function useSubmitCheckin() {
           reference_type: "checkin",
           reference_id: data.id,
         });
+
+        // Send email notification to coach if opted in
+        try {
+          await supabase.functions.invoke("send-checkin-notification", {
+            body: { 
+              type: "submitted", 
+              checkinId: data.id,
+              coachId: relationship.coach_id,
+            },
+          });
+        } catch (e) {
+          console.log("Email notification failed (non-critical):", e);
+        }
       }
 
       return data;
@@ -206,11 +219,13 @@ export function useReviewCheckin() {
     mutationFn: async ({ 
       checkinId, 
       feedback, 
-      rating 
+      rating,
+      nextCheckinDate
     }: { 
       checkinId: string; 
       feedback: string; 
       rating?: number;
+      nextCheckinDate?: string;
     }) => {
       if (!user?.id) throw new Error("Not authenticated");
 
@@ -222,6 +237,7 @@ export function useReviewCheckin() {
           reviewed_at: new Date().toISOString(),
           reviewed_by: user.id,
           status: "reviewed",
+          next_checkin_date: nextCheckinDate || null,
         })
         .eq("id", checkinId)
         .select()
@@ -238,6 +254,19 @@ export function useReviewCheckin() {
         reference_type: "checkin",
         reference_id: checkinId,
       });
+
+      // Send email notification if opted in
+      try {
+        await supabase.functions.invoke("send-checkin-notification", {
+          body: { 
+            type: "reviewed", 
+            checkinId,
+            clientId: data.client_id,
+          },
+        });
+      } catch (e) {
+        console.log("Email notification failed (non-critical):", e);
+      }
 
       return data;
     },

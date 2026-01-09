@@ -60,24 +60,30 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
-const sidebarItems = [
+type SidebarItem = {
+  icon: typeof LayoutDashboard;
+  label: string;
+  path: string;
+  section?: string;
+};
+
+const sidebarItems: SidebarItem[] = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/client" },
   { icon: Users, label: "Find a Coach", path: "/client/coaches" },
   // Training section
-  { icon: Dumbbell, label: "Workouts", path: "/client/workouts" },
+  { icon: Dumbbell, label: "Workouts", path: "/client/workouts", section: "Training" },
   { icon: ClipboardList, label: "Programs", path: "/client/programs" },
   { icon: Library, label: "Exercises", path: "/client/exercises" },
   // Nutrition section  
-  { icon: UtensilsCrossed, label: "Diet Plans", path: "/client/diet-plans" },
+  { icon: UtensilsCrossed, label: "Diet Plans", path: "/client/diet-plans", section: "Nutrition" },
   { icon: Apple, label: "Nutrition Log", path: "/client/nutrition-log" },
   { icon: ChefHat, label: "Recipes", path: "/client/recipes" },
   // Tracking section
-  { icon: TrendingUp, label: "Progress", path: "/client/progress" },
+  { icon: TrendingUp, label: "Progress", path: "/client/progress", section: "Tracking" },
   { icon: CalendarCheck, label: "Check-ins", path: "/client/checkins" },
-  // Coaching & Social section
   { icon: MessageSquare, label: "Messages", path: "/client/messages" },
-  // Preferences section
-  { icon: Heart, label: "Favorites", path: "/client/favorites" },
+  // Account section
+  { icon: Heart, label: "Favorites", path: "/client/favorites", section: "Account" },
   { icon: User, label: "Profile", path: "/client/profile" },
 ];
 
@@ -104,30 +110,40 @@ function ClientDashboard() {
 
           {/* Navigation */}
           <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
-            {sidebarItems.map((item) => {
+            {sidebarItems.map((item, index) => {
               const isActive = location.pathname === item.path;
               const showBadge = item.label === "Messages" && unreadCount > 0;
+              const showSection = item.section && (index === 0 || sidebarItems[index - 1]?.section !== item.section);
+              
               return (
-                <Link
-                  key={item.path}
-                  to={item.path}
-                  onClick={() => setSidebarOpen(false)}
-                  className={`flex items-center justify-between px-3 py-2.5 rounded-lg transition-colors text-sm ${
-                    isActive 
-                      ? 'bg-primary text-primary-foreground' 
-                      : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <item.icon className="w-4 h-4" />
-                    {item.label}
-                  </div>
-                  {showBadge && (
-                    <Badge variant="secondary" className="h-5 w-5 p-0 flex items-center justify-center text-xs">
-                      {unreadCount}
-                    </Badge>
+                <div key={item.path}>
+                  {showSection && (
+                    <div className="px-3 pt-4 pb-1.5 first:pt-0">
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+                        {item.section}
+                      </span>
+                    </div>
                   )}
-                </Link>
+                  <Link
+                    to={item.path}
+                    onClick={() => setSidebarOpen(false)}
+                    className={`flex items-center justify-between px-3 py-2.5 rounded-lg transition-colors text-sm ${
+                      isActive 
+                        ? 'bg-primary text-primary-foreground' 
+                        : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <item.icon className="w-4 h-4" />
+                      {item.label}
+                    </div>
+                    {showBadge && (
+                      <Badge variant="secondary" className="h-5 w-5 p-0 flex items-center justify-center text-xs">
+                        {unreadCount}
+                      </Badge>
+                    )}
+                  </Link>
+                </div>
               );
             })}
           </nav>
