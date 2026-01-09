@@ -1,5 +1,5 @@
 # Azure DevOps Pipeline for CustomCoachPro
-# Builds and deploys React frontend + Azure Functions backend
+# Builds and deploys React frontend + Azure Functions backend.
 
 trigger:
   branches:
@@ -18,8 +18,6 @@ pool:
     - Agent.Name -equals ubuntu-pipeline-agent
 
 variables:
-  - group: CustomCoachPro-Variables
-  - group: CustomCoachPro-Secrets
   - name: nodeVersion
     value: '20.x'
   - name: buildDirectory
@@ -28,133 +26,142 @@ variables:
     value: 'azure-functions'
 
 stages:
-  # ===========================================
-  # BUILD STAGE - Frontend + Functions
-  # ===========================================
-  - stage: Build
-    displayName: 'Build Stage'
-    jobs:
-      - job: BuildFrontend
-        displayName: 'Build React Frontend'
-        steps:
-          - task: NodeTool@0
-            inputs:
-              versionSpec: $(nodeVersion)
-            displayName: 'Install Node.js'
+# ===========================================
+# BUILD STAGE - Frontend + Functions
+# ===========================================
+- stage: Build
+  displayName: 'Build Stage'
+  jobs:
+    - job: BuildFrontend
+      displayName: 'Build React Frontend'
+      steps:
+        - task: NodeTool@0
+          inputs:
+            versionSpec: $(nodeVersion)
+          displayName: 'Install Node.js'
 
-          - script: npm ci
-            displayName: 'Install dependencies'
+        - script: npm ci --include=dev
+          displayName: 'Install dependencies'
 
-          - script: npm run build
-            displayName: 'Build application'
-            env:
-              VITE_API_BASE_URL: $(VITE_API_BASE_URL)
-              VITE_GOOGLE_CLIENT_ID: $(GOOGLE_CLIENT_ID)
+        - script: npm run build
+          displayName: 'Build application'
+          env:
+            VITE_API_BASE_URL: $(VITE_API_BASE_URL)
+            VITE_GOOGLE_CLIENT_ID: $(GOOGLE_CLIENT_ID)
 
-          - script: npm run lint
-            displayName: 'Run linting'
-            continueOnError: true
+        - script: npm run lint
+          displayName: 'Run linting'
+          continueOnError: true
 
-          - task: PublishBuildArtifacts@1
-            inputs:
-              pathToPublish: '$(buildDirectory)'
-              artifactName: 'webapp'
-            displayName: 'Publish frontend artifacts'
+        - publish: .
+          artifact: webapp
 
-      - job: BuildFunctions
-        displayName: 'Build Azure Functions'
-        steps:
-          - task: NodeTool@0
-            inputs:
-              versionSpec: $(nodeVersion)
-            displayName: 'Install Node.js'
+    - job: BuildFunctions
+      displayName: 'Build Azure Functions'
+      steps:
+        - task: NodeTool@0
+          inputs:
+            versionSpec: $(nodeVersion)
+          displayName: 'Install Node.js'
 
-          - script: |
-              cd $(functionsDirectory)
-              npm ci
-            displayName: 'Install function dependencies'
+        - script: |
+            cd $(functionsDirectory)
+            npm install --include=dev
+          displayName: 'Install function dependencies (including dev)'
 
-          - script: |
-              cd $(functionsDirectory)
-              npm run build
-            displayName: 'Build functions'
+        - script: |
+            cd $(functionsDirectory)
+            npm run build
+          displayName: 'Build functions'
 
-          - task: CopyFiles@2
-            inputs:
-              sourceFolder: '$(functionsDirectory)'
-              contents: |
-                dist/**
-                host.json
-                package.json
-                package-lock.json
-              targetFolder: '$(Build.ArtifactStagingDirectory)/functions'
-            displayName: 'Copy function files'
+        - task: CopyFiles@2
+          inputs:
+            sourceFolder: '$(functionsDirectory)'
+            contents: |
+              dist/**
+              host.json
+              package.json
+              package-lock.json
+            targetFolder: '$(Build.ArtifactStagingDirectory)/functions'
+          displayName: 'Copy function files'
 
-          - task: PublishBuildArtifacts@1
-            inputs:
-              pathToPublish: '$(Build.ArtifactStagingDirectory)/functions'
-              artifactName: 'functions'
-            displayName: 'Publish function artifacts'
+        - task: PublishBuildArtifacts@1
+          inputs:
+            pathToPublish: '$(Build.ArtifactStagingDirectory)/functions'
+            artifactName: 'functions'
+          displayName: 'Publish function artifacts'
 
-  # ===========================================
-  # DEPLOY TO PRODUCTION
-  # ===========================================
-  - stage: DeployProd
-    displayName: 'Deploy to Production'
-    dependsOn: Build
-    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
-    jobs:
-      - deployment: DeployFunctionsProd
-        displayName: 'Deploy Functions to Production'
-        environment: 'production'
-        strategy:
-          runOnce:
-            deploy:
-              steps:
-                - task: DownloadBuildArtifacts@1
-                  inputs:
-                    buildType: 'current'
-                    downloadType: 'single'
-                    artifactName: 'functions'
-                    downloadPath: '$(System.ArtifactsDirectory)'
+# ===========================================
+# DEPLOY TO PRODUCTION
+# ===========================================
+- stage: DeployProd
+  displayName: 'Deploy to Production'
+  dependsOn: Build
+  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+  jobs:
+    - deployment: DeployFunctionsProd
+      displayName: 'Deploy Functions to Production'
+      environment: 'production'
+      strategy:
+        runOnce:
+          deploy:
+            steps:
+              - task: DownloadBuildArtifacts@1
+                inputs:
+                  buildType: 'current'
+                  downloadType: 'single'
+                  artifactName: 'functions'
+                  downloadPath: '$(System.ArtifactsDirectory)'
 
-                - task: AzureFunctionApp@2
-                  inputs:
-                    connectedServiceNameARM: $(AZURE_SERVICE_CONNECTION)
-                    appType: 'functionApp'
-                    appName: 'customcoachprofn'
-                    package: '$(System.ArtifactsDirectory)/functions'
-                    appSettings: |
-                      -SQL_SERVER "$(SQL_SERVER)"
-                      -SQL_DATABASE "$(SQL_DATABASE)"
-                      -SQL_USER "$(SQL_USER)"
-                      -SQL_PASSWORD "$(SQL_PASSWORD)"
-                      -JWT_SECRET "$(JWT_SECRET)"
-                      -GOOGLE_CLIENT_ID "$(GOOGLE_CLIENT_ID)"
-                      -GOOGLE_CLIENT_SECRET "$(GOOGLE_CLIENT_SECRET)"
-                      -GOOGLE_EMAIL "$(GOOGLE_EMAIL)"
-                      -GOOGLE_APP_PASSWORD "$(GOOGLE_APP_PASSWORD)"
-                      -STORAGE_CONNECTION_STRING "$(STORAGE_CONNECTION_STRING)"
-                      -FRONTEND_URL "https://customcoachpro.azurewebsites.net"
+              - task: AzureCLI@2
+                displayName: 'Set Function App settings'
+                inputs:
+                  azureSubscription: $(AZURE_SERVICE_CONNECTION)
+                  scriptType: bash
+                  scriptLocation: inlineScript
+                  inlineScript: |
+                    az functionapp config appsettings set \
+                      --name customcoachprofn \
+                      --resource-group rg-customer-coach-pro-prod \
+                      --settings \
+                      SQL_SERVER="$(SQL_SERVER)" \
+                      SQL_DATABASE="$(SQL_DATABASE)" \
+                      SQL_USER="$(SQL_USER)" \
+                      SQL_PASSWORD="$(SQL_PASSWORD)" \
+                      JWT_SECRET="$(JWT_SECRET)" \
+                      GOOGLE_CLIENT_ID="$(GOOGLE_CLIENT_ID)" \
+                      GOOGLE_CLIENT_SECRET="$(GOOGLE_CLIENT_SECRET)" \
+                      GOOGLE_EMAIL="$(GOOGLE_EMAIL)" \
+                      GOOGLE_APP_PASSWORD="$(GOOGLE_APP_PASSWORD)" \
+                      STORAGE_CONNECTION_STRING="$(STORAGE_CONNECTION_STRING)" \
+                      FRONTEND_URL="https://customcoachpro.azurewebsites.net"
 
-      - deployment: DeployFrontendProd
-        displayName: 'Deploy Frontend to Production'
-        environment: 'production'
-        dependsOn: DeployFunctionsProd
-        strategy:
-          runOnce:
-            deploy:
-              steps:
-                - task: DownloadBuildArtifacts@1
-                  inputs:
-                    buildType: 'current'
-                    downloadType: 'single'
-                    artifactName: 'webapp'
-                    downloadPath: '$(System.ArtifactsDirectory)'
+              - task: AzureFunctionApp@2
+                inputs:
+                  connectedServiceNameARM: $(AZURE_SERVICE_CONNECTION)
+                  appType: 'functionApp'
+                  appName: 'customcoachprofn'
+                  package: '$(System.ArtifactsDirectory)/functions'
 
-                - task: AzureWebApp@1
-                  inputs:
-                    azureSubscription: $(AZURE_SERVICE_CONNECTION)
-                    appType: 'webApp'
-                    appName: 'customcoachpro'
-                    package: '$(System.ArtifactsDirectory)/webapp'
+    - deployment: DeployFrontendProd
+      displayName: 'Deploy Frontend to Production'
+      environment: 'production'
+      dependsOn: DeployFunctionsProd
+      strategy:
+        runOnce:
+          deploy:
+            steps:
+              - task: DownloadBuildArtifacts@1
+                inputs:
+                  buildType: 'current'
+                  downloadType: 'single'
+                  artifactName: 'webapp'
+                  downloadPath: '$(System.ArtifactsDirectory)/webapp'
+                  
+              - task: AzureWebApp@1
+                inputs:
+                  azureSubscription: $(AZURE_SERVICE_CONNECTION)
+                  appType: 'webApp'
+                  appName: 'customcoachpro'
+                  package: '$(System.ArtifactsDirectory)/webapp'
+
