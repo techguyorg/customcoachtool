@@ -1,4 +1,4 @@
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { 
@@ -19,10 +19,13 @@ import {
   Apple,
   Heart,
   Users,
-  AlertCircle
+  AlertCircle,
+  Play,
+  Scale,
+  Flame,
+  Clock
 } from "lucide-react";
 import { useState, useEffect } from "react";
-import { Link, useLocation } from "react-router-dom";
 import ExercisesPage from "@/pages/shared/ExercisesPage";
 import WorkoutTemplatesPage from "@/pages/shared/WorkoutTemplatesPage";
 import WorkoutsPage from "@/pages/client/WorkoutsPage";
@@ -41,9 +44,20 @@ import { ThemeSwitcher } from "@/components/shared/ThemeSwitcher";
 import { RoleSwitcher } from "@/components/shared/RoleSwitcher";
 import { MyCoachCard } from "@/components/client/MyCoachCard";
 import { ClientOnboardingDialog } from "@/components/client/ClientOnboardingDialog";
+import { QuickLogNutritionDialog } from "@/components/client/QuickLogNutritionDialog";
+import { QuickLogMeasurementDialog } from "@/components/client/QuickLogMeasurementDialog";
 import { useClientProfile } from "@/hooks/useClientProfile";
+import { useDashboardStats } from "@/hooks/useDashboardStats";
 import { useTotalUnreadCount } from "@/hooks/useMessages";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const sidebarItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/client" },
@@ -191,105 +205,246 @@ function ClientDashboard() {
 
 function ClientHome() {
   const { user } = useAuth();
-  const { data: profileData, isLoading } = useClientProfile();
+  const { data: profileData, isLoading: profileLoading } = useClientProfile();
+  const { data: stats, isLoading: statsLoading } = useDashboardStats();
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showNutritionDialog, setShowNutritionDialog] = useState(false);
+  const [showMeasurementDialog, setShowMeasurementDialog] = useState(false);
 
   // Show onboarding if profile is incomplete
   useEffect(() => {
-    if (!isLoading && profileData && !profileData.isComplete) {
-      // Small delay so page loads first
+    if (!profileLoading && profileData && !profileData.isComplete) {
       const timer = setTimeout(() => setShowOnboarding(true), 500);
       return () => clearTimeout(timer);
     }
-  }, [isLoading, profileData]);
+  }, [profileLoading, profileData]);
   
   return (
-    <div className="space-y-5">
-      {/* Onboarding Dialog */}
-      <ClientOnboardingDialog 
-        open={showOnboarding} 
-        onOpenChange={setShowOnboarding}
-      />
+    <TooltipProvider>
+      <div className="space-y-5">
+        {/* Dialogs */}
+        <ClientOnboardingDialog 
+          open={showOnboarding} 
+          onOpenChange={setShowOnboarding}
+        />
+        <QuickLogNutritionDialog 
+          open={showNutritionDialog} 
+          onOpenChange={setShowNutritionDialog}
+        />
+        <QuickLogMeasurementDialog 
+          open={showMeasurementDialog} 
+          onOpenChange={setShowMeasurementDialog}
+        />
 
-      {/* Incomplete Profile Banner */}
-      {profileData && !profileData.isComplete && !showOnboarding && (
-        <div className="bg-warning/10 border border-warning/30 rounded-lg p-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <AlertCircle className="w-5 h-5 text-warning" />
-            <div>
-              <p className="font-medium text-sm">Complete Your Profile</p>
-              <p className="text-xs text-muted-foreground">
-                Missing: {profileData.missingFields.join(", ")}
-              </p>
+        {/* Incomplete Profile Banner */}
+        {profileData && !profileData.isComplete && !showOnboarding && (
+          <div className="bg-warning/10 border border-warning/30 rounded-lg p-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <AlertCircle className="w-5 h-5 text-warning" />
+              <div>
+                <p className="font-medium text-sm">Complete Your Profile</p>
+                <p className="text-xs text-muted-foreground">
+                  Missing: {profileData.missingFields.join(", ")}
+                </p>
+              </div>
             </div>
-          </div>
-          <Button size="sm" onClick={() => setShowOnboarding(true)}>
-            Complete Now
-          </Button>
-        </div>
-      )}
-
-      {/* Welcome */}
-      <div className="bg-gradient-to-r from-primary/20 to-accent/10 rounded-xl p-5 border border-primary/20">
-        <h2 className="text-xl font-bold">Hey {user?.fullName?.split(' ')[0] || 'there'}! 💪</h2>
-        <p className="text-sm text-muted-foreground mt-1">Ready to crush your goals today?</p>
-      </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {[
-          { label: "Workouts This Week", value: "0", icon: Dumbbell },
-          { label: "Calories Today", value: "0", icon: UtensilsCrossed },
-          { label: "Current Streak", value: "0 days", icon: TrendingUp },
-          { label: "Next Check-in", value: "—", icon: CalendarCheck },
-        ].map((stat, i) => (
-          <div key={i} className="bg-card border border-border rounded-xl p-4">
-            <div className="flex items-center justify-between">
-              <p className="text-xs text-muted-foreground">{stat.label}</p>
-              <stat.icon className="w-4 h-4 text-muted-foreground" />
-            </div>
-            <p className="text-2xl font-bold mt-1">{stat.value}</p>
-          </div>
-        ))}
-      </div>
-
-      {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* My Coach Card */}
-        <MyCoachCard />
-
-        {/* Today's Plan */}
-        <div className="bg-card border border-border rounded-xl p-4">
-          <h3 className="font-semibold text-sm mb-3">Today's Plan</h3>
-          <p className="text-muted-foreground text-xs mb-3">No workout assigned for today.</p>
-          <Link to="/client/programs">
-            <Button variant="outline" size="sm" className="w-full justify-start text-xs">
-              <Search className="w-3 h-3 mr-2" />
-              Browse Workout Plans
+            <Button size="sm" onClick={() => setShowOnboarding(true)}>
+              Complete Now
             </Button>
-          </Link>
+          </div>
+        )}
+
+        {/* Welcome */}
+        <div className="bg-gradient-to-r from-primary/20 to-accent/10 rounded-xl p-5 border border-primary/20">
+          <h2 className="text-xl font-bold">Hey {user?.fullName?.split(' ')[0] || 'there'}! 💪</h2>
+          <p className="text-sm text-muted-foreground mt-1">Ready to crush your goals today?</p>
         </div>
 
-        {/* Quick Actions */}
-        <div className="bg-card border border-border rounded-xl p-4">
-          <h3 className="font-semibold text-sm mb-3">Quick Actions</h3>
-          <div className="space-y-2">
-            <Link to="/client/nutrition-log">
-              <Button variant="outline" size="sm" className="w-full justify-start text-xs">
-                <Apple className="w-3 h-3 mr-2" />
-                Log Nutrition
-              </Button>
-            </Link>
-            <Link to="/client/progress">
-              <Button variant="outline" size="sm" className="w-full justify-start text-xs">
-                <TrendingUp className="w-3 h-3 mr-2" />
-                Track Progress
-              </Button>
-            </Link>
-          </div>
+        {/* Stats */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <StatCard
+            label="Workouts This Week"
+            value={statsLoading ? null : stats?.workoutsThisWeek ?? 0}
+            icon={Dumbbell}
+            tooltip="Completed workouts from Monday to Sunday this week"
+            linkTo="/client/workouts"
+          />
+          <StatCard
+            label="Calories Today"
+            value={statsLoading ? null : stats?.caloriesLogged ?? 0}
+            icon={Flame}
+            tooltip="Total calories logged today across all meals"
+            linkTo="/client/nutrition-log"
+          />
+          <StatCard
+            label="Current Streak"
+            value={statsLoading ? null : `${stats?.currentStreak ?? 0} days`}
+            icon={TrendingUp}
+            tooltip="Consecutive days with at least one workout"
+            linkTo="/client/workouts"
+          />
+          <StatCard
+            label="Next Check-in"
+            value={statsLoading ? null : stats?.nextCheckinDate ?? "—"}
+            icon={CalendarCheck}
+            tooltip="Your next scheduled check-in with your coach"
+            linkTo="/client/checkins"
+          />
+        </div>
+
+        {/* Main Content Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          {/* My Coach Card */}
+          <MyCoachCard />
+
+          {/* Today's Plan */}
+          <Card className="border-border">
+            <CardContent className="p-4">
+              <h3 className="font-semibold text-sm mb-3 flex items-center gap-2">
+                <Clock className="w-4 h-4 text-primary" />
+                Today's Plan
+              </h3>
+              
+              {statsLoading ? (
+                <div className="space-y-2">
+                  <Skeleton className="h-12 w-full" />
+                  <Skeleton className="h-12 w-full" />
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {/* Workout */}
+                  {stats?.todaysWorkout ? (
+                    <Link to="/client/workouts" className="block">
+                      <div className="flex items-center gap-3 p-3 rounded-lg bg-primary/5 border border-primary/20 hover:bg-primary/10 transition-colors">
+                        <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center">
+                          <Dumbbell className="w-4 h-4 text-primary" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm truncate">{stats.todaysWorkout.name}</p>
+                          <p className="text-xs text-muted-foreground">Day {stats.todaysWorkout.dayNumber}</p>
+                        </div>
+                        <Button size="sm" variant="ghost" className="h-8">
+                          <Play className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </Link>
+                  ) : (
+                    <div className="text-center p-3 rounded-lg bg-muted/50">
+                      <p className="text-xs text-muted-foreground mb-2">No workout assigned</p>
+                      <Link to="/client/programs">
+                        <Button variant="outline" size="sm" className="text-xs h-7">
+                          <Search className="w-3 h-3 mr-1" />
+                          Browse Programs
+                        </Button>
+                      </Link>
+                    </div>
+                  )}
+
+                  {/* Diet */}
+                  {stats?.todaysDiet ? (
+                    <Link to="/client/diet-plans" className="block">
+                      <div className="flex items-center gap-3 p-3 rounded-lg bg-orange-500/5 border border-orange-500/20 hover:bg-orange-500/10 transition-colors">
+                        <div className="w-8 h-8 rounded-lg bg-orange-500/20 flex items-center justify-center">
+                          <UtensilsCrossed className="w-4 h-4 text-orange-500" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm truncate">{stats.todaysDiet.name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {stats.todaysDiet.calories} kcal • {stats.todaysDiet.protein}g P
+                          </p>
+                        </div>
+                      </div>
+                    </Link>
+                  ) : !stats?.todaysWorkout && (
+                    <div className="text-center p-3 rounded-lg bg-muted/50">
+                      <p className="text-xs text-muted-foreground mb-2">No diet plan active</p>
+                      <Link to="/client/diet-plans">
+                        <Button variant="outline" size="sm" className="text-xs h-7">
+                          <Search className="w-3 h-3 mr-1" />
+                          Browse Diet Plans
+                        </Button>
+                      </Link>
+                    </div>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Quick Actions */}
+          <Card className="border-border">
+            <CardContent className="p-4">
+              <h3 className="font-semibold text-sm mb-3">Quick Actions</h3>
+              <div className="space-y-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="w-full justify-start text-xs"
+                  onClick={() => setShowNutritionDialog(true)}
+                >
+                  <Apple className="w-3 h-3 mr-2" />
+                  Log Food
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="w-full justify-start text-xs"
+                  onClick={() => setShowMeasurementDialog(true)}
+                >
+                  <Scale className="w-3 h-3 mr-2" />
+                  Log Weight
+                </Button>
+                <Link to="/client/progress" className="block">
+                  <Button variant="outline" size="sm" className="w-full justify-start text-xs">
+                    <TrendingUp className="w-3 h-3 mr-2" />
+                    View Progress
+                  </Button>
+                </Link>
+                <Link to="/client/checkins" className="block">
+                  <Button variant="outline" size="sm" className="w-full justify-start text-xs">
+                    <CalendarCheck className="w-3 h-3 mr-2" />
+                    Submit Check-in
+                  </Button>
+                </Link>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
-    </div>
+    </TooltipProvider>
+  );
+}
+
+interface StatCardProps {
+  label: string;
+  value: string | number | null;
+  icon: React.ElementType;
+  tooltip: string;
+  linkTo: string;
+}
+
+function StatCard({ label, value, icon: Icon, tooltip, linkTo }: StatCardProps) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Link to={linkTo}>
+          <div className="bg-card border border-border rounded-xl p-4 hover:bg-muted/50 transition-colors cursor-pointer">
+            <div className="flex items-center justify-between">
+              <p className="text-xs text-muted-foreground">{label}</p>
+              <Icon className="w-4 h-4 text-muted-foreground" />
+            </div>
+            {value === null ? (
+              <Skeleton className="h-8 w-16 mt-1" />
+            ) : (
+              <p className="text-2xl font-bold mt-1">{value}</p>
+            )}
+          </div>
+        </Link>
+      </TooltipTrigger>
+      <TooltipContent side="bottom">
+        <p className="text-xs">{tooltip}</p>
+      </TooltipContent>
+    </Tooltip>
   );
 }
 
