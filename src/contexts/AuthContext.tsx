@@ -1,100 +1,126 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { Session } from "@supabase/supabase-js";
 import {
   AuthUser,
   AppRole,
-  SignUpData,
-  SignInData,
   signUp as authSignUp,
   signIn as authSignIn,
+  signInWithGoogle as authSignInWithGoogle,
   signOut as authSignOut,
-  getSession,
+  getStoredUser,
+  getStoredTokens,
   getAuthUser,
-  onAuthStateChange,
-} from "@/lib/auth";
+  clearAuth,
+} from "@/lib/auth-azure";
+
+interface SignUpData {
+  email: string;
+  password: string;
+  fullName: string;
+  role: AppRole;
+}
+
+interface SignInData {
+  email: string;
+  password: string;
+}
 
 interface AuthContextType {
   user: AuthUser | null;
-  session: Session | null;
   isLoading: boolean;
   signUp: (data: SignUpData) => Promise<{ error: Error | null }>;
   signIn: (data: SignInData) => Promise<{ error: Error | null }>;
+  signInWithGoogle: (code: string, role?: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   hasRole: (role: AppRole) => boolean;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Set up auth state listener FIRST
-    const { data: { subscription } } = onAuthStateChange(async (event, newSession) => {
-      setSession(newSession);
+    // Check for stored auth on mount
+    const initAuth = async () => {
+      const { accessToken } = getStoredTokens();
       
-      if (newSession?.user) {
-        // Defer profile fetch to avoid blocking
-        setTimeout(async () => {
-          const authUser = await getAuthUser();
-          setUser(authUser);
-        }, 0);
-      } else {
-        setUser(null);
-      }
-      
-      setIsLoading(false);
-    });
-
-    // Then get initial session
-    getSession().then(async (initialSession) => {
-      setSession(initialSession);
-      
-      if (initialSession?.user) {
+      if (accessToken) {
+        // Try to get fresh user data
         const authUser = await getAuthUser();
         setUser(authUser);
+      } else {
+        // No token, check for stored user (offline fallback)
+        const storedUser = getStoredUser();
+        if (storedUser) {
+          // Validate by trying to get fresh data
+          const authUser = await getAuthUser();
+          setUser(authUser);
+        }
       }
       
       setIsLoading(false);
-    });
-
-    return () => {
-      subscription.unsubscribe();
     };
+
+    initAuth();
   }, []);
 
   const signUp = async (data: SignUpData) => {
-    const result = await authSignUp(data);
-    return { error: result.error };
+    try {
+      const response = await authSignUp(data.email, data.password, data.fullName, data.role as "coach" | "client");
+      setUser(response.user);
+      return { error: null };
+    } catch (error) {
+      return { error: error as Error };
+    }
   };
 
   const signIn = async (data: SignInData) => {
-    const result = await authSignIn(data);
-    return { error: result.error };
+    try {
+      const response = await authSignIn(data.email, data.password);
+      setUser(response.user);
+      return { error: null };
+    } catch (error) {
+      return { error: error as Error };
+    }
+  };
+
+  const signInWithGoogle = async (code: string, role?: string) => {
+    try {
+      const response = await authSignInWithGoogle(code, role);
+      setUser(response.user);
+      return { error: null };
+    } catch (error) {
+      return { error: error as Error };
+    }
   };
 
   const signOut = async () => {
     await authSignOut();
     setUser(null);
-    setSession(null);
   };
 
   const hasRole = (role: AppRole) => {
-    return user?.role === role;
+    return user?.role === role || user?.roles?.includes(role) || false;
+  };
+
+  const refreshUser = async () => {
+    const authUser = await getAuthUser();
+    setUser(authUser);
   };
 
   return (
     <AuthContext.Provider
       value={{
         user,
-        session,
         isLoading,
         signUp,
         signIn,
+        signInWithGoogle,
         signOut,
         hasRole,
+        refreshUser,
       }}
     >
       {children}
