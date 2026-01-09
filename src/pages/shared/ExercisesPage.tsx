@@ -28,11 +28,11 @@ export default function ExercisesPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold flex items-center gap-3">
-          <Dumbbell className="w-7 h-7 text-primary" />
+        <h1 className="text-xl font-bold flex items-center gap-2">
+          <Dumbbell className="w-5 h-5 text-primary" />
           Exercise Library
         </h1>
-        <p className="text-muted-foreground mt-1">
+        <p className="text-sm text-muted-foreground mt-1">
           Browse our comprehensive database of exercises with detailed instructions
         </p>
       </div>

@@ -36,9 +36,9 @@ export function PageHeader({
       )}
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold">{title}</h2>
+          <h2 className="text-xl font-bold">{title}</h2>
           {description && (
-            <p className="text-muted-foreground">{description}</p>
+            <p className="text-sm text-muted-foreground">{description}</p>
           )}
         </div>
         {actions && <div className="flex items-center gap-2">{actions}</div>}

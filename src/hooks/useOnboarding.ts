@@ -1,0 +1,208 @@
+import { useState, useEffect } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+
+export interface TutorialStep {
+  id: string;
+  title: string;
+  description: string;
+  icon: string;
+  action?: {
+    label: string;
+    path: string;
+  };
+}
+
+export const CLIENT_TUTORIAL_STEPS: TutorialStep[] = [
+  {
+    id: "welcome",
+    title: "Welcome to CustomCoachPro!",
+    description: "Your all-in-one fitness companion. Let's take a quick tour of what you can do.",
+    icon: "🎉",
+  },
+  {
+    id: "programs",
+    title: "Browse Programs",
+    description: "Discover workout programs designed by professionals. Find one that matches your goals.",
+    icon: "📋",
+    action: { label: "Browse Programs", path: "/client/programs" },
+  },
+  {
+    id: "workouts",
+    title: "Track Workouts",
+    description: "Log your exercises, track sets and reps, and watch your progress over time.",
+    icon: "💪",
+    action: { label: "Go to Workouts", path: "/client/workouts" },
+  },
+  {
+    id: "nutrition",
+    title: "Nutrition Log",
+    description: "Track your meals and monitor your macros to fuel your fitness journey.",
+    icon: "🥗",
+    action: { label: "Log Nutrition", path: "/client/nutrition-log" },
+  },
+  {
+    id: "progress",
+    title: "Monitor Progress",
+    description: "Track measurements, upload progress photos, and set goals to stay motivated.",
+    icon: "📈",
+    action: { label: "View Progress", path: "/client/progress" },
+  },
+  {
+    id: "coach",
+    title: "Find a Coach",
+    description: "Connect with certified coaches for personalized guidance and accountability.",
+    icon: "👨‍🏫",
+    action: { label: "Find Coach", path: "/client/coaches" },
+  },
+];
+
+export const COACH_TUTORIAL_STEPS: TutorialStep[] = [
+  {
+    id: "welcome",
+    title: "Welcome to Your Coach Portal!",
+    description: "Manage your coaching business efficiently. Here's a quick overview.",
+    icon: "🎉",
+  },
+  {
+    id: "clients",
+    title: "Manage Clients",
+    description: "View your clients, track their progress, and manage relationships all in one place.",
+    icon: "👥",
+    action: { label: "View Clients", path: "/coach/clients" },
+  },
+  {
+    id: "programs",
+    title: "Create Programs",
+    description: "Build custom workout and diet programs, or use templates from our library.",
+    icon: "📋",
+    action: { label: "Create Program", path: "/coach/programs" },
+  },
+  {
+    id: "checkins",
+    title: "Review Check-ins",
+    description: "Stay connected with clients through regular check-ins and feedback.",
+    icon: "✅",
+    action: { label: "View Check-ins", path: "/coach/checkins" },
+  },
+  {
+    id: "analytics",
+    title: "Track Your Business",
+    description: "Monitor client engagement, retention, and your coaching performance.",
+    icon: "📊",
+    action: { label: "View Analytics", path: "/coach/analytics" },
+  },
+];
+
+export const ADMIN_TUTORIAL_STEPS: TutorialStep[] = [
+  {
+    id: "welcome",
+    title: "Welcome, Super Admin!",
+    description: "You have full control over the platform. Here's what you can do.",
+    icon: "🛡️",
+  },
+  {
+    id: "users",
+    title: "User Management",
+    description: "Manage all users, assign roles, and handle access control.",
+    icon: "👥",
+    action: { label: "Manage Users", path: "/admin/users" },
+  },
+  {
+    id: "content",
+    title: "Content Management",
+    description: "Manage system exercises, workout templates, diet plans, and recipes.",
+    icon: "📚",
+    action: { label: "Manage Content", path: "/admin/content" },
+  },
+  {
+    id: "analytics",
+    title: "Platform Analytics",
+    description: "View platform-wide statistics and monitor overall health.",
+    icon: "📈",
+    action: { label: "View Analytics", path: "/admin/analytics" },
+  },
+];
+
+export function useOnboarding() {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const [showTutorial, setShowTutorial] = useState(false);
+
+  const { data: onboardingStatus } = useQuery({
+    queryKey: ["onboarding", user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      const { data } = await supabase
+        .from("profiles")
+        .select("onboarding_completed, onboarding_step")
+        .eq("user_id", user.id)
+        .single();
+      return data;
+    },
+    enabled: !!user?.id,
+  });
+
+  const updateOnboarding = useMutation({
+    mutationFn: async ({ completed, step }: { completed?: boolean; step?: number }) => {
+      if (!user?.id) throw new Error("Not authenticated");
+      const updates: Record<string, any> = {};
+      if (completed !== undefined) updates.onboarding_completed = completed;
+      if (step !== undefined) updates.onboarding_step = step;
+      
+      const { error } = await supabase
+        .from("profiles")
+        .update(updates)
+        .eq("user_id", user.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["onboarding"] });
+    },
+  });
+
+  const getTutorialSteps = (): TutorialStep[] => {
+    if (!user?.role) return CLIENT_TUTORIAL_STEPS;
+    switch (user.role) {
+      case "super_admin":
+        return ADMIN_TUTORIAL_STEPS;
+      case "coach":
+        return COACH_TUTORIAL_STEPS;
+      default:
+        return CLIENT_TUTORIAL_STEPS;
+    }
+  };
+
+  const startTutorial = () => setShowTutorial(true);
+  const closeTutorial = () => setShowTutorial(false);
+
+  const completeTutorial = async () => {
+    await updateOnboarding.mutateAsync({ completed: true });
+    setShowTutorial(false);
+  };
+
+  const updateStep = async (step: number) => {
+    await updateOnboarding.mutateAsync({ step });
+  };
+
+  // Auto-show tutorial for new users
+  useEffect(() => {
+    if (onboardingStatus && !onboardingStatus.onboarding_completed) {
+      const timer = setTimeout(() => setShowTutorial(true), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [onboardingStatus]);
+
+  return {
+    showTutorial,
+    setShowTutorial,
+    startTutorial,
+    closeTutorial,
+    completeTutorial,
+    updateStep,
+    currentStep: onboardingStatus?.onboarding_step ?? 0,
+    isCompleted: onboardingStatus?.onboarding_completed ?? false,
+    tutorialSteps: getTutorialSteps(),
+  };
+}

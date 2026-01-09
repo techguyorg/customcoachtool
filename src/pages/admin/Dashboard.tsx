@@ -102,7 +102,7 @@ function AdminDashboard() {
                 <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
               </div>
             </div>
-            <Button variant="outline" className="w-full" onClick={signOut}>
+            <Button variant="outline" className="w-full" onClick={() => signOut()}>
               <LogOut className="w-4 h-4 mr-2" />
               Sign Out
             </Button>
