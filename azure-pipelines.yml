@@ -13,7 +13,9 @@ pr:
       - main
 
 pool:
-  vmImage: 'ubuntu-latest'
+  name: Default
+  demands:
+    - Agent.Name -equals ubuntu-pipeline-agent
 
 variables:
   - group: CustomCoachPro-Variables
@@ -95,68 +97,6 @@ stages:
             displayName: 'Publish function artifacts'
 
   # ===========================================
-  # DEPLOY TO DEVELOPMENT
-  # ===========================================
-  - stage: DeployDev
-    displayName: 'Deploy to Development'
-    dependsOn: Build
-    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/develop'))
-    jobs:
-      - deployment: DeployFunctionsDev
-        displayName: 'Deploy Functions to Dev'
-        environment: 'development'
-        strategy:
-          runOnce:
-            deploy:
-              steps:
-                - task: DownloadBuildArtifacts@1
-                  inputs:
-                    buildType: 'current'
-                    downloadType: 'single'
-                    artifactName: 'functions'
-                    downloadPath: '$(System.ArtifactsDirectory)'
-
-                - task: AzureFunctionApp@2
-                  inputs:
-                    connectedServiceNameARM: $(AZURE_SERVICE_CONNECTION)
-                    appType: 'functionApp'
-                    appName: 'customcoachprofn-dev'
-                    package: '$(System.ArtifactsDirectory)/functions'
-                    appSettings: |
-                      -SQL_SERVER "$(SQL_SERVER)"
-                      -SQL_DATABASE "$(SQL_DATABASE_DEV)"
-                      -SQL_USER "$(SQL_USER)"
-                      -SQL_PASSWORD "$(SQL_PASSWORD)"
-                      -JWT_SECRET "$(JWT_SECRET)"
-                      -GOOGLE_CLIENT_ID "$(GOOGLE_CLIENT_ID)"
-                      -GOOGLE_CLIENT_SECRET "$(GOOGLE_CLIENT_SECRET)"
-                      -RESEND_API_KEY "$(RESEND_API_KEY)"
-                      -STORAGE_CONNECTION_STRING "$(STORAGE_CONNECTION_STRING)"
-                      -FRONTEND_URL "https://customcoachpro-dev.azurewebsites.net"
-
-      - deployment: DeployFrontendDev
-        displayName: 'Deploy Frontend to Dev'
-        environment: 'development'
-        dependsOn: DeployFunctionsDev
-        strategy:
-          runOnce:
-            deploy:
-              steps:
-                - task: DownloadBuildArtifacts@1
-                  inputs:
-                    buildType: 'current'
-                    downloadType: 'single'
-                    artifactName: 'webapp'
-                    downloadPath: '$(System.ArtifactsDirectory)'
-
-                - task: AzureWebApp@1
-                  inputs:
-                    azureSubscription: $(AZURE_SERVICE_CONNECTION)
-                    appType: 'webApp'
-                    appName: 'customcoachpro-dev'
-                    package: '$(System.ArtifactsDirectory)/webapp'
-
-  # ===========================================
   # DEPLOY TO PRODUCTION
   # ===========================================
   - stage: DeployProd
@@ -192,7 +132,8 @@ stages:
                       -JWT_SECRET "$(JWT_SECRET)"
                       -GOOGLE_CLIENT_ID "$(GOOGLE_CLIENT_ID)"
                       -GOOGLE_CLIENT_SECRET "$(GOOGLE_CLIENT_SECRET)"
-                      -RESEND_API_KEY "$(RESEND_API_KEY)"
+                      -GOOGLE_EMAIL "$(GOOGLE_EMAIL)"
+                      -GOOGLE_APP_PASSWORD "$(GOOGLE_APP_PASSWORD)"
                       -STORAGE_CONNECTION_STRING "$(STORAGE_CONNECTION_STRING)"
                       -FRONTEND_URL "https://customcoachpro.azurewebsites.net"
 
