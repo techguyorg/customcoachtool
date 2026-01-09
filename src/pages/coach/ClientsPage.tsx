@@ -59,15 +59,15 @@ export default function ClientsPage() {
   }) || [];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold flex items-center gap-3">
-            <Users className="w-7 h-7 text-primary" />
+          <h1 className="text-xl font-bold flex items-center gap-2">
+            <Users className="w-5 h-5 text-primary" />
             My Clients
           </h1>
-          <p className="text-muted-foreground mt-1">
+          <p className="text-sm text-muted-foreground mt-1">
             Manage your coaching relationships and client progress
           </p>
         </div>
@@ -75,34 +75,34 @@ export default function ClientsPage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-card border border-border rounded-xl p-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="bg-card border border-border rounded-lg p-3">
           <div className="flex items-center justify-between">
-            <p className="text-sm text-muted-foreground">Total Clients</p>
+            <p className="text-xs text-muted-foreground">Total Clients</p>
             <Users className="w-4 h-4 text-muted-foreground" />
           </div>
-          <p className="text-2xl font-bold mt-1">{stats.total}</p>
+          <p className="text-xl font-bold mt-1">{stats.total}</p>
         </div>
-        <div className="bg-card border border-border rounded-xl p-4">
+        <div className="bg-card border border-border rounded-lg p-3">
           <div className="flex items-center justify-between">
-            <p className="text-sm text-muted-foreground">Active</p>
+            <p className="text-xs text-muted-foreground">Active</p>
             <UserCheck className="w-4 h-4 text-success" />
           </div>
-          <p className="text-2xl font-bold mt-1 text-success">{stats.active}</p>
+          <p className="text-xl font-bold mt-1 text-success">{stats.active}</p>
         </div>
-        <div className="bg-card border border-border rounded-xl p-4">
+        <div className="bg-card border border-border rounded-lg p-3">
           <div className="flex items-center justify-between">
-            <p className="text-sm text-muted-foreground">Pending</p>
+            <p className="text-xs text-muted-foreground">Pending</p>
             <Clock className="w-4 h-4 text-warning" />
           </div>
-          <p className="text-2xl font-bold mt-1 text-warning">{stats.pending}</p>
+          <p className="text-xl font-bold mt-1 text-warning">{stats.pending}</p>
         </div>
-        <div className="bg-card border border-border rounded-xl p-4">
+        <div className="bg-card border border-border rounded-lg p-3">
           <div className="flex items-center justify-between">
-            <p className="text-sm text-muted-foreground">Paused</p>
+            <p className="text-xs text-muted-foreground">Paused</p>
             <Pause className="w-4 h-4 text-muted-foreground" />
           </div>
-          <p className="text-2xl font-bold mt-1">{stats.paused}</p>
+          <p className="text-xl font-bold mt-1">{stats.paused}</p>
         </div>
       </div>
 

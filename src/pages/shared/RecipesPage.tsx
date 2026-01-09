@@ -49,16 +49,19 @@ export default function RecipesPage({ viewOnly = false }: RecipesPageProps) {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Recipes</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-xl font-bold flex items-center gap-2">
+            <ChefHat className="w-5 h-5 text-primary" />
+            Recipes
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">
             {viewOnly ? "Browse recipes with calculated nutrition" : "Create and manage recipes with auto-calculated nutrition"}
           </p>
         </div>
         {!viewOnly && (
-          <Button onClick={() => setCreateDialogOpen(true)}>
+          <Button onClick={() => setCreateDialogOpen(true)} size="sm">
             <Plus className="mr-2 h-4 w-4" />
             Create Recipe
           </Button>

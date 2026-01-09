@@ -80,13 +80,16 @@ export default function DietPlansPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Diet Plans</h1>
-          <p className="text-muted-foreground">Create and manage nutrition plans for your clients</p>
+          <h1 className="text-xl font-bold flex items-center gap-2">
+            <Utensils className="w-5 h-5 text-primary" />
+            Diet Plans
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">Create and manage nutrition plans for your clients</p>
         </div>
-        <Button onClick={() => setCreateDialogOpen(true)}>
+        <Button onClick={() => setCreateDialogOpen(true)} size="sm">
           <Plus className="mr-2 h-4 w-4" />
           Create Plan
         </Button>
