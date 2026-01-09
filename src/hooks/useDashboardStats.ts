@@ -86,10 +86,10 @@ export function useDashboardStats() {
           .eq("is_active", true)
           .maybeSingle(),
           
-        // Last submitted checkin (for any client)
+        // Last submitted/reviewed checkin (includes next_checkin_date set by coach)
         supabase
           .from("client_checkins")
-          .select("checkin_date")
+          .select("checkin_date, next_checkin_date")
           .eq("client_id", user.id)
           .in("status", ["submitted", "reviewed"])
           .order("checkin_date", { ascending: false })
@@ -111,12 +111,22 @@ export function useDashboardStats() {
       // Calculate streak
       const currentStreak = await calculateStreak(user.id);
 
-      // Next check-in - works for clients with or without coach
+      // Next check-in - priority: coach-set date > template frequency > default weekly
       let nextCheckinDate: string | null = null;
       const lastCheckinDate = lastCheckinResult.data?.checkin_date;
+      const coachSetNextDate = lastCheckinResult.data?.next_checkin_date;
       
-      if (checkinTemplateResult.data?.frequency_days) {
-        // Has a coach-assigned template
+      if (coachSetNextDate) {
+        // Coach set a specific next check-in date
+        const nextDate = new Date(coachSetNextDate);
+        const today = new Date();
+        if (nextDate < today) {
+          nextCheckinDate = format(nextDate, "EEE, MMM d") + " (Overdue)";
+        } else {
+          nextCheckinDate = format(nextDate, "EEE, MMM d");
+        }
+      } else if (checkinTemplateResult.data?.frequency_days) {
+        // Has a coach-assigned template with frequency
         nextCheckinDate = calculateNextCheckinDate(
           checkinTemplateResult.data.frequency_days, 
           lastCheckinDate

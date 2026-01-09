@@ -18,10 +18,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { 
-  User, Scale, Target, Heart, Utensils, Save, Loader2, Camera, X
+  User, Scale, Target, Heart, Utensils, Save, Loader2, Camera, X, Bell
 } from "lucide-react";
 import { ChangePasswordCard } from "@/components/shared/ChangePasswordCard";
 import { toast } from "sonner";
+import { Switch } from "@/components/ui/switch";
 
 const FITNESS_GOALS = [
   "Weight Loss",
@@ -64,7 +65,18 @@ export default function ClientProfilePage() {
 
       return {
         profile: profileRes.data,
-        clientProfile: clientRes.data,
+        clientProfile: clientRes.data as {
+          height_cm?: number;
+          current_weight_kg?: number;
+          target_weight_kg?: number;
+          fitness_level?: string;
+          fitness_goals?: string[];
+          dietary_restrictions?: string[];
+          medical_conditions?: string;
+          email_checkin_submitted?: boolean;
+          email_checkin_reviewed?: boolean;
+          email_plan_assigned?: boolean;
+        } | null,
       };
     },
     enabled: !!user?.id,
@@ -86,6 +98,10 @@ export default function ClientProfilePage() {
   const [dietaryRestrictions, setDietaryRestrictions] = useState<string[]>([]);
   const [medicalConditions, setMedicalConditions] = useState("");
   
+  // Email preferences
+  const [emailCheckinReviewed, setEmailCheckinReviewed] = useState(true);
+  const [emailPlanAssigned, setEmailPlanAssigned] = useState(true);
+  
   const [uploading, setUploading] = useState(false);
 
   // Load data
@@ -105,6 +121,8 @@ export default function ClientProfilePage() {
       setFitnessGoals(profileData.clientProfile?.fitness_goals || []);
       setDietaryRestrictions(profileData.clientProfile?.dietary_restrictions || []);
       setMedicalConditions(profileData.clientProfile?.medical_conditions || "");
+      setEmailCheckinReviewed(profileData.clientProfile?.email_checkin_reviewed ?? true);
+      setEmailPlanAssigned(profileData.clientProfile?.email_plan_assigned ?? true);
     }
   }, [profileData]);
 
@@ -154,6 +172,8 @@ export default function ClientProfilePage() {
         fitness_goals: fitnessGoals.length > 0 ? fitnessGoals : null,
         dietary_restrictions: dietaryRestrictions.length > 0 ? dietaryRestrictions : null,
         medical_conditions: medicalConditions || null,
+        email_checkin_reviewed: emailCheckinReviewed,
+        email_plan_assigned: emailPlanAssigned,
       };
 
       if (existing) {
@@ -457,6 +477,46 @@ export default function ClientProfilePage() {
                 </Badge>
               ))}
             </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Email Preferences */}
+      <Card>
+        <CardHeader className="pb-4">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Bell className="w-4 h-4" />
+            Email Notifications
+          </CardTitle>
+          <CardDescription className="text-xs">
+            Control which emails you receive from CustomCoachPro
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <Label className="text-sm font-medium">Check-in Reviewed</Label>
+              <p className="text-xs text-muted-foreground">
+                Receive an email when your coach reviews your check-in
+              </p>
+            </div>
+            <Switch 
+              checked={emailCheckinReviewed} 
+              onCheckedChange={setEmailCheckinReviewed}
+            />
+          </div>
+          <Separator />
+          <div className="flex items-center justify-between">
+            <div>
+              <Label className="text-sm font-medium">Plan Assigned</Label>
+              <p className="text-xs text-muted-foreground">
+                Receive an email when your coach assigns a new workout or diet plan
+              </p>
+            </div>
+            <Switch 
+              checked={emailPlanAssigned} 
+              onCheckedChange={setEmailPlanAssigned}
+            />
           </div>
         </CardContent>
       </Card>

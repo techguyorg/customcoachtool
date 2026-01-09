@@ -105,6 +105,7 @@ export type Database = {
           id: string
           measurement_id: string | null
           mood_rating: number | null
+          next_checkin_date: string | null
           period_end: string | null
           period_start: string | null
           photo_ids: string[] | null
@@ -135,6 +136,7 @@ export type Database = {
           id?: string
           measurement_id?: string | null
           mood_rating?: number | null
+          next_checkin_date?: string | null
           period_end?: string | null
           period_start?: string | null
           photo_ids?: string[] | null
@@ -165,6 +167,7 @@ export type Database = {
           id?: string
           measurement_id?: string | null
           mood_rating?: number | null
+          next_checkin_date?: string | null
           period_end?: string | null
           period_start?: string | null
           photo_ids?: string[] | null
@@ -395,6 +398,9 @@ export type Database = {
           created_at: string
           current_weight_kg: number | null
           dietary_restrictions: string[] | null
+          email_checkin_reviewed: boolean
+          email_checkin_submitted: boolean
+          email_plan_assigned: boolean
           fitness_goals: string[] | null
           fitness_level: string | null
           height_cm: number | null
@@ -411,6 +417,9 @@ export type Database = {
           created_at?: string
           current_weight_kg?: number | null
           dietary_restrictions?: string[] | null
+          email_checkin_reviewed?: boolean
+          email_checkin_submitted?: boolean
+          email_plan_assigned?: boolean
           fitness_goals?: string[] | null
           fitness_level?: string | null
           height_cm?: number | null
@@ -427,6 +436,9 @@ export type Database = {
           created_at?: string
           current_weight_kg?: number | null
           dietary_restrictions?: string[] | null
+          email_checkin_reviewed?: boolean
+          email_checkin_submitted?: boolean
+          email_plan_assigned?: boolean
           fitness_goals?: string[] | null
           fitness_level?: string | null
           height_cm?: number | null
@@ -526,6 +538,8 @@ export type Database = {
           certifications: string[] | null
           created_at: string
           currency: string | null
+          email_checkin_received: boolean
+          email_plan_assigned: boolean
           experience_years: number | null
           hourly_rate: number | null
           id: string
@@ -542,6 +556,8 @@ export type Database = {
           certifications?: string[] | null
           created_at?: string
           currency?: string | null
+          email_checkin_received?: boolean
+          email_plan_assigned?: boolean
           experience_years?: number | null
           hourly_rate?: number | null
           id?: string
@@ -558,6 +574,8 @@ export type Database = {
           certifications?: string[] | null
           created_at?: string
           currency?: string | null
+          email_checkin_received?: boolean
+          email_plan_assigned?: boolean
           experience_years?: number | null
           hourly_rate?: number | null
           id?: string

@@ -7,6 +7,7 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -26,12 +27,13 @@ import {
   Trophy,
   AlertTriangle,
   Calendar,
-  CheckCircle2
+  CheckCircle2,
+  CalendarPlus
 } from "lucide-react";
 import { useReviewCheckin, type ClientCheckin } from "@/hooks/useCheckins";
 import { type CoachClient } from "@/hooks/useCoachClients";
 import { toast } from "sonner";
-import { format } from "date-fns";
+import { format, addDays } from "date-fns";
 
 interface CheckinReviewSheetProps {
   checkin: ClientCheckin | null;
@@ -43,6 +45,9 @@ interface CheckinReviewSheetProps {
 export function CheckinReviewSheet({ checkin, client, open, onOpenChange }: CheckinReviewSheetProps) {
   const [feedback, setFeedback] = useState("");
   const [rating, setRating] = useState(0);
+  const [nextCheckinDate, setNextCheckinDate] = useState(
+    format(addDays(new Date(), 7), "yyyy-MM-dd")
+  );
   const reviewCheckin = useReviewCheckin();
 
   if (!checkin) return null;
@@ -58,6 +63,7 @@ export function CheckinReviewSheet({ checkin, client, open, onOpenChange }: Chec
         checkinId: checkin.id,
         feedback: feedback.trim(),
         rating: rating || undefined,
+        nextCheckinDate: nextCheckinDate || undefined,
       });
       toast.success("Review submitted! Client will be notified.");
       setFeedback("");
@@ -265,7 +271,25 @@ export function CheckinReviewSheet({ checkin, client, open, onOpenChange }: Chec
                     />
                   </div>
 
-                  <Button 
+                  {/* Next Check-in Date */}
+                  <div className="space-y-2">
+                    <Label htmlFor="nextCheckin" className="flex items-center gap-2">
+                      <CalendarPlus className="w-4 h-4" />
+                      Next Check-in Date
+                    </Label>
+                    <Input
+                      id="nextCheckin"
+                      type="date"
+                      value={nextCheckinDate}
+                      onChange={(e) => setNextCheckinDate(e.target.value)}
+                      min={format(new Date(), "yyyy-MM-dd")}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Set when the client should submit their next check-in (defaults to 1 week)
+                    </p>
+                  </div>
+
+                  <Button
                     onClick={handleSubmitReview}
                     disabled={reviewCheckin.isPending || !feedback.trim()}
                     className="w-full"
