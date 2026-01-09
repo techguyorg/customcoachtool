@@ -48,11 +48,11 @@ export const config = {
 
   // Azure-specific configuration (for future migration)
   azure: {
-    // These will be populated from environment variables when migrating
+    // Azure Functions URL
+    apiUrl: import.meta.env.VITE_API_URL || "http://localhost:7071/api",
     functionsUrl: import.meta.env.VITE_AZURE_FUNCTIONS_URL || "",
     storageUrl: import.meta.env.VITE_AZURE_STORAGE_URL || "",
-    adB2cTenant: import.meta.env.VITE_AZURE_AD_B2C_TENANT || "",
-    adB2cClientId: import.meta.env.VITE_AZURE_AD_B2C_CLIENT_ID || "",
+    googleClientId: import.meta.env.VITE_GOOGLE_CLIENT_ID || "",
   },
 } as const;
 

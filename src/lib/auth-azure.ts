@@ -15,7 +15,7 @@ export interface AuthUser {
   phone?: string | null;
   bio?: string | null;
   role: AppRole;
-  roles: string[];
+  roles: AppRole[];
   emailVerified: boolean;
   onboardingCompleted?: boolean;
 }

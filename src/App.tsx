@@ -17,6 +17,8 @@ import NotFound from "./pages/NotFound";
 import AdminDashboard from "./pages/admin/Dashboard";
 import CoachDashboard from "./pages/coach/Dashboard";
 import ClientDashboard from "./pages/client/Dashboard";
+import GoogleCallback from "./pages/auth/GoogleCallback";
+import VerifyEmail from "./pages/auth/VerifyEmail";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 
 const queryClient = new QueryClient();
@@ -39,6 +41,8 @@ const App = () => (
               <Route path="/signup" element={<Signup />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/reset-password" element={<ResetPassword />} />
+              <Route path="/auth/google/callback" element={<GoogleCallback />} />
+              <Route path="/auth/verify-email" element={<VerifyEmail />} />
 
               {/* Protected routes - Admin */}
               <Route

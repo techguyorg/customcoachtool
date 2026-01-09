@@ -16,7 +16,7 @@ export function ActiveRoleProvider({ children }: { children: React.ReactNode }) 
   const { user } = useAuth();
   const [activeRole, setActiveRoleState] = useState<AppRole | null>(null);
 
-  const availableRoles = user?.allRoles || [];
+  const availableRoles = user?.roles || [];
 
   // Initialize active role from localStorage or use highest priority role
   useEffect(() => {
