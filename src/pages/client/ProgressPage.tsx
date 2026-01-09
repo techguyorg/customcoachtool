@@ -16,13 +16,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import { 
   useClientMeasurements, 
   useProgressPhotos,
   useClientGoals,
   calculateWeightProgress,
-  getLatestMeasurement 
+  getLatestMeasurement,
+  ClientGoal
 } from "@/hooks/useClientProgress";
 import { AddMeasurementDialog } from "@/components/client/AddMeasurementDialog";
 import { AddPhotoDialog } from "@/components/client/AddPhotoDialog";
@@ -30,6 +30,7 @@ import { AddGoalDialog } from "@/components/client/AddGoalDialog";
 import { MeasurementChart } from "@/components/client/MeasurementChart";
 import { PhotoGallery } from "@/components/client/PhotoGallery";
 import { GoalCard } from "@/components/client/GoalCard";
+import { GoalDetailModal } from "@/components/client/GoalDetailModal";
 import { format } from "date-fns";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -42,6 +43,7 @@ export default function ProgressPage() {
   const [measurementDialogOpen, setMeasurementDialogOpen] = useState(false);
   const [photoDialogOpen, setPhotoDialogOpen] = useState(false);
   const [goalDialogOpen, setGoalDialogOpen] = useState(false);
+  const [selectedGoal, setSelectedGoal] = useState<ClientGoal | null>(null);
 
   const latestMeasurement = getLatestMeasurement(measurements);
   const weightProgress = calculateWeightProgress(measurements);
@@ -114,7 +116,10 @@ export default function ProgressPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card 
+          className="cursor-pointer hover:border-primary/50 transition-colors"
+          onClick={() => activeGoals.length > 0 && setSelectedGoal(activeGoals[0])}
+        >
           <CardContent className="pt-6">
             <div className="flex items-center justify-between mb-2">
               <Target className="w-5 h-5 text-muted-foreground" />
@@ -126,7 +131,10 @@ export default function ProgressPage() {
               variant="link" 
               size="sm" 
               className="p-0 h-auto text-xs mt-1"
-              onClick={() => setGoalDialogOpen(true)}
+              onClick={(e) => {
+                e.stopPropagation();
+                setGoalDialogOpen(true);
+              }}
             >
               Set goal <ChevronRight className="w-3 h-3 ml-1" />
             </Button>
@@ -210,7 +218,13 @@ export default function ProgressPage() {
               <CardContent>
                 <div className="grid gap-4 md:grid-cols-2">
                   {activeGoals.slice(0, 4).map(goal => (
-                    <GoalCard key={goal.id} goal={goal} compact />
+                    <div 
+                      key={goal.id} 
+                      className="cursor-pointer" 
+                      onClick={() => setSelectedGoal(goal)}
+                    >
+                      <GoalCard goal={goal} compact />
+                    </div>
                   ))}
                 </div>
               </CardContent>
@@ -378,7 +392,13 @@ export default function ProgressPage() {
                       </h3>
                       <div className="grid gap-4 md:grid-cols-2">
                         {activeGoals.map(goal => (
-                          <GoalCard key={goal.id} goal={goal} />
+                          <div 
+                            key={goal.id}
+                            className="cursor-pointer"
+                            onClick={() => setSelectedGoal(goal)}
+                          >
+                            <GoalCard goal={goal} />
+                          </div>
                         ))}
                       </div>
                     </div>
@@ -391,7 +411,13 @@ export default function ProgressPage() {
                       </h3>
                       <div className="grid gap-4 md:grid-cols-2">
                         {completedGoals.map(goal => (
-                          <GoalCard key={goal.id} goal={goal} />
+                          <div 
+                            key={goal.id}
+                            className="cursor-pointer"
+                            onClick={() => setSelectedGoal(goal)}
+                          >
+                            <GoalCard goal={goal} />
+                          </div>
                         ))}
                       </div>
                     </div>
@@ -427,6 +453,11 @@ export default function ProgressPage() {
       <AddGoalDialog 
         open={goalDialogOpen} 
         onOpenChange={setGoalDialogOpen} 
+      />
+      <GoalDetailModal
+        goal={selectedGoal}
+        open={!!selectedGoal}
+        onOpenChange={(open) => !open && setSelectedGoal(null)}
       />
     </div>
   );

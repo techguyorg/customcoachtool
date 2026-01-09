@@ -18,7 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Settings, User, Award, DollarSign, Users, X, Plus, Save, Loader2, Upload, Camera } from "lucide-react";
+import { Settings, User, Award, DollarSign, Users, X, Plus, Save, Loader2, Upload, Camera, Mail } from "lucide-react";
 import { toast } from "sonner";
 import { ChangePasswordCard } from "@/components/shared/ChangePasswordCard";
 
@@ -94,6 +94,10 @@ export default function CoachSettingsPage() {
   const [maxClients, setMaxClients] = useState<number>(50);
   const [isAcceptingClients, setIsAcceptingClients] = useState(true);
 
+  // Email preferences
+  const [emailCheckinReceived, setEmailCheckinReceived] = useState(true);
+  const [emailPlanAssigned, setEmailPlanAssigned] = useState(true);
+
   const [newSpecialization, setNewSpecialization] = useState("");
   const [newCertification, setNewCertification] = useState("");
   const [customCertification, setCustomCertification] = useState("");
@@ -114,6 +118,8 @@ export default function CoachSettingsPage() {
       setCurrency(profiles.coachProfile?.currency || "USD");
       setMaxClients(profiles.coachProfile?.max_clients || 50);
       setIsAcceptingClients(profiles.coachProfile?.is_accepting_clients ?? true);
+      setEmailCheckinReceived(profiles.coachProfile?.email_checkin_received ?? true);
+      setEmailPlanAssigned(profiles.coachProfile?.email_plan_assigned ?? true);
     }
   }, [profiles]);
 
@@ -153,6 +159,8 @@ export default function CoachSettingsPage() {
           currency,
           max_clients: maxClients,
           is_accepting_clients: isAcceptingClients,
+          email_checkin_received: emailCheckinReceived,
+          email_plan_assigned: emailPlanAssigned,
         })
         .eq("user_id", user.id);
 
@@ -517,6 +525,48 @@ export default function CoachSettingsPage() {
               id="accepting"
               checked={isAcceptingClients}
               onCheckedChange={setIsAcceptingClients}
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Email Notifications */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Mail className="w-5 h-5" />
+            Email Notifications
+          </CardTitle>
+          <CardDescription>
+            Control which emails you receive
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <Label htmlFor="email-checkin" className="font-medium">Check-in Received</Label>
+              <p className="text-sm text-muted-foreground">
+                Get notified when a client submits a check-in
+              </p>
+            </div>
+            <Switch
+              id="email-checkin"
+              checked={emailCheckinReceived}
+              onCheckedChange={setEmailCheckinReceived}
+            />
+          </div>
+          <Separator />
+          <div className="flex items-center justify-between">
+            <div>
+              <Label htmlFor="email-plan" className="font-medium">Plan Assignment Confirmation</Label>
+              <p className="text-sm text-muted-foreground">
+                Get confirmation when you assign a plan to a client
+              </p>
+            </div>
+            <Switch
+              id="email-plan"
+              checked={emailPlanAssigned}
+              onCheckedChange={setEmailPlanAssigned}
             />
           </div>
         </CardContent>
