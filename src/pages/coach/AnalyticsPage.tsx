@@ -6,7 +6,11 @@ import { useCoachClients, useClientStats } from "@/hooks/useCoachClients";
 import { useCoachCheckins } from "@/hooks/useCheckins";
 import { useCoachAssignments } from "@/hooks/usePlanAssignments";
 import { useCoachAnalytics } from "@/hooks/useCoachAnalytics";
+import { useAuth } from "@/contexts/AuthContext";
 import { AnalyticsDetailModal } from "@/components/coach/AnalyticsDetailModal";
+import { ClientLeaderboard, calculateClientEngagement } from "@/components/coach/ClientLeaderboard";
+import { ExportPdfButton } from "@/components/shared/ExportPdfButton";
+import { CoachAnalyticsPdf } from "@/components/pdf/CoachAnalyticsPdf";
 import {
   BarChart,
   Bar,
@@ -33,6 +37,7 @@ type ModalType =
   | "client-distribution";
 
 export default function AnalyticsPage() {
+  const { user } = useAuth();
   const [modalOpen, setModalOpen] = useState(false);
   const [modalType, setModalType] = useState<ModalType>("total-clients");
 
@@ -140,17 +145,67 @@ export default function AnalyticsPage() {
     profiles: { full_name: clientNameMap.get(a.client_id) || "Unknown Client" },
   })) || [];
 
+  // Prepare leaderboard data
+  const leaderboardClients = clients?.map(c => ({
+    id: c.client_id,
+    name: c.profile?.full_name || "Unknown",
+    status: c.status,
+  })) || [];
+
+  const leaderboardCheckins = checkins?.map(c => ({
+    client_id: c.client_id,
+    diet_adherence: c.diet_adherence,
+    workout_adherence: c.workout_adherence,
+    submitted_at: c.submitted_at,
+  })) || [];
+
+  // Calculate engagement for PDF
+  const engagementData = calculateClientEngagement(leaderboardClients, leaderboardCheckins);
+
+  // Prepare PDF data
+  const pdfData = {
+    coachName: user?.fullName || "Coach",
+    generatedDate: new Date().toISOString(),
+    stats: {
+      totalClients: stats.total,
+      activeClients: stats.active,
+      pendingCheckins: checkinStats.pending,
+      activePlans: assignments?.filter(a => a.status === "active").length || 0,
+    },
+    quickMetrics: {
+      avgResponseTime: analytics.avgResponseTime,
+      checkinRate: analytics.checkinRate,
+      clientRetention: analytics.clientRetention,
+    },
+    checkinStats,
+    assignmentStats: assignmentsByType,
+    leaderboard: engagementData.slice(0, 10).map(e => ({
+      name: e.name,
+      score: e.score,
+      adherence: e.adherenceScore,
+      consistency: e.consistencyScore,
+      goalsCompleted: e.goalsCompleted,
+    })),
+  };
+
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div>
-        <h1 className="text-xl font-bold flex items-center gap-2">
-          <BarChart3 className="w-5 h-5 text-primary" />
-          Analytics Dashboard
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Track your coaching business performance
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-bold flex items-center gap-2">
+            <BarChart3 className="w-5 h-5 text-primary" />
+            Analytics Dashboard
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Track your coaching business performance
+          </p>
+        </div>
+        <ExportPdfButton
+          document={<CoachAnalyticsPdf data={pdfData} />}
+          filename={`coach-analytics-${format(new Date(), "yyyy-MM-dd")}.pdf`}
+          label="Export Report"
+        />
       </div>
 
       {/* Overview Stats */}
@@ -322,83 +377,94 @@ export default function AnalyticsPage() {
         </Card>
       </div>
 
-      {/* Additional Stats */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Check-in Status Breakdown */}
-        <Card 
-          className="cursor-pointer hover:border-primary/50 hover:shadow-sm transition-all"
-          onClick={() => openModal("checkin-status")}
-        >
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center justify-between">
-              Check-in Status
-              <ChevronRight className="w-4 h-4 text-muted-foreground" />
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <div className="flex items-center justify-between py-1">
-              <span className="text-xs text-muted-foreground">Pending Review</span>
-              <span className="text-sm font-semibold text-warning">{checkinStats.pending}</span>
-            </div>
-            <div className="flex items-center justify-between py-1">
-              <span className="text-xs text-muted-foreground">Reviewed</span>
-              <span className="text-sm font-semibold text-success">{checkinStats.reviewed}</span>
-            </div>
-            <div className="flex items-center justify-between py-1">
-              <span className="text-xs text-muted-foreground">Draft</span>
-              <span className="text-sm font-semibold">{checkinStats.draft}</span>
-            </div>
-          </CardContent>
-        </Card>
+      {/* Leaderboard and Stats */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Client Leaderboard */}
+        <ClientLeaderboard 
+          clients={leaderboardClients}
+          checkins={leaderboardCheckins}
+        />
 
-        {/* Plan Assignments */}
-        <Card 
-          className="cursor-pointer hover:border-primary/50 hover:shadow-sm transition-all"
-          onClick={() => openModal("plan-assignments")}
-        >
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center justify-between">
-              Plan Assignments
-              <ChevronRight className="w-4 h-4 text-muted-foreground" />
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <div className="flex items-center justify-between py-1">
-              <span className="text-xs text-muted-foreground">Workout Plans</span>
-              <span className="text-sm font-semibold">{assignmentsByType.workout}</span>
-            </div>
-            <div className="flex items-center justify-between py-1">
-              <span className="text-xs text-muted-foreground">Diet Plans</span>
-              <span className="text-sm font-semibold">{assignmentsByType.diet}</span>
-            </div>
-            <div className="flex items-center justify-between py-1">
-              <span className="text-xs text-muted-foreground">Total</span>
-              <span className="text-sm font-semibold">{assignmentsByType.total}</span>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Stats Column */}
+        <div className="space-y-4">
+          {/* Check-in Status Breakdown */}
+          <Card 
+            className="cursor-pointer hover:border-primary/50 hover:shadow-sm transition-all"
+            onClick={() => openModal("checkin-status")}
+          >
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium flex items-center justify-between">
+                Check-in Status
+                <ChevronRight className="w-4 h-4 text-muted-foreground" />
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <div className="flex items-center justify-between py-1">
+                <span className="text-xs text-muted-foreground">Pending Review</span>
+                <span className="text-sm font-semibold text-warning">{checkinStats.pending}</span>
+              </div>
+              <div className="flex items-center justify-between py-1">
+                <span className="text-xs text-muted-foreground">Reviewed</span>
+                <span className="text-sm font-semibold text-success">{checkinStats.reviewed}</span>
+              </div>
+              <div className="flex items-center justify-between py-1">
+                <span className="text-xs text-muted-foreground">Draft</span>
+                <span className="text-sm font-semibold">{checkinStats.draft}</span>
+              </div>
+            </CardContent>
+          </Card>
 
-        {/* Quick Metrics - Now with real data */}
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Quick Metrics</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <div className="flex items-center justify-between py-1">
-              <span className="text-xs text-muted-foreground">Avg. Response Time</span>
-              <span className="text-sm font-semibold">{analytics.avgResponseTime}</span>
-            </div>
-            <div className="flex items-center justify-between py-1">
-              <span className="text-xs text-muted-foreground">Check-in Rate (7d)</span>
-              <span className="text-sm font-semibold">{analytics.checkinRate}</span>
-            </div>
-            <div className="flex items-center justify-between py-1">
-              <span className="text-xs text-muted-foreground">Avg. Retention</span>
-              <span className="text-sm font-semibold">{analytics.clientRetention}</span>
-            </div>
-          </CardContent>
-        </Card>
+          {/* Quick Metrics */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">Quick Metrics</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <div className="flex items-center justify-between py-1">
+                <span className="text-xs text-muted-foreground">Avg. Response Time</span>
+                <span className="text-sm font-semibold">{analytics.avgResponseTime}</span>
+              </div>
+              <div className="flex items-center justify-between py-1">
+                <span className="text-xs text-muted-foreground">Check-in Rate (7d)</span>
+                <span className="text-sm font-semibold">{analytics.checkinRate}</span>
+              </div>
+              <div className="flex items-center justify-between py-1">
+                <span className="text-xs text-muted-foreground">Avg. Retention</span>
+                <span className="text-sm font-semibold">{analytics.clientRetention}</span>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
+
+      {/* Plan Assignments Row */}
+      <Card 
+        className="cursor-pointer hover:border-primary/50 hover:shadow-sm transition-all"
+        onClick={() => openModal("plan-assignments")}
+      >
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-medium flex items-center justify-between">
+            Plan Assignments
+            <ChevronRight className="w-4 h-4 text-muted-foreground" />
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-3 gap-4">
+            <div className="text-center">
+              <p className="text-2xl font-bold">{assignmentsByType.workout}</p>
+              <p className="text-xs text-muted-foreground">Workout Plans</p>
+            </div>
+            <div className="text-center">
+              <p className="text-2xl font-bold">{assignmentsByType.diet}</p>
+              <p className="text-xs text-muted-foreground">Diet Plans</p>
+            </div>
+            <div className="text-center">
+              <p className="text-2xl font-bold">{assignmentsByType.total}</p>
+              <p className="text-xs text-muted-foreground">Total</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Detail Modal */}
       <AnalyticsDetailModal

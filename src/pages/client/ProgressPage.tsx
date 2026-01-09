@@ -31,6 +31,8 @@ import { MeasurementChart } from "@/components/client/MeasurementChart";
 import { PhotoGallery } from "@/components/client/PhotoGallery";
 import { GoalCard } from "@/components/client/GoalCard";
 import { GoalDetailModal } from "@/components/client/GoalDetailModal";
+import { ExportPdfButton } from "@/components/shared/ExportPdfButton";
+import { ProgressReportPdf } from "@/components/pdf/ProgressReportPdf";
 import { format } from "date-fns";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -50,6 +52,39 @@ export default function ProgressPage() {
   const activeGoals = goals.filter(g => g.status === 'active');
   const completedGoals = goals.filter(g => g.status === 'completed');
 
+  // Prepare PDF data
+  const pdfData = {
+    clientName: user?.fullName || "Client",
+    generatedDate: new Date().toISOString(),
+    measurements: measurements.map(m => ({
+      date: m.recorded_at,
+      weight: m.weight_kg,
+      bodyFat: m.body_fat_pct || undefined,
+      waist: m.waist_cm || undefined,
+      chest: m.chest_cm || undefined,
+    })),
+    goals: goals.map(g => ({
+      title: g.title,
+      type: g.goal_type,
+      status: g.status,
+      progress: g.target_value && g.current_value && g.starting_value
+        ? Math.round(((g.current_value - g.starting_value) / (g.target_value - g.starting_value)) * 100)
+        : 0,
+      target: g.target_value || undefined,
+      current: g.current_value || undefined,
+      unit: g.unit || undefined,
+    })),
+    stats: {
+      startingWeight: measurements.length > 0 ? measurements[measurements.length - 1].weight_kg : undefined,
+      currentWeight: latestMeasurement?.weight_kg,
+      weightChange: weightProgress?.change,
+      totalCheckIns: measurements.length,
+      photosUploaded: photos.length,
+      goalsCompleted: completedGoals.length,
+      activeGoals: activeGoals.length,
+    },
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -64,6 +99,11 @@ export default function ProgressPage() {
           </p>
         </div>
         <div className="flex gap-2">
+          <ExportPdfButton
+            document={<ProgressReportPdf data={pdfData} />}
+            filename={`progress-report-${format(new Date(), "yyyy-MM-dd")}.pdf`}
+            label="Export Report"
+          />
           <Button onClick={() => setMeasurementDialogOpen(true)}>
             <Plus className="w-4 h-4 mr-2" />
             Log Progress
