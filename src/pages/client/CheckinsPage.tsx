@@ -2,9 +2,10 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { format } from "date-fns";
 import { 
   ClipboardCheck, 
-  Calendar, 
+  Calendar as CalendarIcon, 
   Dumbbell, 
   UtensilsCrossed,
   Moon,
@@ -22,16 +23,17 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useSubmitCheckin, useSaveCheckinDraft, useMyCheckins, useClientCheckinTemplate } from "@/hooks/useCheckins";
 import { useClientMeasurements, getLatestMeasurement } from "@/hooks/useClientProgress";
 import { AddMeasurementDialog } from "@/components/client/AddMeasurementDialog";
 import { toast } from "sonner";
-import { format } from "date-fns";
 import { useAuth } from "@/contexts/AuthContext";
+import { cn } from "@/lib/utils";
 
 const checkinSchema = z.object({
   checkin_date: z.string(),
@@ -64,6 +66,10 @@ export default function CheckinsPage() {
   const latestMeasurement = getLatestMeasurement(measurements);
   const hasCoach = !!template;
 
+  const [checkinDate, setCheckinDate] = useState<Date>(new Date());
+  const [periodStart, setPeriodStart] = useState<Date | undefined>();
+  const [periodEnd, setPeriodEnd] = useState<Date | undefined>();
+
   const form = useForm<CheckinFormData>({
     resolver: zodResolver(checkinSchema),
     defaultValues: {
@@ -80,9 +86,9 @@ export default function CheckinsPage() {
   const onSubmit = async (data: CheckinFormData) => {
     try {
       await submitCheckin.mutateAsync({
-        checkin_date: data.checkin_date,
-        period_start: data.period_start || null,
-        period_end: data.period_end || null,
+        checkin_date: format(checkinDate, "yyyy-MM-dd"),
+        period_start: periodStart ? format(periodStart, "yyyy-MM-dd") : null,
+        period_end: periodEnd ? format(periodEnd, "yyyy-MM-dd") : null,
         diet_adherence: data.diet_adherence || null,
         workout_adherence: data.workout_adherence || null,
         sleep_quality: data.sleep_quality || null,
@@ -151,7 +157,7 @@ export default function CheckinsPage() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-lg">
-                  <Calendar className="w-5 h-5" />
+                  <CalendarIcon className="w-5 h-5" />
                   Check-in Period
                 </CardTitle>
               </CardHeader>
@@ -159,15 +165,45 @@ export default function CheckinsPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div className="space-y-2">
                     <Label>Check-in Date</Label>
-                    <Input type="date" {...form.register("checkin_date")} />
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !checkinDate && "text-muted-foreground")}>
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {checkinDate ? format(checkinDate, "PPP") : "Pick a date"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar mode="single" selected={checkinDate} onSelect={(d) => d && setCheckinDate(d)} initialFocus />
+                      </PopoverContent>
+                    </Popover>
                   </div>
                   <div className="space-y-2">
                     <Label>Period Start (optional)</Label>
-                    <Input type="date" {...form.register("period_start")} />
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !periodStart && "text-muted-foreground")}>
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {periodStart ? format(periodStart, "PPP") : "Pick a date"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar mode="single" selected={periodStart} onSelect={setPeriodStart} initialFocus />
+                      </PopoverContent>
+                    </Popover>
                   </div>
                   <div className="space-y-2">
                     <Label>Period End (optional)</Label>
-                    <Input type="date" {...form.register("period_end")} />
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !periodEnd && "text-muted-foreground")}>
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {periodEnd ? format(periodEnd, "PPP") : "Pick a date"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar mode="single" selected={periodEnd} onSelect={setPeriodEnd} initialFocus />
+                      </PopoverContent>
+                    </Popover>
                   </div>
                 </div>
               </CardContent>

@@ -46,6 +46,7 @@ import { MyCoachCard } from "@/components/client/MyCoachCard";
 import { ClientOnboardingDialog } from "@/components/client/ClientOnboardingDialog";
 import { QuickLogNutritionDialog } from "@/components/client/QuickLogNutritionDialog";
 import { QuickLogMeasurementDialog } from "@/components/client/QuickLogMeasurementDialog";
+import { StartWorkoutDialog } from "@/components/workout/StartWorkoutDialog";
 import { useClientProfile } from "@/hooks/useClientProfile";
 import { useDashboardStats } from "@/hooks/useDashboardStats";
 import { useTotalUnreadCount } from "@/hooks/useMessages";
@@ -210,6 +211,7 @@ function ClientHome() {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showNutritionDialog, setShowNutritionDialog] = useState(false);
   const [showMeasurementDialog, setShowMeasurementDialog] = useState(false);
+  const [showWorkoutDialog, setShowWorkoutDialog] = useState(false);
 
   // Show onboarding if profile is incomplete
   useEffect(() => {
@@ -234,6 +236,10 @@ function ClientHome() {
         <QuickLogMeasurementDialog 
           open={showMeasurementDialog} 
           onOpenChange={setShowMeasurementDialog}
+        />
+        <StartWorkoutDialog 
+          open={showWorkoutDialog} 
+          onOpenChange={setShowWorkoutDialog}
         />
 
         {/* Incomplete Profile Banner */}
@@ -285,9 +291,9 @@ function ClientHome() {
           />
           <StatCard
             label="Next Check-in"
-            value={statsLoading ? null : stats?.nextCheckinDate ?? "—"}
+            value={statsLoading ? null : stats?.nextCheckinDate ?? "Not scheduled"}
             icon={CalendarCheck}
-            tooltip="Your next scheduled check-in with your coach"
+            tooltip="Your next scheduled check-in date based on your coach's template. If you don't have a coach, check-ins are not scheduled."
             linkTo="/client/checkins"
           />
         </div>
@@ -380,6 +386,15 @@ function ClientHome() {
                   variant="outline" 
                   size="sm" 
                   className="w-full justify-start text-xs"
+                  onClick={() => setShowWorkoutDialog(true)}
+                >
+                  <Dumbbell className="w-3 h-3 mr-2" />
+                  Log Workout
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="w-full justify-start text-xs"
                   onClick={() => setShowNutritionDialog(true)}
                 >
                   <Apple className="w-3 h-3 mr-2" />
@@ -394,12 +409,6 @@ function ClientHome() {
                   <Scale className="w-3 h-3 mr-2" />
                   Log Weight
                 </Button>
-                <Link to="/client/progress" className="block">
-                  <Button variant="outline" size="sm" className="w-full justify-start text-xs">
-                    <TrendingUp className="w-3 h-3 mr-2" />
-                    View Progress
-                  </Button>
-                </Link>
                 <Link to="/client/checkins" className="block">
                   <Button variant="outline" size="sm" className="w-full justify-start text-xs">
                     <CalendarCheck className="w-3 h-3 mr-2" />
