@@ -12,9 +12,11 @@ import {
   TrendingUp,
   CheckCircle,
   ChevronRight,
-  Flame
+  Flame,
+  BarChart3
 } from "lucide-react";
 import { useWorkoutLogs, useWorkoutStats } from "@/hooks/useWorkoutLogs";
+import { useWorkoutAnalytics } from "@/hooks/useWorkoutAnalytics";
 import { useActiveAssignments } from "@/hooks/usePlanAssignments";
 import { format } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -22,6 +24,7 @@ import { Link } from "react-router-dom";
 import { StartWorkoutDialog } from "@/components/workout/StartWorkoutDialog";
 import { WorkoutLogCard } from "@/components/workout/WorkoutLogCard";
 import { WorkoutCalendar } from "@/components/client/WorkoutCalendar";
+import { WorkoutAnalyticsSection } from "@/components/workout/WorkoutAnalyticsSection";
 
 export default function WorkoutsPage() {
   const { data: workoutLogs, isLoading: logsLoading } = useWorkoutLogs();
@@ -167,6 +170,10 @@ export default function WorkoutsPage() {
         <TabsList>
           <TabsTrigger value="history">History</TabsTrigger>
           <TabsTrigger value="calendar">Calendar</TabsTrigger>
+          <TabsTrigger value="analytics" className="flex items-center gap-1">
+            <BarChart3 className="w-3 h-3" />
+            Analytics
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="history" className="mt-4">
@@ -206,6 +213,10 @@ export default function WorkoutsPage() {
 
         <TabsContent value="calendar" className="mt-4">
           <WorkoutCalendar />
+        </TabsContent>
+
+        <TabsContent value="analytics" className="mt-4">
+          <WorkoutAnalyticsSection />
         </TabsContent>
       </Tabs>
 

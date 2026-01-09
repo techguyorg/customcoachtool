@@ -135,15 +135,18 @@ export function useCreateWorkoutLog() {
       templateDayId,
       assignmentId,
       workoutDate,
+      preloadExercises = true,
     }: {
       templateId?: string;
       templateDayId?: string;
       assignmentId?: string;
       workoutDate?: string;
+      preloadExercises?: boolean;
     }) => {
       if (!user?.id) throw new Error("Not authenticated");
 
-      const { data, error } = await supabase
+      // Create the workout log
+      const { data: log, error: logError } = await supabase
         .from("workout_logs")
         .insert({
           client_id: user.id,
@@ -157,8 +160,87 @@ export function useCreateWorkoutLog() {
         .select()
         .single();
 
-      if (error) throw error;
-      return data;
+      if (logError) throw logError;
+
+      // If we have a template and want to preload exercises, get the template day exercises
+      if (templateId && preloadExercises) {
+        // First find the next workout day based on the template
+        // For now, we'll get the first day's exercises if no specific day is provided
+        let dayId = templateDayId;
+        
+        if (!dayId) {
+          // Get days for this template, ordered by day_number
+          const { data: days } = await supabase
+            .from("workout_template_days")
+            .select("id, day_number, name")
+            .eq("template_id", templateId)
+            .order("day_number")
+            .limit(1);
+          
+          if (days && days.length > 0) {
+            dayId = days[0].id;
+            
+            // Update the log with the day_id
+            await supabase
+              .from("workout_logs")
+              .update({ template_day_id: dayId })
+              .eq("id", log.id);
+          }
+        }
+
+        if (dayId) {
+          // Get exercises for this day
+          const { data: templateExercises } = await supabase
+            .from("workout_template_exercises")
+            .select(`
+              id,
+              exercise_id,
+              custom_exercise_name,
+              sets_min,
+              reps_min,
+              reps_max,
+              order_index,
+              notes,
+              exercise:exercises(id, name)
+            `)
+            .eq("day_id", dayId)
+            .order("order_index");
+
+          if (templateExercises && templateExercises.length > 0) {
+            // Create workout log exercises based on template
+            const exercisesToInsert = templateExercises.map((te, index) => {
+              const exerciseName = te.exercise?.name || te.custom_exercise_name || "Unknown Exercise";
+              
+              // Create initial set data based on template's sets_min
+              const initialSets: Json[] = [];
+              for (let i = 0; i < te.sets_min; i++) {
+                initialSets.push({
+                  setNumber: i + 1,
+                  reps: te.reps_min,
+                  weight: 0,
+                  completed: false,
+                });
+              }
+
+              return {
+                workout_log_id: log.id,
+                exercise_id: te.exercise_id,
+                exercise_name: exerciseName,
+                order_index: te.order_index || index,
+                sets_completed: 0,
+                set_data: initialSets,
+                notes: te.notes,
+              };
+            });
+
+            await supabase
+              .from("workout_log_exercises")
+              .insert(exercisesToInsert);
+          }
+        }
+      }
+
+      return log;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["workout-logs"] });

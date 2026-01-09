@@ -1,7 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Calendar, Clock, Zap, MoreVertical, Eye, ClipboardList, Edit, Trash2 } from "lucide-react";
+import { Calendar, Clock, Zap, MoreVertical, Eye, ClipboardList, Edit, Trash2, Play, Loader2 } from "lucide-react";
 import { FavoriteButton } from "@/components/favorites/FavoriteButton";
 import {
   DropdownMenu,
@@ -11,12 +11,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import type { TemplateWithStats } from "@/hooks/useWorkoutTemplates";
+import { useStartProgram } from "@/hooks/useStartProgram";
 
 interface TemplateCardProps {
   template: TemplateWithStats;
   onClick: () => void;
   showFavorite?: boolean;
   showQuickActions?: boolean;
+  showStartButton?: boolean;
   onAssign?: () => void;
   onEdit?: () => void;
   onDelete?: () => void;
@@ -52,11 +54,19 @@ export function TemplateCard({
   onClick, 
   showFavorite = true,
   showQuickActions = false,
+  showStartButton = true,
   onAssign,
   onEdit,
   onDelete,
   isOwner = false,
 }: TemplateCardProps) {
+  const startProgram = useStartProgram();
+  
+  const handleStartProgram = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    startProgram.mutate({ templateId: template.id });
+  };
+
   return (
     <Card 
       className="cursor-pointer transition-all hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5 group h-full"
@@ -160,6 +170,25 @@ export function TemplateCard({
             {formatLabel(template.difficulty)}
           </Badge>
         </div>
+
+        {/* Start Button */}
+        {showStartButton && (
+          <div className="pt-3 mt-auto" onClick={(e) => e.stopPropagation()}>
+            <Button 
+              size="sm" 
+              className="w-full"
+              onClick={handleStartProgram}
+              disabled={startProgram.isPending}
+            >
+              {startProgram.isPending ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Play className="w-4 h-4 mr-2" />
+              )}
+              Start Program
+            </Button>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

@@ -62,17 +62,22 @@ import {
 
 const sidebarItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/client" },
-  { icon: Users, label: "Find a Coach", path: "/client/coaches" },
-  { icon: Heart, label: "Favorites", path: "/client/favorites" },
+  // Training section
   { icon: Dumbbell, label: "Workouts", path: "/client/workouts" },
   { icon: ClipboardList, label: "Programs", path: "/client/programs" },
   { icon: Library, label: "Exercises", path: "/client/exercises" },
+  // Nutrition section  
   { icon: UtensilsCrossed, label: "Diet Plans", path: "/client/diet-plans" },
   { icon: Apple, label: "Nutrition Log", path: "/client/nutrition-log" },
   { icon: ChefHat, label: "Recipes", path: "/client/recipes" },
+  // Tracking section
   { icon: TrendingUp, label: "Progress", path: "/client/progress" },
   { icon: CalendarCheck, label: "Check-ins", path: "/client/checkins" },
+  // Coaching & Social section
+  { icon: Users, label: "Find a Coach", path: "/client/coaches" },
   { icon: MessageSquare, label: "Messages", path: "/client/messages" },
+  // Preferences section
+  { icon: Heart, label: "Favorites", path: "/client/favorites" },
   { icon: User, label: "Profile", path: "/client/profile" },
 ];
 

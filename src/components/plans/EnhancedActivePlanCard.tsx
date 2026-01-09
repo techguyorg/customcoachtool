@@ -47,7 +47,8 @@ export function EnhancedActivePlanCard({
   const isWorkout = plan.plan_type === "workout";
   const planDetails = isWorkout ? plan.workout_template : plan.diet_plan;
   const Icon = isWorkout ? Dumbbell : Utensils;
-  const isCoachAssigned = !!plan.coach_id;
+  // Self-assigned plans have coach_id === client_id
+  const isCoachAssigned = plan.coach_id !== plan.client_id;
   
   const startDate = new Date(plan.start_date);
   const daysActive = differenceInDays(new Date(), startDate);
@@ -192,6 +193,20 @@ export function EnhancedActivePlanCard({
                   unit="g"
                 />
               </div>
+              {/* Meal suggestion based on remaining macros */}
+              {dietPlan.calories_target && todaysTotals.calories < dietPlan.calories_target && (
+                <div className="text-xs bg-muted/50 rounded p-2 mt-2">
+                  <span className="text-muted-foreground">Remaining: </span>
+                  <span className="font-medium">
+                    {Math.round(dietPlan.calories_target - todaysTotals.calories)} kcal
+                  </span>
+                  {dietPlan.protein_grams && (
+                    <span className="text-muted-foreground">
+                      {" "}• {Math.max(0, Math.round(dietPlan.protein_grams - todaysTotals.protein))}g P
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
           )}
           
