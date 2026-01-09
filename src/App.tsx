@@ -19,6 +19,8 @@ import CoachDashboard from "./pages/coach/Dashboard";
 import ClientDashboard from "./pages/client/Dashboard";
 import GoogleCallback from "./pages/auth/GoogleCallback";
 import VerifyEmail from "./pages/auth/VerifyEmail";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
+import TermsOfService from "./pages/TermsOfService";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 
 const queryClient = new QueryClient();
@@ -43,6 +45,8 @@ const App = () => (
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/auth/google/callback" element={<GoogleCallback />} />
               <Route path="/auth/verify-email" element={<VerifyEmail />} />
+              <Route path="/privacy" element={<PrivacyPolicy />} />
+              <Route path="/terms" element={<TermsOfService />} />
 
               {/* Protected routes - Admin */}
               <Route
