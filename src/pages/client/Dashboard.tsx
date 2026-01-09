@@ -50,6 +50,8 @@ import { StartWorkoutDialog } from "@/components/workout/StartWorkoutDialog";
 import { useClientProfile } from "@/hooks/useClientProfile";
 import { useDashboardStats } from "@/hooks/useDashboardStats";
 import { useTotalUnreadCount } from "@/hooks/useMessages";
+import { useOnboarding } from "@/hooks/useOnboarding";
+import { TutorialOverlay } from "@/components/onboarding/TutorialOverlay";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -237,6 +239,8 @@ function ClientHome() {
   const [showNutritionDialog, setShowNutritionDialog] = useState(false);
   const [showMeasurementDialog, setShowMeasurementDialog] = useState(false);
   const [showWorkoutDialog, setShowWorkoutDialog] = useState(false);
+  
+  const { showTutorial, closeTutorial, completeTutorial, updateStep, currentStep, tutorialSteps } = useOnboarding();
 
   // Show onboarding if profile is incomplete
   useEffect(() => {
@@ -249,6 +253,17 @@ function ClientHome() {
   return (
     <TooltipProvider>
       <div className="space-y-5">
+        {/* Tutorial Overlay */}
+        {showTutorial && (
+          <TutorialOverlay
+            steps={tutorialSteps}
+            currentStep={currentStep}
+            onStepChange={updateStep}
+            onComplete={completeTutorial}
+            onClose={closeTutorial}
+          />
+        )}
+        
         {/* Dialogs */}
         <ClientOnboardingDialog 
           open={showOnboarding} 

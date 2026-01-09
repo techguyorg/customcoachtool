@@ -31,11 +31,11 @@ export default function CoachExercisesPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold flex items-center gap-3">
-            <Dumbbell className="w-7 h-7 text-primary" />
+          <h1 className="text-xl font-bold flex items-center gap-2">
+            <Dumbbell className="w-5 h-5 text-primary" />
             Exercise Library
           </h1>
-          <p className="text-muted-foreground mt-1">
+          <p className="text-sm text-muted-foreground mt-1">
             Browse and create exercises for your training programs
           </p>
         </div>

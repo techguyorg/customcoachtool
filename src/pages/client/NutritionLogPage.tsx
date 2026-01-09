@@ -152,8 +152,8 @@ export default function NutritionLogPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Nutrition Log</h1>
-          <p className="text-muted-foreground">Track your daily food intake</p>
+          <h1 className="text-xl font-bold">Nutrition Log</h1>
+          <p className="text-sm text-muted-foreground">Track your daily food intake</p>
         </div>
         <Button onClick={() => setShowAddDialog(true)}>
           <Plus className="h-4 w-4 mr-2" />
