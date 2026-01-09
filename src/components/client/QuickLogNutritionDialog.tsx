@@ -17,39 +17,49 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useAddNutritionLog, type MealType } from "@/hooks/useNutritionLog";
-import { useFoods } from "@/hooks/useFoods";
+import { useFoods, Food, calculateNutrition } from "@/hooks/useFoods";
 import { toast } from "sonner";
-import { Loader2, Search, Apple } from "lucide-react";
+import { Loader2, Search, Apple, Plus } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { format } from "date-fns";
+import { Card, CardContent } from "@/components/ui/card";
 
 interface QuickLogNutritionDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-const MEAL_TYPES: { value: MealType; label: string }[] = [
-  { value: "breakfast", label: "Breakfast" },
-  { value: "lunch", label: "Lunch" },
-  { value: "dinner", label: "Dinner" },
-  { value: "snack", label: "Snack" },
+const MEAL_TYPES: { value: MealType; label: string; icon: string }[] = [
+  { value: "breakfast", label: "Breakfast", icon: "🌅" },
+  { value: "lunch", label: "Lunch", icon: "☀️" },
+  { value: "dinner", label: "Dinner", icon: "🌙" },
+  { value: "snack", label: "Snack", icon: "🍎" },
+];
+
+const UNITS = [
+  { value: "g", label: "grams" },
+  { value: "oz", label: "ounces" },
+  { value: "serving", label: "serving" },
+  { value: "piece", label: "piece" },
+  { value: "cup", label: "cup" },
 ];
 
 export function QuickLogNutritionDialog({ open, onOpenChange }: QuickLogNutritionDialogProps) {
   const [mealType, setMealType] = useState<MealType>("breakfast");
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedFood, setSelectedFood] = useState<any>(null);
+  const [selectedFood, setSelectedFood] = useState<Food | null>(null);
+  const [showCustomForm, setShowCustomForm] = useState(false);
   const [customFoodName, setCustomFoodName] = useState("");
-  const [quantity, setQuantity] = useState(1);
+  const [customCalories, setCustomCalories] = useState<number | "">("");
+  const [customProtein, setCustomProtein] = useState<number | "">("");
+  const [customCarbs, setCustomCarbs] = useState<number | "">("");
+  const [customFat, setCustomFat] = useState<number | "">("");
+  const [quantity, setQuantity] = useState(100);
+  const [unit, setUnit] = useState("g");
 
-  const { data: foods = [] } = useFoods();
+  // Pass search query to useFoods to fetch from database
+  const { data: foods = [], isLoading: isSearching } = useFoods(searchQuery);
   const addNutritionLog = useAddNutritionLog();
-
-  const filteredFoods = searchQuery.length >= 2
-    ? foods.filter((f) =>
-        f.name.toLowerCase().includes(searchQuery.toLowerCase())
-      ).slice(0, 10)
-    : [];
 
   const handleSubmit = async () => {
     try {
@@ -61,11 +71,16 @@ export function QuickLogNutritionDialog({ open, onOpenChange }: QuickLogNutritio
       let calories = 0, protein = 0, carbs = 0, fat = 0;
 
       if (selectedFood) {
-        const multiplier = quantity * (selectedFood.default_serving_size / 100);
-        calories = Math.round(selectedFood.calories_per_100g * multiplier);
-        protein = Math.round(selectedFood.protein_per_100g * multiplier);
-        carbs = Math.round(selectedFood.carbs_per_100g * multiplier);
-        fat = Math.round(selectedFood.fat_per_100g * multiplier);
+        const nutrition = calculateNutrition(selectedFood, quantity, unit);
+        calories = nutrition.calories;
+        protein = nutrition.protein;
+        carbs = nutrition.carbs;
+        fat = nutrition.fat;
+      } else if (showCustomForm) {
+        calories = Number(customCalories) || 0;
+        protein = Number(customProtein) || 0;
+        carbs = Number(customCarbs) || 0;
+        fat = Number(customFat) || 0;
       }
 
       await addNutritionLog.mutateAsync({
@@ -75,7 +90,7 @@ export function QuickLogNutritionDialog({ open, onOpenChange }: QuickLogNutritio
         recipe_id: null,
         custom_food_name: selectedFood ? null : customFoodName,
         quantity,
-        unit: selectedFood?.default_serving_unit || "serving",
+        unit,
         calories,
         protein_grams: protein,
         carbs_grams: carbs,
@@ -95,8 +110,14 @@ export function QuickLogNutritionDialog({ open, onOpenChange }: QuickLogNutritio
     setMealType("breakfast");
     setSearchQuery("");
     setSelectedFood(null);
+    setShowCustomForm(false);
     setCustomFoodName("");
-    setQuantity(1);
+    setCustomCalories("");
+    setCustomProtein("");
+    setCustomCarbs("");
+    setCustomFat("");
+    setQuantity(100);
+    setUnit("g");
   };
 
   return (
@@ -123,94 +144,203 @@ export function QuickLogNutritionDialog({ open, onOpenChange }: QuickLogNutritio
               <SelectContent>
                 {MEAL_TYPES.map((type) => (
                   <SelectItem key={type.value} value={type.value}>
-                    {type.label}
+                    {type.icon} {type.label}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
 
-          {/* Food Search */}
-          <div className="space-y-2">
-            <Label>Search Food</Label>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder="Search foods..."
-                value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value);
-                  setSelectedFood(null);
-                }}
-                className="pl-10"
-              />
-            </div>
-          </div>
-
-          {/* Search Results */}
-          {filteredFoods.length > 0 && !selectedFood && (
-            <ScrollArea className="h-32 border rounded-lg">
-              <div className="p-2 space-y-1">
-                {filteredFoods.map((food) => (
-                  <button
-                    key={food.id}
-                    onClick={() => {
-                      setSelectedFood(food);
-                      setSearchQuery(food.name);
+          {!showCustomForm ? (
+            <>
+              {/* Food Search */}
+              <div className="space-y-2">
+                <Label>Search Food</Label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Type at least 2 characters..."
+                    value={searchQuery}
+                    onChange={(e) => {
+                      setSearchQuery(e.target.value);
+                      setSelectedFood(null);
                     }}
-                    className="w-full text-left px-3 py-2 rounded-md hover:bg-muted text-sm"
-                  >
-                    <span className="font-medium">{food.name}</span>
-                    <span className="text-xs text-muted-foreground ml-2">
-                      {food.calories_per_100g} kcal/100g
-                    </span>
-                  </button>
-                ))}
+                    className="pl-10"
+                  />
+                </div>
               </div>
-            </ScrollArea>
+
+              {/* Search Results */}
+              {searchQuery.length >= 2 && !selectedFood && (
+                <ScrollArea className="h-40 border rounded-lg">
+                  {isSearching ? (
+                    <div className="flex items-center justify-center py-6">
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      <span className="text-sm text-muted-foreground">Searching...</span>
+                    </div>
+                  ) : foods.length > 0 ? (
+                    <div className="p-2 space-y-1">
+                      {foods.map((food) => (
+                        <button
+                          key={food.id}
+                          onClick={() => {
+                            setSelectedFood(food);
+                            setSearchQuery(food.name);
+                            if (food.default_serving_unit) {
+                              setUnit(food.default_serving_unit);
+                            }
+                            if (food.default_serving_size) {
+                              setQuantity(food.default_serving_size);
+                            }
+                          }}
+                          className="w-full text-left px-3 py-2 rounded-md hover:bg-muted text-sm"
+                        >
+                          <span className="font-medium">{food.name}</span>
+                          {food.brand && (
+                            <span className="text-xs text-muted-foreground ml-1">({food.brand})</span>
+                          )}
+                          <span className="text-xs text-muted-foreground block">
+                            {food.calories_per_100g} kcal/100g • P:{food.protein_per_100g}g C:{food.carbs_per_100g}g F:{food.fat_per_100g}g
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center py-6">
+                      <p className="text-sm text-muted-foreground mb-2">No foods found</p>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => {
+                          setShowCustomForm(true);
+                          setCustomFoodName(searchQuery);
+                        }}
+                      >
+                        <Plus className="w-4 h-4 mr-1" />
+                        Add Custom Food
+                      </Button>
+                    </div>
+                  )}
+                </ScrollArea>
+              )}
+
+              {/* Add Custom Food Button */}
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="w-full text-muted-foreground"
+                onClick={() => setShowCustomForm(true)}
+              >
+                <Plus className="w-4 h-4 mr-1" />
+                Add Custom Food
+              </Button>
+            </>
+          ) : (
+            <>
+              {/* Custom Food Form */}
+              <div className="space-y-3">
+                <div className="space-y-2">
+                  <Label>Food Name</Label>
+                  <Input
+                    placeholder="Enter food name"
+                    value={customFoodName}
+                    onChange={(e) => setCustomFoodName(e.target.value)}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Calories</Label>
+                    <Input
+                      type="number"
+                      placeholder="0"
+                      value={customCalories}
+                      onChange={(e) => setCustomCalories(e.target.value ? Number(e.target.value) : "")}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Protein (g)</Label>
+                    <Input
+                      type="number"
+                      placeholder="0"
+                      value={customProtein}
+                      onChange={(e) => setCustomProtein(e.target.value ? Number(e.target.value) : "")}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Carbs (g)</Label>
+                    <Input
+                      type="number"
+                      placeholder="0"
+                      value={customCarbs}
+                      onChange={(e) => setCustomCarbs(e.target.value ? Number(e.target.value) : "")}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Fat (g)</Label>
+                    <Input
+                      type="number"
+                      placeholder="0"
+                      value={customFat}
+                      onChange={(e) => setCustomFat(e.target.value ? Number(e.target.value) : "")}
+                    />
+                  </div>
+                </div>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => {
+                    setShowCustomForm(false);
+                    setCustomFoodName("");
+                  }}
+                >
+                  ← Back to Search
+                </Button>
+              </div>
+            </>
           )}
 
-          {/* Custom Food Name (if no selection) */}
-          {!selectedFood && searchQuery.length >= 2 && filteredFoods.length === 0 && (
+          {/* Quantity & Unit */}
+          <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
-              <Label>Custom Food Name</Label>
-              <Input
-                placeholder="Enter food name"
-                value={customFoodName}
-                onChange={(e) => setCustomFoodName(e.target.value)}
-              />
-            </div>
-          )}
-
-          {/* Quantity */}
-          <div className="space-y-2">
-            <Label>Quantity</Label>
-            <div className="flex gap-2">
+              <Label>Quantity</Label>
               <Input
                 type="number"
-                min={0.5}
-                step={0.5}
+                min={1}
+                step={1}
                 value={quantity}
                 onChange={(e) => setQuantity(Number(e.target.value))}
-                className="w-24"
               />
-              <span className="flex items-center text-sm text-muted-foreground">
-                {selectedFood?.default_serving_unit || "serving(s)"}
-              </span>
+            </div>
+            <div className="space-y-2">
+              <Label>Unit</Label>
+              <Select value={unit} onValueChange={setUnit}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {UNITS.map((u) => (
+                    <SelectItem key={u.value} value={u.value}>
+                      {u.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
           {/* Selected Food Info */}
           {selectedFood && (
-            <div className="bg-muted/50 rounded-lg p-3 text-sm">
-              <p className="font-medium">{selectedFood.name}</p>
-              <div className="flex gap-4 mt-1 text-muted-foreground">
-                <span>{Math.round(selectedFood.calories_per_100g * quantity * (selectedFood.default_serving_size / 100))} kcal</span>
-                <span>{Math.round(selectedFood.protein_per_100g * quantity * (selectedFood.default_serving_size / 100))}g P</span>
-                <span>{Math.round(selectedFood.carbs_per_100g * quantity * (selectedFood.default_serving_size / 100))}g C</span>
-                <span>{Math.round(selectedFood.fat_per_100g * quantity * (selectedFood.default_serving_size / 100))}g F</span>
-              </div>
-            </div>
+            <Card className="bg-muted/50">
+              <CardContent className="pt-4">
+                <p className="font-medium text-sm">{selectedFood.name}</p>
+                <div className="flex gap-4 mt-1 text-xs text-muted-foreground">
+                  <span>{Math.round(calculateNutrition(selectedFood, quantity, unit).calories)} kcal</span>
+                  <span>{Math.round(calculateNutrition(selectedFood, quantity, unit).protein)}g P</span>
+                  <span>{Math.round(calculateNutrition(selectedFood, quantity, unit).carbs)}g C</span>
+                  <span>{Math.round(calculateNutrition(selectedFood, quantity, unit).fat)}g F</span>
+                </div>
+              </CardContent>
+            </Card>
           )}
 
           <div className="flex justify-end gap-2 pt-2">

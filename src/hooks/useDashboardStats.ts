@@ -100,10 +100,24 @@ export function useDashboardStats() {
       // Calculate streak
       const currentStreak = await calculateStreak(user.id);
 
-      // Next check-in
-      const nextCheckinDate = checkinTemplateResult.data 
-        ? getNextCheckinDate(checkinTemplateResult.data.frequency_days)
-        : null;
+      // Next check-in - also check last submitted checkin
+      let nextCheckinDate: string | null = null;
+      if (checkinTemplateResult.data) {
+        // Get the last submitted checkin to calculate from that date
+        const { data: lastCheckin } = await supabase
+          .from("client_checkins")
+          .select("checkin_date")
+          .eq("client_id", user.id)
+          .eq("status", "submitted")
+          .order("checkin_date", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        
+        nextCheckinDate = calculateNextCheckinDate(
+          checkinTemplateResult.data.frequency_days, 
+          lastCheckin?.checkin_date
+        );
+      }
 
       // Active plans
       const assignments = assignmentsResult.data || [];
@@ -189,11 +203,23 @@ async function calculateStreak(userId: string): Promise<number> {
   return streak;
 }
 
-function getNextCheckinDate(frequencyDays: number): string {
+function calculateNextCheckinDate(frequencyDays: number, lastCheckinDate?: string | null): string {
+  if (lastCheckinDate) {
+    // Calculate from last check-in date
+    const lastDate = new Date(lastCheckinDate);
+    const nextDate = new Date(lastDate);
+    nextDate.setDate(nextDate.getDate() + frequencyDays);
+    
+    // If next date is in the past, calculate from today
+    const today = new Date();
+    if (nextDate < today) {
+      return format(today, "EEE, MMM d") + " (Overdue)";
+    }
+    return format(nextDate, "EEE, MMM d");
+  }
+  
+  // No previous check-in, schedule for today or based on frequency
   const nextDate = new Date();
-  const dayOfWeek = nextDate.getDay();
-  const daysUntilNext = frequencyDays - (dayOfWeek % frequencyDays);
-  nextDate.setDate(nextDate.getDate() + daysUntilNext);
   return format(nextDate, "EEE, MMM d");
 }
 
