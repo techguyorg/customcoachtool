@@ -264,6 +264,7 @@ export function EnhancedActivePlanCard({
             meals_per_day: null,
             notes: null,
           } : null}
+          open={sheetOpen}
           onOpenChange={setSheetOpen}
         />
       )}
