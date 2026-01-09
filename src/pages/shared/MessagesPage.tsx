@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { MessageSquare, Send, ArrowLeft, Loader2 } from "lucide-react";
+import { MessageSquare, Send, ArrowLeft, Loader2, Plus } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -14,12 +14,14 @@ import {
   useMarkAsRead,
   type Conversation,
 } from "@/hooks/useMessages";
+import { NewConversationDialog } from "@/components/messages/NewConversationDialog";
 import { format, isToday, isYesterday } from "date-fns";
 
 export default function MessagesPage() {
   const { user } = useAuth();
   const [selectedPartnerId, setSelectedPartnerId] = useState<string | null>(null);
   const [newMessage, setNewMessage] = useState("");
+  const [showNewConversation, setShowNewConversation] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const { data: conversations, isLoading: loadingConversations } = useConversations();
@@ -75,12 +77,28 @@ export default function MessagesPage() {
     return format(date, "MMM d");
   };
 
+  const handleNewConversationStarted = (partnerId: string) => {
+    setSelectedPartnerId(partnerId);
+  };
+
   return (
     <div className="h-[calc(100vh-12rem)] flex flex-col">
-      <div className="flex items-center gap-3 mb-4">
-        <MessageSquare className="w-6 h-6 text-primary" />
-        <h1 className="text-xl font-bold">Messages</h1>
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-3">
+          <MessageSquare className="w-6 h-6 text-primary" />
+          <h1 className="text-xl font-bold">Messages</h1>
+        </div>
+        <Button size="sm" onClick={() => setShowNewConversation(true)}>
+          <Plus className="w-4 h-4 mr-1" />
+          New Message
+        </Button>
       </div>
+
+      <NewConversationDialog
+        open={showNewConversation}
+        onOpenChange={setShowNewConversation}
+        onConversationStarted={handleNewConversationStarted}
+      />
 
       <div className="flex-1 flex border border-border rounded-lg overflow-hidden bg-card">
         {/* Conversation List */}
@@ -117,7 +135,7 @@ export default function MessagesPage() {
                 <MessageSquare className="w-10 h-10 mx-auto mb-3 opacity-50" />
                 <p>No conversations yet</p>
                 <p className="text-xs mt-1">
-                  Messages with your coach will appear here
+                  Click "New Message" to start a conversation
                 </p>
               </div>
             )}

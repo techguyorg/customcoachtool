@@ -70,7 +70,7 @@ export default function ActiveWorkoutPage() {
   const [expandedExercise, setExpandedExercise] = useState<string | null>(null);
   const [finishNotes, setFinishNotes] = useState("");
   const [perceivedEffort, setPerceivedEffort] = useState([5]);
-  const [satisfaction, setSatisfaction] = useState([5]);
+  const [satisfaction, setSatisfaction] = useState([3]);
 
   // Timer
   useEffect(() => {
@@ -491,13 +491,13 @@ export default function ActiveWorkoutPage() {
               </div>
             </div>
             <div className="space-y-3">
-              <Label>Satisfaction (1-10)</Label>
+              <Label>Satisfaction (1-5)</Label>
               <div className="flex items-center gap-4">
                 <Slider
                   value={satisfaction}
                   onValueChange={setSatisfaction}
                   min={1}
-                  max={10}
+                  max={5}
                   step={1}
                   className="flex-1"
                 />
