@@ -48,6 +48,7 @@ export function useDashboardStats() {
         nutritionLogResult,
         assignmentsResult,
         checkinTemplateResult,
+        lastCheckinResult,
       ] = await Promise.all([
         // Workout logs this week
         supabase
@@ -77,12 +78,22 @@ export function useDashboardStats() {
           .eq("client_id", user.id)
           .eq("status", "active"),
 
-        // Check-in template
+        // Check-in template (for clients with coach)
         supabase
           .from("checkin_templates")
           .select("frequency_days")
           .eq("client_id", user.id)
           .eq("is_active", true)
+          .maybeSingle(),
+          
+        // Last submitted checkin (for any client)
+        supabase
+          .from("client_checkins")
+          .select("checkin_date")
+          .eq("client_id", user.id)
+          .in("status", ["submitted", "reviewed"])
+          .order("checkin_date", { ascending: false })
+          .limit(1)
           .maybeSingle(),
       ]);
 
@@ -100,23 +111,19 @@ export function useDashboardStats() {
       // Calculate streak
       const currentStreak = await calculateStreak(user.id);
 
-      // Next check-in - also check last submitted checkin
+      // Next check-in - works for clients with or without coach
       let nextCheckinDate: string | null = null;
-      if (checkinTemplateResult.data) {
-        // Get the last submitted checkin to calculate from that date
-        const { data: lastCheckin } = await supabase
-          .from("client_checkins")
-          .select("checkin_date")
-          .eq("client_id", user.id)
-          .eq("status", "submitted")
-          .order("checkin_date", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        
+      const lastCheckinDate = lastCheckinResult.data?.checkin_date;
+      
+      if (checkinTemplateResult.data?.frequency_days) {
+        // Has a coach-assigned template
         nextCheckinDate = calculateNextCheckinDate(
           checkinTemplateResult.data.frequency_days, 
-          lastCheckin?.checkin_date
+          lastCheckinDate
         );
+      } else if (lastCheckinDate) {
+        // Self-tracking client - suggest weekly checkins by default
+        nextCheckinDate = calculateNextCheckinDate(7, lastCheckinDate);
       }
 
       // Active plans
