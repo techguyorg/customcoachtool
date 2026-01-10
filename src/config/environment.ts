@@ -1,35 +1,34 @@
 /**
  * Environment Configuration
  * 
- * Centralized configuration that abstracts environment-specific settings.
- * This makes it easy to switch between Supabase (dev) and Azure (prod).
+ * Centralized configuration for the Azure-based CustomCoachPro platform.
+ * All services now run on Azure infrastructure.
  */
 
 export const config = {
   // API Configuration
   api: {
-    // Current: Supabase functions URL
-    // Future: Azure Functions URL
-    baseUrl: import.meta.env.VITE_SUPABASE_URL,
-    functionsPath: "/functions/v1",
+    // Azure backend API URL
+    baseUrl: import.meta.env.VITE_API_URL || "http://localhost:3001",
+    functionsPath: "/api",
   },
 
   // Authentication Provider
   auth: {
-    // 'supabase' | 'azure_ad_b2c'
-    provider: (import.meta.env.VITE_AUTH_PROVIDER as string) || "supabase",
+    // 'azure' - Custom JWT authentication via Express backend
+    provider: (import.meta.env.VITE_AUTH_PROVIDER as string) || "azure",
   },
 
   // Database Provider
   database: {
-    // 'supabase' | 'azure_sql'
-    provider: (import.meta.env.VITE_DATABASE_PROVIDER as string) || "supabase",
+    // 'azure_sql' - Azure SQL Database
+    provider: (import.meta.env.VITE_DATABASE_PROVIDER as string) || "azure_sql",
   },
 
   // Storage Provider
   storage: {
-    // 'supabase' | 'azure_blob'
-    provider: (import.meta.env.VITE_STORAGE_PROVIDER as string) || "supabase",
+    // 'azure_blob' - Azure Blob Storage
+    provider: (import.meta.env.VITE_STORAGE_PROVIDER as string) || "azure_blob",
   },
 
   // Email Configuration
@@ -62,7 +61,7 @@ export const isDevelopment = import.meta.env.DEV;
 
 // Helper to check which provider is active
 export const isUsingAzure = {
-  auth: config.auth.provider === "azure_ad_b2c",
+  auth: config.auth.provider === "azure",
   database: config.database.provider === "azure_sql",
   storage: config.storage.provider === "azure_blob",
 };
