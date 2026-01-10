@@ -1,7 +1,7 @@
 // API Client for CustomCoachPro Backend
-// Single configuration point - change API_URL to switch between local and production
-
-const API_URL = 'http://localhost:3000'; // Change to 'https://customcoachpro-api.azurewebsites.net' for production
+// API_URL: Change to 'http://localhost:3000' for local development
+// Production URL is used by default for deployment
+const API_URL = import.meta.env.DEV ? 'http://localhost:3000' : 'https://customcoachpro-api.azurewebsites.net';
 
 // Token management
 function getAccessToken(): string | null {
