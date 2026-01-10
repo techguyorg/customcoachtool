@@ -25,6 +25,7 @@ import notificationsRouter from './routes/notifications';
 import favoritesRouter from './routes/favorites';
 import storageRouter from './routes/storage';
 import adminRouter from './routes/admin';
+import emailRouter from './routes/email';
 
 const app = express();
 
@@ -83,6 +84,7 @@ app.use('/api/notifications', notificationsRouter);
 app.use('/api/favorites', favoritesRouter);
 app.use('/api/storage', storageRouter);
 app.use('/api/admin', adminRouter);
+app.use('/api/email', emailRouter);
 
 // 404 handler
 app.use((_req, res) => {
