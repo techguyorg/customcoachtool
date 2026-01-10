@@ -3,9 +3,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
-import type { Database } from "@/integrations/supabase/types";
 import {
   Dialog,
   DialogContent,
@@ -17,7 +16,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -119,67 +117,17 @@ export function CreateWorkoutTemplateDialog({ onCreated, initialData, open: cont
         name: data.name,
         description: data.description || null,
         goal: data.goal || null,
-        template_type: (data.template_type || null) as Database["public"]["Enums"]["template_type"] | null,
-        difficulty: data.difficulty as Database["public"]["Enums"]["difficulty_level"],
+        template_type: data.template_type || null,
+        difficulty: data.difficulty,
         days_per_week: data.days_per_week,
         duration_weeks: data.duration_weeks || null,
         is_periodized: data.is_periodized,
       };
 
       if (isEditing && initialData?.id) {
-        const { data: template, error } = await supabase
-          .from("workout_templates")
-          .update(templateData)
-          .eq("id", initialData.id)
-          .select()
-          .single();
-        if (error) throw error;
-        return template;
+        return api.put<{ id: string }>(`/api/workouts/templates/${initialData.id}`, templateData);
       } else {
-        const { data: template, error } = await supabase
-          .from("workout_templates")
-          .insert({
-            ...templateData,
-            is_system: false,
-            created_by: user.id,
-          })
-          .select()
-          .single();
-
-        if (error) throw error;
-
-        // Create a default week
-        const { data: week, error: weekError } = await supabase
-          .from("workout_template_weeks")
-          .insert({
-            template_id: template.id,
-            week_number: 1,
-            name: "Week 1",
-          })
-          .select()
-          .single();
-
-        if (weekError) throw weekError;
-
-        // Create default days based on days_per_week
-        const dayNames = [
-          "Day 1", "Day 2", "Day 3", "Day 4", "Day 5", "Day 6", "Day 7"
-        ];
-        
-        const daysToCreate = Array.from({ length: data.days_per_week }, (_, i) => ({
-          template_id: template.id,
-          week_id: week.id,
-          day_number: i + 1,
-          name: dayNames[i],
-        }));
-
-        const { error: daysError } = await supabase
-          .from("workout_template_days")
-          .insert(daysToCreate);
-
-        if (daysError) throw daysError;
-
-        return template;
+        return api.post<{ id: string }>('/api/workouts/templates', { ...templateData, is_system: false });
       }
     },
     onSuccess: (template) => {

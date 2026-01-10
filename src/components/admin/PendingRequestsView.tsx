@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -30,31 +30,7 @@ export function PendingRequestsView() {
   const { data: requests, isLoading } = useQuery({
     queryKey: ["admin-pending-requests"],
     queryFn: async () => {
-      const { data: reqs, error } = await supabase
-        .from("coaching_requests")
-        .select("*")
-        .eq("status", "pending")
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      if (!reqs) return [];
-
-      // Get unique user IDs
-      const userIds = [...new Set(reqs.flatMap(r => [r.coach_id, r.client_id]))];
-      
-      // Get profiles for all users
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("user_id, full_name, email, avatar_url")
-        .in("user_id", userIds);
-
-      const profileMap = new Map(profiles?.map(p => [p.user_id, p]) || []);
-
-      return reqs.map(r => ({
-        ...r,
-        coach: profileMap.get(r.coach_id),
-        client: profileMap.get(r.client_id),
-      })) as Request[];
+      return api.get<Request[]>('/api/admin/pending-requests');
     },
   });
 

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,34 +20,15 @@ export default function ResetPassword() {
   const [searchParams] = useSearchParams();
 
   useEffect(() => {
-    // Check for recovery token in URL hash or query params
-    const hashParams = new URLSearchParams(window.location.hash.substring(1));
-    const accessToken = hashParams.get("access_token");
-    const type = hashParams.get("type") || searchParams.get("type");
+    // Check for recovery token in URL
+    const token = searchParams.get("token");
+    const type = searchParams.get("type");
     
-    if (type === "recovery" && accessToken) {
-      // Set the session with the recovery token
-      supabase.auth.setSession({
-        access_token: accessToken,
-        refresh_token: hashParams.get("refresh_token") || "",
-      }).then(({ error }) => {
-        if (error) {
-          setError("Invalid or expired reset link. Please request a new one.");
-          setIsValidToken(false);
-        } else {
-          setIsValidToken(true);
-        }
-      });
+    if (type === "recovery" && token) {
+      setIsValidToken(true);
     } else {
-      // Check if we already have a session (user came from email link)
-      supabase.auth.getSession().then(({ data: { session } }) => {
-        if (session) {
-          setIsValidToken(true);
-        } else {
-          setError("Invalid or expired reset link. Please request a new one.");
-          setIsValidToken(false);
-        }
-      });
+      setError("Invalid or expired reset link. Please request a new one.");
+      setIsValidToken(false);
     }
   }, [searchParams]);
 
@@ -75,19 +56,17 @@ export default function ResetPassword() {
     setIsLoading(true);
 
     try {
-      const { error } = await supabase.auth.updateUser({ password });
+      const token = searchParams.get("token");
+      await api.post('/api/auth/reset-password', { token, password });
       
-      if (error) throw error;
-
       setIsSuccess(true);
       toast({
         title: "Password updated",
         description: "Your password has been successfully reset.",
       });
 
-      // Sign out and redirect to login after 2 seconds
-      setTimeout(async () => {
-        await supabase.auth.signOut();
+      // Redirect to login after 2 seconds
+      setTimeout(() => {
         navigate("/login");
       }, 2000);
     } catch (err: any) {

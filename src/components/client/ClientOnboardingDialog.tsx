@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,7 +25,7 @@ import {
 import { Progress } from "@/components/ui/progress";
 import { 
   User, Scale, Target, Heart, Utensils, ChevronRight, ChevronLeft, 
-  Check, Loader2, X
+  Check, Loader2
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -117,58 +117,17 @@ export function ClientOnboardingDialog({ open, onOpenChange, onComplete }: Clien
     mutationFn: async () => {
       if (!user?.id) throw new Error("Not authenticated");
 
-      // Update profile
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .update({
-          date_of_birth: formData.dateOfBirth || null,
-          gender: formData.gender || null,
-        })
-        .eq("user_id", user.id);
-
-      if (profileError) throw profileError;
-
-      // Check if client_profile exists
-      const { data: existing } = await supabase
-        .from("client_profiles")
-        .select("id")
-        .eq("user_id", user.id)
-        .single();
-
-      const clientProfileData = {
-        height_cm: formData.heightCm ? parseFloat(formData.heightCm) : null,
-        current_weight_kg: formData.currentWeightKg ? parseFloat(formData.currentWeightKg) : null,
-        target_weight_kg: formData.targetWeightKg ? parseFloat(formData.targetWeightKg) : null,
-        fitness_goals: formData.fitnessGoals.length > 0 ? formData.fitnessGoals : null,
-        fitness_level: formData.fitnessLevel || null,
-        medical_conditions: [formData.medicalConditions, formData.injuries].filter(Boolean).join(". ") || null,
-        dietary_restrictions: formData.dietaryRestrictions.filter(r => r !== "No Restrictions"),
-      };
-
-      if (existing) {
-        const { error } = await supabase
-          .from("client_profiles")
-          .update(clientProfileData)
-          .eq("user_id", user.id);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase
-          .from("client_profiles")
-          .insert({ user_id: user.id, ...clientProfileData });
-        if (error) throw error;
-      }
-
-      // Create initial measurement if weight provided
-      if (formData.currentWeightKg) {
-        const { error: measurementError } = await supabase
-          .from("client_measurements")
-          .insert({
-            client_id: user.id,
-            weight_kg: parseFloat(formData.currentWeightKg),
-            notes: "Initial measurement from onboarding",
-          });
-        // Ignore duplicate errors
-      }
+      return api.post('/api/users/onboarding', {
+        dateOfBirth: formData.dateOfBirth || null,
+        gender: formData.gender || null,
+        heightCm: formData.heightCm ? parseFloat(formData.heightCm) : null,
+        currentWeightKg: formData.currentWeightKg ? parseFloat(formData.currentWeightKg) : null,
+        targetWeightKg: formData.targetWeightKg ? parseFloat(formData.targetWeightKg) : null,
+        fitnessGoals: formData.fitnessGoals.length > 0 ? formData.fitnessGoals : null,
+        fitnessLevel: formData.fitnessLevel || null,
+        medicalConditions: [formData.medicalConditions, formData.injuries].filter(Boolean).join(". ") || null,
+        dietaryRestrictions: formData.dietaryRestrictions.filter(r => r !== "No Restrictions"),
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["client-profile"] });

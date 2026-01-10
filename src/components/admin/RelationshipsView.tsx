@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -30,32 +30,7 @@ export function RelationshipsView() {
   const { data: relationships, isLoading } = useQuery({
     queryKey: ["admin-relationships"],
     queryFn: async () => {
-      // Get relationships with coach and client profile data
-      const { data: rels, error } = await supabase
-        .from("coach_client_relationships")
-        .select("*")
-        .eq("status", "active")
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      if (!rels) return [];
-
-      // Get unique user IDs
-      const userIds = [...new Set(rels.flatMap(r => [r.coach_id, r.client_id]))];
-      
-      // Get profiles for all users
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("user_id, full_name, email, avatar_url")
-        .in("user_id", userIds);
-
-      const profileMap = new Map(profiles?.map(p => [p.user_id, p]) || []);
-
-      return rels.map(r => ({
-        ...r,
-        coach: profileMap.get(r.coach_id),
-        client: profileMap.get(r.client_id),
-      })) as Relationship[];
+      return api.get<Relationship[]>('/api/admin/relationships');
     },
   });
 

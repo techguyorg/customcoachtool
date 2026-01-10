@@ -6,7 +6,7 @@ import {
   DialogContent,
 } from "@/components/ui/dialog";
 import { Loader2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import type { ProgressPhoto } from "@/hooks/useClientProgress";
 
 interface PhotoGalleryProps {
@@ -26,7 +26,7 @@ const poseLabels: Record<string, string> = {
 const signedUrlCache = new Map<string, { url: string; expiresAt: number }>();
 
 async function getSignedUrl(photoUrl: string): Promise<string> {
-  // Check if URL is already a signed URL or from Supabase storage
+  // Check if URL is already a signed URL or doesn't need signing
   if (photoUrl.includes('?') || !photoUrl.includes('blob.core.windows.net')) {
     return photoUrl;
   }
@@ -38,12 +38,10 @@ async function getSignedUrl(photoUrl: string): Promise<string> {
   }
 
   try {
-    const { data, error } = await supabase.functions.invoke('get-photo-sas-url', {
-      body: { blobUrl: photoUrl }
-    });
+    const data = await api.post<{ signedUrl: string; expiresAt: string }>('/api/storage/sas-url', { blobUrl: photoUrl });
 
-    if (error || !data?.signedUrl) {
-      console.error('Failed to get signed URL:', error);
+    if (!data?.signedUrl) {
+      console.error('Failed to get signed URL');
       return photoUrl;
     }
 
