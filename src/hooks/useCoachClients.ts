@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 
 export interface CoachClient {
@@ -31,51 +31,7 @@ export function useCoachClients() {
     queryKey: ["coach-clients", user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
-
-      const { data, error } = await supabase
-        .from("coach_client_relationships")
-        .select(`
-          id,
-          client_id,
-          status,
-          started_at,
-          ended_at,
-          notes,
-          created_at
-        `)
-        .eq("coach_id", user.id)
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-
-      // Fetch profiles and client_profiles for each client
-      const clientIds = data?.map(r => r.client_id) || [];
-      
-      if (clientIds.length === 0) return [];
-
-      const [profilesResult, clientProfilesResult] = await Promise.all([
-        supabase
-          .from("profiles")
-          .select("user_id, full_name, email, avatar_url")
-          .in("user_id", clientIds),
-        supabase
-          .from("client_profiles")
-          .select("user_id, current_weight_kg, target_weight_kg, fitness_level, fitness_goals, subscription_status")
-          .in("user_id", clientIds),
-      ]);
-
-      const profilesMap = new Map(
-        (profilesResult.data || []).map(p => [p.user_id, p])
-      );
-      const clientProfilesMap = new Map(
-        (clientProfilesResult.data || []).map(cp => [cp.user_id, cp])
-      );
-
-      return (data || []).map(relationship => ({
-        ...relationship,
-        profile: profilesMap.get(relationship.client_id) || null,
-        client_profile: clientProfilesMap.get(relationship.client_id) || null,
-      })) as CoachClient[];
+      return api.get<CoachClient[]>('/api/coach/clients');
     },
     enabled: !!user?.id,
   });
@@ -87,21 +43,7 @@ export function useUpdateClientStatus() {
 
   return useMutation({
     mutationFn: async ({ relationshipId, status }: { relationshipId: string; status: string }) => {
-      const updateData: any = { status };
-      
-      if (status === "active") {
-        updateData.started_at = new Date().toISOString();
-        updateData.ended_at = null;
-      } else if (status === "ended" || status === "paused") {
-        updateData.ended_at = new Date().toISOString();
-      }
-
-      const { error } = await supabase
-        .from("coach_client_relationships")
-        .update(updateData)
-        .eq("id", relationshipId);
-
-      if (error) throw error;
+      return api.put(`/api/coach/clients/${relationshipId}/status`, { status });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["coach-clients", user?.id] });
@@ -120,20 +62,7 @@ export function useInviteClient() {
 
   return useMutation({
     mutationFn: async (invitation: ClientInvitation) => {
-      // Get the app URL from current location
-      const appUrl = window.location.origin;
-      
-      const response = await supabase.functions.invoke("send-client-invitation", {
-        body: {
-          ...invitation,
-          coachId: user?.id,
-          coachName: user?.fullName,
-          appUrl,
-        },
-      });
-
-      if (response.error) throw response.error;
-      return response.data;
+      return api.post('/api/coach/invite', invitation);
     },
   });
 }

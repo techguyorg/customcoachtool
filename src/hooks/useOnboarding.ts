@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 export interface TutorialStep {
@@ -134,12 +134,11 @@ export function useOnboarding() {
     queryKey: ["onboarding", user?.id],
     queryFn: async () => {
       if (!user?.id) return null;
-      const { data } = await supabase
-        .from("profiles")
-        .select("onboarding_completed, onboarding_step")
-        .eq("user_id", user.id)
-        .single();
-      return data;
+      try {
+        return await api.get<{ onboarding_completed: boolean; onboarding_step: number }>('/api/users/onboarding');
+      } catch {
+        return null;
+      }
     },
     enabled: !!user?.id,
   });
@@ -147,15 +146,7 @@ export function useOnboarding() {
   const updateOnboarding = useMutation({
     mutationFn: async ({ completed, step }: { completed?: boolean; step?: number }) => {
       if (!user?.id) throw new Error("Not authenticated");
-      const updates: Record<string, any> = {};
-      if (completed !== undefined) updates.onboarding_completed = completed;
-      if (step !== undefined) updates.onboarding_step = step;
-      
-      const { error } = await supabase
-        .from("profiles")
-        .update(updates)
-        .eq("user_id", user.id);
-      if (error) throw error;
+      return api.put('/api/users/onboarding', { completed, step });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["onboarding"] });
@@ -163,15 +154,10 @@ export function useOnboarding() {
   });
 
   const getTutorialSteps = (): TutorialStep[] => {
-    if (!user?.role) return CLIENT_TUTORIAL_STEPS;
-    switch (user.role) {
-      case "super_admin":
-        return ADMIN_TUTORIAL_STEPS;
-      case "coach":
-        return COACH_TUTORIAL_STEPS;
-      default:
-        return CLIENT_TUTORIAL_STEPS;
-    }
+    if (!user?.roles) return CLIENT_TUTORIAL_STEPS;
+    if (user.roles.includes('super_admin')) return ADMIN_TUTORIAL_STEPS;
+    if (user.roles.includes('coach')) return COACH_TUTORIAL_STEPS;
+    return CLIENT_TUTORIAL_STEPS;
   };
 
   const startTutorial = () => setShowTutorial(true);

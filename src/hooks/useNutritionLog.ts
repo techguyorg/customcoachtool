@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { format } from "date-fns";
 
@@ -42,19 +42,7 @@ export function useNutritionLog(date?: Date) {
   return useQuery({
     queryKey: ["nutrition-log", user?.id, dateStr],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("client_nutrition_logs")
-        .select(`
-          *,
-          food:foods(id, name, category),
-          recipe:recipes(id, name, category)
-        `)
-        .eq("client_id", user!.id)
-        .eq("log_date", dateStr)
-        .order("created_at");
-
-      if (error) throw error;
-      return data as NutritionLogEntry[];
+      return api.get<NutritionLogEntry[]>(`/api/client/nutrition-log?date=${dateStr}`);
     },
     enabled: !!user?.id,
   });
@@ -68,21 +56,7 @@ export function useNutritionLogRange(startDate: Date, endDate: Date) {
   return useQuery({
     queryKey: ["nutrition-log-range", user?.id, startStr, endStr],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("client_nutrition_logs")
-        .select(`
-          *,
-          food:foods(id, name, category),
-          recipe:recipes(id, name, category)
-        `)
-        .eq("client_id", user!.id)
-        .gte("log_date", startStr)
-        .lte("log_date", endStr)
-        .order("log_date")
-        .order("created_at");
-
-      if (error) throw error;
-      return data as NutritionLogEntry[];
+      return api.get<NutritionLogEntry[]>(`/api/client/nutrition-log?startDate=${startStr}&endDate=${endStr}`);
     },
     enabled: !!user?.id,
   });
@@ -97,18 +71,7 @@ export function useAddNutritionLog() {
       entry: Omit<NutritionLogEntry, "id" | "client_id" | "created_at" | "updated_at" | "food" | "recipe">
     ) => {
       if (!user?.id) throw new Error("Not authenticated");
-
-      const { data, error } = await supabase
-        .from("client_nutrition_logs")
-        .insert({
-          ...entry,
-          client_id: user.id,
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
+      return api.post<NutritionLogEntry>('/api/client/nutrition-log', entry);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["nutrition-log"] });
@@ -128,15 +91,7 @@ export function useUpdateNutritionLog() {
       id: string;
       entry: Partial<NutritionLogEntry>;
     }) => {
-      const { data, error } = await supabase
-        .from("client_nutrition_logs")
-        .update(entry)
-        .eq("id", id)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
+      return api.put<NutritionLogEntry>(`/api/client/nutrition-log/${id}`, entry);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["nutrition-log"] });
@@ -150,8 +105,7 @@ export function useDeleteNutritionLog() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("client_nutrition_logs").delete().eq("id", id);
-      if (error) throw error;
+      return api.delete(`/api/client/nutrition-log/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["nutrition-log"] });
