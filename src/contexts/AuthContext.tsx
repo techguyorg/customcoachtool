@@ -1,16 +1,11 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
-import {
-  AuthUser,
-  AppRole,
-  signUp as authSignUp,
-  signIn as authSignIn,
-  signInWithGoogle as authSignInWithGoogle,
-  signOut as authSignOut,
-  getStoredUser,
-  getStoredTokens,
-  getAuthUser,
-  clearAuth,
-} from "@/lib/auth-azure";
+import { auth, User } from "@/lib/api";
+
+type AppRole = "client" | "coach" | "super_admin";
+
+interface AuthUser extends User {
+  role?: AppRole;
+}
 
 interface SignUpData {
   email: string;
@@ -42,24 +37,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Check for stored auth on mount
     const initAuth = async () => {
-      const { accessToken } = getStoredTokens();
-      
-      if (accessToken) {
-        // Try to get fresh user data
-        const authUser = await getAuthUser();
-        setUser(authUser);
-      } else {
-        // No token, check for stored user (offline fallback)
-        const storedUser = getStoredUser();
-        if (storedUser) {
-          // Validate by trying to get fresh data
-          const authUser = await getAuthUser();
-          setUser(authUser);
+      if (auth.isAuthenticated()) {
+        try {
+          const userData = await auth.getMe();
+          setUser({
+            ...userData,
+            role: userData.roles[0] as AppRole,
+          });
+        } catch {
+          auth.clearTokens();
         }
       }
-      
       setIsLoading(false);
     };
 
@@ -68,8 +57,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signUp = async (data: SignUpData) => {
     try {
-      const response = await authSignUp(data.email, data.password, data.fullName, data.role as "coach" | "client");
-      setUser(response.user);
+      const response = await auth.signup(data.email, data.password, data.fullName, data.role as "client" | "coach");
+      setUser({
+        ...response.user,
+        role: response.user.roles[0] as AppRole,
+      });
       return { error: null };
     } catch (error) {
       return { error: error as Error };
@@ -78,26 +70,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signIn = async (data: SignInData) => {
     try {
-      const response = await authSignIn(data.email, data.password);
-      setUser(response.user);
+      const response = await auth.login(data.email, data.password);
+      setUser({
+        ...response.user,
+        role: response.user.roles[0] as AppRole,
+      });
       return { error: null };
     } catch (error) {
       return { error: error as Error };
     }
   };
 
-  const signInWithGoogle = async (code: string, role?: string) => {
-    try {
-      const response = await authSignInWithGoogle(code, role);
-      setUser(response.user);
-      return { error: null };
-    } catch (error) {
-      return { error: error as Error };
-    }
+  const signInWithGoogle = async (_code: string, _role?: string) => {
+    // Google OAuth will be handled separately
+    return { error: new Error("Google OAuth not yet implemented") };
   };
 
   const signOut = async () => {
-    await authSignOut();
+    await auth.logout();
     setUser(null);
   };
 
@@ -106,8 +96,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const refreshUser = async () => {
-    const authUser = await getAuthUser();
-    setUser(authUser);
+    try {
+      const userData = await auth.getMe();
+      setUser({
+        ...userData,
+        role: userData.roles[0] as AppRole,
+      });
+    } catch {
+      // Ignore errors
+    }
   };
 
   return (
@@ -135,3 +132,5 @@ export function useAuth() {
   }
   return context;
 }
+
+export type { AppRole, AuthUser };

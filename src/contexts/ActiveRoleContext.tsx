@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { useAuth } from "@/contexts/AuthContext";
-import { AppRole } from "@/lib/auth";
+import { useAuth, AppRole } from "@/contexts/AuthContext";
 
 const STORAGE_KEY = "customcoachpro_active_role";
 
@@ -16,9 +15,8 @@ export function ActiveRoleProvider({ children }: { children: React.ReactNode }) 
   const { user } = useAuth();
   const [activeRole, setActiveRoleState] = useState<AppRole | null>(null);
 
-  const availableRoles = user?.roles || [];
+  const availableRoles = (user?.roles || []) as AppRole[];
 
-  // Initialize active role from localStorage or use highest priority role
   useEffect(() => {
     if (!user || availableRoles.length === 0) {
       setActiveRoleState(null);
@@ -30,9 +28,9 @@ export function ActiveRoleProvider({ children }: { children: React.ReactNode }) 
     if (savedRole && availableRoles.includes(savedRole)) {
       setActiveRoleState(savedRole);
     } else {
-      // Use the current role (highest priority) as default
-      setActiveRoleState(user.role);
-      localStorage.setItem(STORAGE_KEY, user.role);
+      const defaultRole = (user.role || availableRoles[0]) as AppRole;
+      setActiveRoleState(defaultRole);
+      localStorage.setItem(STORAGE_KEY, defaultRole);
     }
   }, [user, availableRoles.join(",")]);
 
