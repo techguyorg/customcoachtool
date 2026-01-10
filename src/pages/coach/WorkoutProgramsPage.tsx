@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
+import { useWorkoutTemplates, type TemplateFilters as Filters, TemplateWithStats } from "@/hooks/useWorkoutTemplates";
+import { api } from "@/lib/api";
 import { TemplateCard } from "@/components/templates/TemplateCard";
 import { TemplateFilters } from "@/components/templates/TemplateFilters";
 import { TemplateDetailSheet } from "@/components/templates/TemplateDetailSheet";
@@ -21,7 +22,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import type { TemplateFilters as Filters } from "@/hooks/useWorkoutTemplates";
 
 export default function CoachWorkoutProgramsPage() {
   const { user } = useAuth();
@@ -38,93 +38,18 @@ export default function CoachWorkoutProgramsPage() {
   const [assignTemplateId, setAssignTemplateId] = useState<string | null>(null);
   const [deleteTemplateId, setDeleteTemplateId] = useState<string | null>(null);
 
-  // Fetch coach's own programs
-  const { data: myPrograms, isLoading: loadingMy } = useQuery({
-    queryKey: ["coach-workout-templates", user?.id, filters],
-    queryFn: async () => {
-      if (!user?.id) return [];
+  // Fetch all templates using the API hook
+  const { data: allTemplates = [], isLoading } = useWorkoutTemplates(filters);
 
-      let query = supabase
-        .from("workout_templates")
-        .select(`
-          *,
-          workout_template_weeks(count),
-          workout_template_days(count)
-        `)
-        .eq("created_by", user.id)
-        .eq("is_system", false)
-        .order("created_at", { ascending: false });
+  // Filter templates based on active tab
+  const myPrograms = allTemplates.filter(
+    (t: TemplateWithStats) => !t.is_system && t.created_by === user?.id
+  );
+  const libraryPrograms = allTemplates.filter(
+    (t: TemplateWithStats) => t.is_system
+  );
 
-      if (filters.search) {
-        query = query.or(`name.ilike.%${filters.search}%,description.ilike.%${filters.search}%,goal.ilike.%${filters.search}%`);
-      }
-
-      if (filters.templateType !== "all") {
-        query = query.eq("template_type", filters.templateType);
-      }
-
-      if (filters.difficulty !== "all") {
-        query = query.eq("difficulty", filters.difficulty);
-      }
-
-      if (filters.daysPerWeek !== "all") {
-        query = query.eq("days_per_week", filters.daysPerWeek);
-      }
-
-      const { data, error } = await query;
-      if (error) throw error;
-
-      return (data || []).map((template: any) => ({
-        ...template,
-        week_count: template.workout_template_weeks?.[0]?.count || 0,
-        day_count: template.workout_template_days?.[0]?.count || 0,
-        exercise_count: 0,
-      }));
-    },
-    enabled: !!user?.id,
-  });
-
-  // Fetch system programs (library)
-  const { data: libraryPrograms, isLoading: loadingLibrary } = useQuery({
-    queryKey: ["library-workout-templates", filters],
-    queryFn: async () => {
-      let query = supabase
-        .from("workout_templates")
-        .select(`
-          *,
-          workout_template_weeks(count),
-          workout_template_days(count)
-        `)
-        .eq("is_system", true)
-        .order("name");
-
-      if (filters.search) {
-        query = query.or(`name.ilike.%${filters.search}%,description.ilike.%${filters.search}%,goal.ilike.%${filters.search}%`);
-      }
-
-      if (filters.templateType !== "all") {
-        query = query.eq("template_type", filters.templateType);
-      }
-
-      if (filters.difficulty !== "all") {
-        query = query.eq("difficulty", filters.difficulty);
-      }
-
-      if (filters.daysPerWeek !== "all") {
-        query = query.eq("days_per_week", filters.daysPerWeek);
-      }
-
-      const { data, error } = await query;
-      if (error) throw error;
-
-      return (data || []).map((template: any) => ({
-        ...template,
-        week_count: template.workout_template_weeks?.[0]?.count || 0,
-        day_count: template.workout_template_days?.[0]?.count || 0,
-        exercise_count: 0,
-      }));
-    },
-  });
+  const templates = activeTab === "my-programs" ? myPrograms : libraryPrograms;
 
   const handleTemplateClick = (id: string) => {
     setSelectedTemplateId(id);
@@ -133,14 +58,10 @@ export default function CoachWorkoutProgramsPage() {
 
   const deleteMutation = useMutation({
     mutationFn: async (templateId: string) => {
-      const { error } = await supabase
-        .from("workout_templates")
-        .delete()
-        .eq("id", templateId);
-      if (error) throw error;
+      await api.delete(`/api/workouts/templates/${templateId}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["coach-workout-templates"] });
+      queryClient.invalidateQueries({ queryKey: ["workout-templates"] });
       toast.success("Program deleted successfully");
       setDeleteTemplateId(null);
     },
@@ -148,9 +69,6 @@ export default function CoachWorkoutProgramsPage() {
       toast.error("Failed to delete program");
     },
   });
-
-  const isLoading = activeTab === "my-programs" ? loadingMy : loadingLibrary;
-  const templates = activeTab === "my-programs" ? myPrograms : libraryPrograms;
 
   return (
     <div className="space-y-6">
@@ -201,7 +119,7 @@ export default function CoachWorkoutProgramsPage() {
         </div>
       ) : templates && templates.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {templates.map((template) => (
+          {templates.map((template: TemplateWithStats) => (
             <TemplateCard
               key={template.id}
               template={template}

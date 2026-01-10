@@ -2,9 +2,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dumbbell } from "lucide-react";
 import { FavoriteButton } from "@/components/favorites/FavoriteButton";
-import type { Database } from "@/integrations/supabase/types";
-
-type Exercise = Database["public"]["Tables"]["exercises"]["Row"];
+import type { Exercise } from "@/lib/api";
 
 interface ExerciseCardProps {
   exercise: Exercise;

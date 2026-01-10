@@ -49,12 +49,22 @@ export const MUSCLE_GROUPS = [
   "chest", "back", "shoulders", "biceps", "triceps", "forearms",
   "quadriceps", "hamstrings", "glutes", "calves", "abs", "obliques",
   "lower_back", "traps", "lats"
-];
+] as const;
+
+export type MuscleGroup = typeof MUSCLE_GROUPS[number];
 
 export const EQUIPMENT_TYPES = [
   "barbell", "dumbbell", "cable", "machine", "bodyweight", "kettlebell",
   "resistance_band", "ez_bar", "smith_machine", "pull_up_bar", "dip_station",
   "bench", "cardio_machine", "other"
-];
+] as const;
 
-export const DIFFICULTY_LEVELS = ["beginner", "intermediate", "advanced"];
+export type EquipmentType = typeof EQUIPMENT_TYPES[number];
+
+export const DIFFICULTY_LEVELS = ["beginner", "intermediate", "advanced"] as const;
+
+export type DifficultyLevel = typeof DIFFICULTY_LEVELS[number];
+
+export const EXERCISE_TYPES = ["compound", "isolation", "cardio", "plyometric", "stretching"] as const;
+
+export type ExerciseTypeValue = typeof EXERCISE_TYPES[number];

@@ -13,9 +13,7 @@ import { DietPlanDetailSheet } from "@/components/diet/DietPlanDetailSheet";
 import { RecipeDetailSheet } from "@/components/diet/RecipeDetailSheet";
 import { TemplateDetailSheet } from "@/components/templates/TemplateDetailSheet";
 import { ExerciseDetailSheet } from "@/components/exercises/ExerciseDetailSheet";
-import type { Database } from "@/integrations/supabase/types";
-
-type Exercise = Database["public"]["Tables"]["exercises"]["Row"];
+import type { Exercise } from "@/lib/api";
 
 export default function FavoritesPage() {
   const [activeTab, setActiveTab] = useState<FavoriteItemType>("diet_plan");
