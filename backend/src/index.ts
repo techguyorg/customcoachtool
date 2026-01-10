@@ -3,6 +3,8 @@ import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
 import swaggerUi from 'swagger-ui-express';
+import 'dotenv/config'
+
 
 import { config, validateConfig } from './config';
 import { initializeDatabase, closeDatabase } from './db';
@@ -97,6 +99,10 @@ app.use(errorHandler);
 // Start server
 async function startServer() {
   try {
+
+    console.log('SQL_USER:', config.database.user);
+    console.log('SQL_PASSWORD exists:', !!config.database.password);
+
     // Initialize database connection
     await initializeDatabase();
 

@@ -96,9 +96,9 @@ router.post('/signup', asyncHandler(async (req: Request, res: Response) => {
   // Create user
   const userId = uuidv4();
   await execute(
-    `INSERT INTO users (id, email, password_hash, email_verification_token, email_verification_expires, is_active)
-     VALUES (@id, @email, @passwordHash, @verificationToken, @verificationExpires, 1)`,
-    { id: userId, email: email.toLowerCase(), passwordHash, verificationToken, verificationExpires }
+    `INSERT INTO users (id, email, password_hash, full_name, email_verification_token, email_verification_expires, is_active)
+     VALUES (@id, @email, @passwordHash, @fullName, @verificationToken, @verificationExpires, 1)`,
+    { id: userId, email: email.toLowerCase(), passwordHash, fullName, verificationToken, verificationExpires }
   );
 
   // Create profile

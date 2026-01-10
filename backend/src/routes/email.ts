@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { authenticateToken } from '../middleware/auth';
+import { authenticate } from '../middleware/auth';
 import {
   sendEmail,
   sendWelcomeEmail,
@@ -42,7 +42,7 @@ const router = Router();
  *       200:
  *         description: Email sent successfully
  */
-router.post('/send', authenticateToken, async (req: Request, res: Response) => {
+router.post('/send', authenticate, async (req: Request, res: Response) => {
   try {
     const { to, subject, html, text } = req.body;
 
@@ -67,7 +67,7 @@ router.post('/send', authenticateToken, async (req: Request, res: Response) => {
  *     security:
  *       - bearerAuth: []
  */
-router.post('/welcome', authenticateToken, async (req: Request, res: Response) => {
+router.post('/welcome', authenticate, async (req: Request, res: Response) => {
   try {
     const { email, name } = req.body;
 
@@ -92,7 +92,7 @@ router.post('/welcome', authenticateToken, async (req: Request, res: Response) =
  *     security:
  *       - bearerAuth: []
  */
-router.post('/plan-assignment', authenticateToken, async (req: Request, res: Response) => {
+router.post('/plan-assignment', authenticate, async (req: Request, res: Response) => {
   try {
     const { email, name, planName, planType, coachName } = req.body;
 
@@ -119,7 +119,7 @@ router.post('/plan-assignment', authenticateToken, async (req: Request, res: Res
  *     security:
  *       - bearerAuth: []
  */
-router.post('/checkin-reminder', authenticateToken, async (req: Request, res: Response) => {
+router.post('/checkin-reminder', authenticate, async (req: Request, res: Response) => {
   try {
     const { email, name } = req.body;
 
@@ -144,7 +144,7 @@ router.post('/checkin-reminder', authenticateToken, async (req: Request, res: Re
  *     security:
  *       - bearerAuth: []
  */
-router.post('/checkin-received', authenticateToken, async (req: Request, res: Response) => {
+router.post('/checkin-received', authenticate, async (req: Request, res: Response) => {
   try {
     const { coachEmail, coachName, clientName } = req.body;
 
@@ -171,7 +171,7 @@ router.post('/checkin-received', authenticateToken, async (req: Request, res: Re
  *     security:
  *       - bearerAuth: []
  */
-router.post('/coaching-request', authenticateToken, async (req: Request, res: Response) => {
+router.post('/coaching-request', authenticate, async (req: Request, res: Response) => {
   try {
     const { coachEmail, coachName, clientName, message } = req.body;
 
@@ -198,7 +198,7 @@ router.post('/coaching-request', authenticateToken, async (req: Request, res: Re
  *     security:
  *       - bearerAuth: []
  */
-router.post('/client-invitation', authenticateToken, async (req: Request, res: Response) => {
+router.post('/client-invitation', authenticate, async (req: Request, res: Response) => {
   try {
     const { email, clientName, coachName, message } = req.body;
 
@@ -253,7 +253,7 @@ router.post('/client-invitation', authenticateToken, async (req: Request, res: R
  *     security:
  *       - bearerAuth: []
  */
-router.post('/admin-notification', authenticateToken, async (req: Request, res: Response) => {
+router.post('/admin-notification', authenticate, async (req: Request, res: Response) => {
   try {
     const { email, subject, message, actionUrl, actionText } = req.body;
 

@@ -70,6 +70,10 @@ export function UserManagementTable({ onImpersonate, initialRoleFilter = "all" }
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
 
   useEffect(() => {
+    console.log("ADMIN USERS RAW:", users);
+  }, [users]);
+
+  useEffect(() => {
     if (initialRoleFilter && initialRoleFilter !== "all") {
       setRoleFilter(initialRoleFilter);
     }
