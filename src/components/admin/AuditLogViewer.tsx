@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -9,7 +9,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ClipboardList, Loader2, Search, Calendar } from "lucide-react";
 import { format, subDays } from "date-fns";
-import { Json } from "@/integrations/supabase/types";
 
 interface AuditLog {
   id: string;
@@ -18,7 +17,7 @@ interface AuditLog {
   target_user_id: string | null;
   target_resource_type: string | null;
   target_resource_id: string | null;
-  details: Json | null;
+  details: Record<string, unknown> | null;
   ip_address: string | null;
   created_at: string;
   admin_profile?: {
@@ -55,33 +54,8 @@ export function AuditLogViewer() {
   const { data: logs, isLoading } = useQuery({
     queryKey: ["audit-logs", dateFilter],
     queryFn: async (): Promise<AuditLog[]> => {
-      const fromDate = subDays(new Date(), parseInt(dateFilter)).toISOString();
-      
-      const { data, error } = await supabase
-        .from("admin_audit_logs")
-        .select("*")
-        .gte("created_at", fromDate)
-        .order("created_at", { ascending: false })
-        .limit(500);
-
-      if (error) throw error;
-
-      // Fetch admin profiles
-      const adminIds = [...new Set((data || []).map((l) => l.admin_user_id))];
-      const targetIds = [...new Set((data || []).filter((l) => l.target_user_id).map((l) => l.target_user_id))];
-      
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("user_id, full_name, email")
-        .in("user_id", [...adminIds, ...targetIds]);
-
-      const profileMap = new Map(profiles?.map((p) => [p.user_id, p]) || []);
-
-      return (data || []).map((log) => ({
-        ...log,
-        admin_profile: profileMap.get(log.admin_user_id),
-        target_profile: log.target_user_id ? profileMap.get(log.target_user_id) : undefined,
-      }));
+      const data = await api.get<AuditLog[]>(`/api/admin/audit-logs?days=${dateFilter}`);
+      return data;
     },
   });
 

@@ -1,15 +1,11 @@
 /**
  * Database Service Abstraction Layer
  * 
- * Provides a unified interface for database operations that works with:
- * - Supabase PostgreSQL (current development)
- * - Azure SQL (future production)
- * 
- * Note: For type-safe operations with Supabase, use the Supabase client directly.
- * This abstraction is primarily for Azure migration compatibility.
+ * All database operations go through the backend API.
+ * This file provides a unified interface for components that need direct data access.
  */
 
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 
 export interface QueryOptions {
   select?: string;
@@ -26,63 +22,30 @@ export interface DatabaseResult<T> {
 }
 
 /**
- * Generic database service interface
- * For production use, prefer direct Supabase client with typed queries
+ * Database service interface - all operations go through API
  */
 export interface DatabaseService {
-  // Raw query helpers - use with caution
   rawQuery<T>(table: string, options?: QueryOptions): Promise<DatabaseResult<T[]>>;
 }
 
 /**
- * Supabase PostgreSQL implementation
- * 
- * IMPORTANT: For most use cases, use the Supabase client directly
- * with proper TypeScript types. This service is primarily for:
- * 1. Dynamic table queries (admin features)
- * 2. Migration compatibility with Azure
+ * API-based database service implementation
  */
-class SupabaseDatabaseService implements DatabaseService {
-  /**
-   * Raw query helper - bypasses TypeScript strict typing
-   * Use only when table name is dynamic (e.g., admin features)
-   */
+class ApiDatabaseService implements DatabaseService {
   async rawQuery<T>(table: string, options: QueryOptions = {}): Promise<DatabaseResult<T[]>> {
     try {
-      // Use 'any' type for dynamic table access
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      let query = (supabase as any).from(table).select(options.select || "*");
+      const params = new URLSearchParams();
+      if (options.select) params.append('select', options.select);
+      if (options.filter) params.append('filter', JSON.stringify(options.filter));
+      if (options.orderBy) params.append('orderBy', JSON.stringify(options.orderBy));
+      if (options.limit) params.append('limit', options.limit.toString());
+      if (options.offset) params.append('offset', options.offset.toString());
 
-      // Apply filters
-      if (options.filter) {
-        Object.entries(options.filter).forEach(([key, value]) => {
-          query = query.eq(key, value);
-        });
-      }
-
-      // Apply ordering
-      if (options.orderBy) {
-        query = query.order(options.orderBy.column, {
-          ascending: options.orderBy.ascending ?? true,
-        });
-      }
-
-      // Apply pagination
-      if (options.limit) {
-        query = query.limit(options.limit);
-      }
-
-      if (options.offset) {
-        query = query.range(options.offset, options.offset + (options.limit || 10) - 1);
-      }
-
-      const { data, error } = await query;
-
-      if (error) {
-        return { data: null, error: error.message };
-      }
-
-      return { data: data as T[], error: null };
+      const queryString = params.toString();
+      const endpoint = `/api/admin/data/${table}${queryString ? `?${queryString}` : ''}`;
+      
+      const data = await api.get<T[]>(endpoint);
+      return { data, error: null };
     } catch (err) {
       return {
         data: null,
@@ -94,20 +57,15 @@ class SupabaseDatabaseService implements DatabaseService {
 
 // Factory function
 export function getDatabaseService(): DatabaseService {
-  return new SupabaseDatabaseService();
+  return new ApiDatabaseService();
 }
 
 // Export singleton instance
 export const databaseService = getDatabaseService();
 
 /**
- * Type-safe database helpers
- * These are the recommended way to interact with the database
+ * Database helper - use API for all operations
  */
 export const db = {
-  /**
-   * Get supabase client for type-safe queries
-   * Usage: db.client.from('profiles').select('*')
-   */
-  client: supabase,
+  query: <T>(table: string, options?: QueryOptions) => databaseService.rawQuery<T>(table, options),
 };

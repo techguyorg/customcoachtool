@@ -465,6 +465,9 @@ export interface Notification {
   message: string;
   is_read: boolean;
   created_at: string;
+  reference_type?: string;
+  reference_id?: string;
+  data?: Record<string, unknown>;
 }
 
 export interface Message {

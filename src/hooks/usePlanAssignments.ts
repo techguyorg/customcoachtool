@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 
 export interface PlanAssignment {
   id: string;
@@ -46,23 +47,8 @@ export function useClientAssignments(clientId?: string) {
     queryKey: ["plan-assignments", targetId],
     queryFn: async () => {
       if (!targetId) return [];
-
-      const { data, error } = await supabase
-        .from("plan_assignments")
-        .select(`
-          *,
-          workout_template:workout_templates(
-            id, name, description, difficulty, days_per_week, duration_weeks
-          ),
-          diet_plan:diet_plans(
-            id, name, description, calories_target, protein_grams, carbs_grams, fat_grams
-          )
-        `)
-        .eq("client_id", targetId)
-        .order("start_date", { ascending: false });
-
-      if (error) throw error;
-      return data as PlanAssignmentWithDetails[];
+      const data = await api.get<PlanAssignmentWithDetails[]>(`/api/client/${targetId}/assignments`);
+      return data;
     },
     enabled: !!targetId,
   });
@@ -75,20 +61,8 @@ export function useCoachAssignments() {
     queryKey: ["coach-assignments", user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
-
-      const { data, error } = await supabase
-        .from("plan_assignments")
-        .select(`
-          *,
-          workout_template:workout_templates(
-            id, name, description, difficulty, days_per_week, duration_weeks
-          )
-        `)
-        .eq("coach_id", user.id)
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      return data as PlanAssignmentWithDetails[];
+      const data = await api.get<PlanAssignmentWithDetails[]>('/api/coach/assignments');
+      return data;
     },
     enabled: !!user?.id,
   });
@@ -122,54 +96,26 @@ export function useAssignPlan() {
     }) => {
       if (!user?.id) throw new Error("Not authenticated");
 
-      const { data, error } = await supabase
-        .from("plan_assignments")
-        .insert({
-          coach_id: user.id,
-          client_id: clientId,
-          plan_type: planType,
-          workout_template_id: workoutTemplateId || null,
-          diet_plan_id: dietPlanId || null,
-          start_date: startDate,
-          end_date: endDate || null,
-          coach_notes: notes || null,
-          status: "active",
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      // Notify client
-      await supabase.from("notifications").insert({
-        user_id: clientId,
-        type: "plan_assigned",
-        title: "New Plan Assigned",
-        message: `Your coach has assigned a new ${planType} plan for you`,
-        reference_type: "plan_assignment",
-        reference_id: data.id,
+      const data = await api.post<PlanAssignment>('/api/coach/assignments', {
+        clientId,
+        planType,
+        workoutTemplateId,
+        dietPlanId,
+        startDate,
+        endDate,
+        notes,
+        planName,
+        coachName,
       });
-
-      // Send email notification to client
-      if (planName && coachName) {
-        try {
-          await supabase.functions.invoke("send-plan-notification", {
-            body: { 
-              type: planType, 
-              clientId,
-              planName,
-              coachName,
-            },
-          });
-        } catch (e) {
-          console.log("Email notification failed (non-critical):", e);
-        }
-      }
 
       return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["coach-assignments", user?.id] });
+      toast.success("Plan assigned successfully");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to assign plan");
     },
   });
 }
@@ -183,18 +129,15 @@ export function useUpdateAssignment() {
       id, 
       ...updates 
     }: Partial<PlanAssignment> & { id: string }) => {
-      const { data, error } = await supabase
-        .from("plan_assignments")
-        .update(updates)
-        .eq("id", id)
-        .select()
-        .single();
-
-      if (error) throw error;
+      const data = await api.put<PlanAssignment>(`/api/coach/assignments/${id}`, updates);
       return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["coach-assignments", user?.id] });
+      toast.success("Assignment updated");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to update assignment");
     },
   });
 }

@@ -1,16 +1,11 @@
 /**
  * Notification Service Abstraction Layer
  * 
- * Provides a unified interface for notifications that works with:
- * - Supabase (current development)
- * - Azure (future production)
- * 
- * Supports both in-app notifications and email notifications.
+ * All notification operations go through the backend API.
  */
 
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import { emailService } from "./email";
-import type { TablesInsert } from "@/integrations/supabase/types";
 
 export interface Notification {
   id?: string;
@@ -32,14 +27,11 @@ export interface NotificationResult {
 }
 
 export interface NotificationService {
-  // In-app notifications
   sendNotification(notification: Omit<Notification, "id" | "createdAt">): Promise<NotificationResult>;
   getUserNotifications(userId: string, limit?: number): Promise<Notification[]>;
   markAsRead(notificationId: string): Promise<NotificationResult>;
   markAllAsRead(userId: string): Promise<NotificationResult>;
   getUnreadCount(userId: string): Promise<number>;
-  
-  // Combined notifications (in-app + email)
   notifyUser(params: {
     userId: string;
     email: string;
@@ -53,33 +45,22 @@ export interface NotificationService {
 }
 
 /**
- * Supabase implementation
+ * API-based notification service
  */
-class SupabaseNotificationService implements NotificationService {
+class ApiNotificationService implements NotificationService {
   async sendNotification(
     notification: Omit<Notification, "id" | "createdAt">
   ): Promise<NotificationResult> {
     try {
-      const insertData: TablesInsert<"notifications"> = {
-        user_id: notification.userId,
+      const data = await api.post<{ id: string }>('/api/notifications', {
+        userId: notification.userId,
         type: notification.type,
         title: notification.title,
         message: notification.message,
-        reference_type: notification.referenceType || null,
-        reference_id: notification.referenceId || null,
-        data: notification.data ? JSON.parse(JSON.stringify(notification.data)) : null,
-        is_read: false,
-      };
-
-      const { data, error } = await supabase
-        .from("notifications")
-        .insert(insertData)
-        .select()
-        .single();
-
-      if (error) {
-        return { success: false, error: error.message };
-      }
+        referenceType: notification.referenceType,
+        referenceId: notification.referenceId,
+        data: notification.data,
+      });
 
       return { success: true, notificationId: data.id };
     } catch (err) {
@@ -92,17 +73,18 @@ class SupabaseNotificationService implements NotificationService {
 
   async getUserNotifications(userId: string, limit = 50): Promise<Notification[]> {
     try {
-      const { data, error } = await supabase
-        .from("notifications")
-        .select("*")
-        .eq("user_id", userId)
-        .order("created_at", { ascending: false })
-        .limit(limit);
-
-      if (error) {
-        console.error("Error fetching notifications:", error);
-        return [];
-      }
+      const data = await api.get<Array<{
+        id: string;
+        user_id: string;
+        type: string;
+        title: string;
+        message: string;
+        reference_type?: string;
+        reference_id?: string;
+        data?: Record<string, unknown>;
+        is_read: boolean;
+        created_at: string;
+      }>>(`/api/notifications?limit=${limit}`);
 
       return data.map((n) => ({
         id: n.id,
@@ -110,9 +92,9 @@ class SupabaseNotificationService implements NotificationService {
         type: n.type,
         title: n.title,
         message: n.message,
-        referenceType: n.reference_type || undefined,
-        referenceId: n.reference_id || undefined,
-        data: n.data as Record<string, unknown> | undefined,
+        referenceType: n.reference_type,
+        referenceId: n.reference_id,
+        data: n.data,
         isRead: n.is_read,
         createdAt: n.created_at,
       }));
@@ -124,15 +106,7 @@ class SupabaseNotificationService implements NotificationService {
 
   async markAsRead(notificationId: string): Promise<NotificationResult> {
     try {
-      const { error } = await supabase
-        .from("notifications")
-        .update({ is_read: true, read_at: new Date().toISOString() })
-        .eq("id", notificationId);
-
-      if (error) {
-        return { success: false, error: error.message };
-      }
-
+      await api.put(`/api/notifications/${notificationId}/read`, {});
       return { success: true };
     } catch (err) {
       return {
@@ -144,16 +118,7 @@ class SupabaseNotificationService implements NotificationService {
 
   async markAllAsRead(userId: string): Promise<NotificationResult> {
     try {
-      const { error } = await supabase
-        .from("notifications")
-        .update({ is_read: true, read_at: new Date().toISOString() })
-        .eq("user_id", userId)
-        .eq("is_read", false);
-
-      if (error) {
-        return { success: false, error: error.message };
-      }
-
+      await api.put('/api/notifications/mark-all-read', {});
       return { success: true };
     } catch (err) {
       return {
@@ -165,18 +130,8 @@ class SupabaseNotificationService implements NotificationService {
 
   async getUnreadCount(userId: string): Promise<number> {
     try {
-      const { count, error } = await supabase
-        .from("notifications")
-        .select("*", { count: "exact", head: true })
-        .eq("user_id", userId)
-        .eq("is_read", false);
-
-      if (error) {
-        console.error("Error getting unread count:", error);
-        return 0;
-      }
-
-      return count || 0;
+      const data = await api.get<{ count: number }>('/api/notifications/unread-count');
+      return data.count;
     } catch (err) {
       console.error("Error getting unread count:", err);
       return 0;
@@ -193,7 +148,7 @@ class SupabaseNotificationService implements NotificationService {
     emailHtml?: string;
     sendEmail?: boolean;
   }): Promise<NotificationResult> {
-    // Always send in-app notification
+    // Send in-app notification
     const inAppResult = await this.sendNotification({
       userId: params.userId,
       type: params.type,
@@ -211,7 +166,6 @@ class SupabaseNotificationService implements NotificationService {
         });
       } catch (err) {
         console.error("Failed to send email notification:", err);
-        // Don't fail the whole operation if email fails
       }
     }
 
@@ -221,7 +175,7 @@ class SupabaseNotificationService implements NotificationService {
 
 // Factory function
 export function getNotificationService(): NotificationService {
-  return new SupabaseNotificationService();
+  return new ApiNotificationService();
 }
 
 // Export singleton instance

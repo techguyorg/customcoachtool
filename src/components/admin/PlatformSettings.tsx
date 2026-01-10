@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,18 +28,8 @@ export function PlatformSettings() {
   const { data: settings, isLoading } = useQuery({
     queryKey: ["platform-settings"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("platform_settings")
-        .select("*")
-        .order("category", { ascending: true });
-      
-      if (error) throw error;
-      
-      // Parse JSON values
-      return (data || []).map(s => ({
-        ...s,
-        setting_value: JSON.parse(s.setting_value as string)
-      })) as PlatformSetting[];
+      const data = await api.get<PlatformSetting[]>('/api/admin/settings');
+      return data;
     },
   });
 
@@ -92,15 +82,7 @@ export function PlatformSettings() {
 
   const updateSettingMutation = useMutation({
     mutationFn: async ({ key, value }: { key: string; value: any }) => {
-      const { error } = await supabase
-        .from("platform_settings")
-        .update({ 
-          setting_value: JSON.stringify(value),
-          updated_by: user?.id
-        })
-        .eq("setting_key", key);
-      
-      if (error) throw error;
+      await api.put(`/api/admin/settings/${key}`, { value });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["platform-settings"] });
