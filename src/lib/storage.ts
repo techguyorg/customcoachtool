@@ -1,14 +1,11 @@
 /**
  * Storage Service Abstraction Layer
  * 
- * Provides a unified interface for file storage operations that works with:
- * - Supabase Storage (current development)
- * - Azure Blob Storage (future production)
- * 
- * This abstraction allows seamless migration between storage providers.
+ * All file storage operations go through the backend API,
+ * which handles Azure Blob Storage.
  */
 
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 
 export interface UploadResult {
   success: boolean;
@@ -27,24 +24,13 @@ export interface StorageService {
 }
 
 /**
- * Supabase Storage implementation
+ * Azure Blob Storage implementation via API
  */
-class SupabaseStorageService implements StorageService {
+class AzureStorageService implements StorageService {
   async uploadFile(bucket: string, path: string, file: File): Promise<UploadResult> {
     try {
-      const { data, error } = await supabase.storage
-        .from(bucket)
-        .upload(path, file, {
-          cacheControl: "3600",
-          upsert: false,
-        });
-
-      if (error) {
-        return { success: false, error: error.message };
-      }
-
-      const url = this.getPublicUrl(bucket, data.path);
-      return { success: true, path: data.path, url };
+      const data = await api.upload<{ path: string; url: string }>(`/api/storage/upload`, file, `${bucket}/${path}`);
+      return { success: true, path: data.path, url: data.url };
     } catch (err) {
       return {
         success: false,
@@ -60,28 +46,13 @@ class SupabaseStorageService implements StorageService {
     contentType: string
   ): Promise<UploadResult> {
     try {
-      // Convert base64 to Uint8Array
-      const base64WithoutPrefix = base64Data.replace(/^data:[^;]+;base64,/, "");
-      const binaryString = atob(base64WithoutPrefix);
-      const bytes = new Uint8Array(binaryString.length);
-      for (let i = 0; i < binaryString.length; i++) {
-        bytes[i] = binaryString.charCodeAt(i);
-      }
-
-      const { data, error } = await supabase.storage
-        .from(bucket)
-        .upload(path, bytes.buffer, {
-          contentType,
-          cacheControl: "3600",
-          upsert: false,
-        });
-
-      if (error) {
-        return { success: false, error: error.message };
-      }
-
-      const url = this.getPublicUrl(bucket, data.path);
-      return { success: true, path: data.path, url };
+      const data = await api.post<{ path: string; url: string }>('/api/storage/upload-base64', {
+        bucket,
+        path,
+        base64Data,
+        contentType,
+      });
+      return { success: true, path: data.path, url: data.url };
     } catch (err) {
       return {
         success: false,
@@ -91,21 +62,18 @@ class SupabaseStorageService implements StorageService {
   }
 
   getPublicUrl(bucket: string, path: string): string {
-    const { data } = supabase.storage.from(bucket).getPublicUrl(path);
-    return data.publicUrl;
+    // Azure blob storage URL format
+    const baseUrl = import.meta.env.VITE_AZURE_STORAGE_URL || '';
+    return `${baseUrl}/${bucket}/${path}`;
   }
 
   async getSignedUrl(bucket: string, path: string, expiresIn = 3600): Promise<string | null> {
     try {
-      const { data, error } = await supabase.storage
-        .from(bucket)
-        .createSignedUrl(path, expiresIn);
-
-      if (error) {
-        console.error("Error creating signed URL:", error);
-        return null;
-      }
-
+      const data = await api.post<{ signedUrl: string }>('/api/storage/signed-url', {
+        bucket,
+        path,
+        expiresIn,
+      });
       return data.signedUrl;
     } catch (err) {
       console.error("Error creating signed URL:", err);
@@ -115,12 +83,7 @@ class SupabaseStorageService implements StorageService {
 
   async deleteFile(bucket: string, path: string): Promise<{ success: boolean; error?: string }> {
     try {
-      const { error } = await supabase.storage.from(bucket).remove([path]);
-
-      if (error) {
-        return { success: false, error: error.message };
-      }
-
+      await api.delete(`/api/storage/files?bucket=${bucket}&path=${encodeURIComponent(path)}`);
       return { success: true };
     } catch (err) {
       return {
@@ -132,13 +95,8 @@ class SupabaseStorageService implements StorageService {
 
   async listFiles(bucket: string, path = ""): Promise<{ data: string[]; error?: string }> {
     try {
-      const { data, error } = await supabase.storage.from(bucket).list(path);
-
-      if (error) {
-        return { data: [], error: error.message };
-      }
-
-      return { data: data.map((file) => file.name) };
+      const data = await api.get<{ files: string[] }>(`/api/storage/list?bucket=${bucket}&path=${encodeURIComponent(path)}`);
+      return { data: data.files };
     } catch (err) {
       return {
         data: [],
@@ -148,47 +106,9 @@ class SupabaseStorageService implements StorageService {
   }
 }
 
-/**
- * Azure Blob Storage implementation (future)
- * Uncomment and configure when migrating to Azure
- */
-// class AzureStorageService implements StorageService {
-//   private connectionString: string;
-//   private containerBaseUrl: string;
-//   
-//   constructor(connectionString: string, containerBaseUrl: string) {
-//     this.connectionString = connectionString;
-//     this.containerBaseUrl = containerBaseUrl;
-//   }
-//   
-//   async uploadFile(bucket: string, path: string, file: File): Promise<UploadResult> {
-//     // Use @azure/storage-blob SDK
-//     // const blobServiceClient = BlobServiceClient.fromConnectionString(this.connectionString);
-//     // const containerClient = blobServiceClient.getContainerClient(bucket);
-//     // const blockBlobClient = containerClient.getBlockBlobClient(path);
-//     // await blockBlobClient.uploadData(await file.arrayBuffer());
-//     throw new Error("Not implemented");
-//   }
-//   
-//   getPublicUrl(bucket: string, path: string): string {
-//     return `${this.containerBaseUrl}/${bucket}/${path}`;
-//   }
-//   
-//   // ... implement other methods
-// }
-
 // Factory function
 export function getStorageService(): StorageService {
-  // Future: Check environment to determine which service to use
-  // const provider = import.meta.env.VITE_STORAGE_PROVIDER;
-  // if (provider === 'azure') {
-  //   return new AzureStorageService(
-  //     import.meta.env.VITE_AZURE_STORAGE_CONNECTION_STRING,
-  //     import.meta.env.VITE_AZURE_STORAGE_BASE_URL
-  //   );
-  // }
-  
-  return new SupabaseStorageService();
+  return new AzureStorageService();
 }
 
 // Export singleton instance

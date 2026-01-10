@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
-import { Json } from "@/integrations/supabase/types";
+import { toast } from "sonner";
 
 export interface SetData {
   setNumber: number;
@@ -66,19 +66,9 @@ export function useWorkoutLogs(clientId?: string) {
     queryKey: ["workout-logs", targetId],
     queryFn: async () => {
       if (!targetId) return [];
-
-      const { data, error } = await supabase
-        .from("workout_logs")
-        .select(`
-          *,
-          workout_template:workout_templates(id, name, description),
-          template_day:workout_template_days(id, name, day_number)
-        `)
-        .eq("client_id", targetId)
-        .order("workout_date", { ascending: false });
-
-      if (error) throw error;
-      return data as WorkoutLog[];
+      const endpoint = clientId ? `/api/coach/clients/${clientId}/workout-logs` : '/api/client/workout-logs';
+      const data = await api.get<WorkoutLog[]>(endpoint);
+      return data;
     },
     enabled: !!targetId,
   });
@@ -89,37 +79,8 @@ export function useWorkoutLogDetail(logId: string | null) {
     queryKey: ["workout-log-detail", logId],
     queryFn: async () => {
       if (!logId) return null;
-
-      const { data: log, error: logError } = await supabase
-        .from("workout_logs")
-        .select(`
-          *,
-          workout_template:workout_templates(id, name, description),
-          template_day:workout_template_days(id, name, day_number)
-        `)
-        .eq("id", logId)
-        .single();
-
-      if (logError) throw logError;
-
-      const { data: exercises, error: exercisesError } = await supabase
-        .from("workout_log_exercises")
-        .select(`
-          *,
-          exercise:exercises(id, name, primary_muscle, equipment)
-        `)
-        .eq("workout_log_id", logId)
-        .order("order_index");
-
-      if (exercisesError) throw exercisesError;
-
-      return {
-        ...log,
-        exercises: exercises.map(e => ({
-          ...e,
-          set_data: Array.isArray(e.set_data) ? e.set_data as unknown as SetData[] : null
-        }))
-      } as WorkoutLog;
+      const data = await api.get<WorkoutLog>(`/api/workouts/logs/${logId}`);
+      return data;
     },
     enabled: !!logId,
   });
@@ -145,105 +106,21 @@ export function useCreateWorkoutLog() {
     }) => {
       if (!user?.id) throw new Error("Not authenticated");
 
-      // Create the workout log
-      const { data: log, error: logError } = await supabase
-        .from("workout_logs")
-        .insert({
-          client_id: user.id,
-          template_id: templateId || null,
-          template_day_id: templateDayId || null,
-          assignment_id: assignmentId || null,
-          workout_date: workoutDate || new Date().toISOString().split('T')[0],
-          started_at: new Date().toISOString(),
-          status: "in_progress",
-        })
-        .select()
-        .single();
+      const data = await api.post<WorkoutLog>('/api/workouts/logs', {
+        templateId,
+        templateDayId,
+        assignmentId,
+        workoutDate: workoutDate || new Date().toISOString().split('T')[0],
+        preloadExercises,
+      });
 
-      if (logError) throw logError;
-
-      // If we have a template and want to preload exercises, get the template day exercises
-      if (templateId && preloadExercises) {
-        // First find the next workout day based on the template
-        // For now, we'll get the first day's exercises if no specific day is provided
-        let dayId = templateDayId;
-        
-        if (!dayId) {
-          // Get days for this template, ordered by day_number
-          const { data: days } = await supabase
-            .from("workout_template_days")
-            .select("id, day_number, name")
-            .eq("template_id", templateId)
-            .order("day_number")
-            .limit(1);
-          
-          if (days && days.length > 0) {
-            dayId = days[0].id;
-            
-            // Update the log with the day_id
-            await supabase
-              .from("workout_logs")
-              .update({ template_day_id: dayId })
-              .eq("id", log.id);
-          }
-        }
-
-        if (dayId) {
-          // Get exercises for this day
-          const { data: templateExercises } = await supabase
-            .from("workout_template_exercises")
-            .select(`
-              id,
-              exercise_id,
-              custom_exercise_name,
-              sets_min,
-              reps_min,
-              reps_max,
-              order_index,
-              notes,
-              exercise:exercises(id, name)
-            `)
-            .eq("day_id", dayId)
-            .order("order_index");
-
-          if (templateExercises && templateExercises.length > 0) {
-            // Create workout log exercises based on template
-            const exercisesToInsert = templateExercises.map((te, index) => {
-              const exerciseName = te.exercise?.name || te.custom_exercise_name || "Unknown Exercise";
-              
-              // Create initial set data based on template's sets_min
-              const initialSets: Json[] = [];
-              for (let i = 0; i < te.sets_min; i++) {
-                initialSets.push({
-                  setNumber: i + 1,
-                  reps: te.reps_min,
-                  weight: 0,
-                  completed: false,
-                });
-              }
-
-              return {
-                workout_log_id: log.id,
-                exercise_id: te.exercise_id,
-                exercise_name: exerciseName,
-                order_index: te.order_index || index,
-                sets_completed: 0,
-                set_data: initialSets,
-                notes: te.notes,
-              };
-            });
-
-            await supabase
-              .from("workout_log_exercises")
-              .insert(exercisesToInsert);
-          }
-        }
-      }
-
-      return log;
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["workout-logs"] });
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to create workout log");
     },
   });
 }
@@ -264,19 +141,15 @@ export function useUpdateWorkoutLog() {
       perceived_effort?: number;
       satisfaction_rating?: number;
     }) => {
-      const { data, error } = await supabase
-        .from("workout_logs")
-        .update(updates)
-        .eq("id", id)
-        .select()
-        .single();
-
-      if (error) throw error;
+      const data = await api.put<WorkoutLog>(`/api/workouts/logs/${id}`, updates);
       return data;
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["workout-logs"] });
       queryClient.invalidateQueries({ queryKey: ["workout-log-detail", variables.id] });
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to update workout log");
     },
   });
 }
@@ -296,24 +169,18 @@ export function useAddWorkoutExercise() {
       exerciseName: string;
       orderIndex: number;
     }) => {
-      const { data, error } = await supabase
-        .from("workout_log_exercises")
-        .insert({
-          workout_log_id: workoutLogId,
-          exercise_id: exerciseId || null,
-          exercise_name: exerciseName,
-          order_index: orderIndex,
-          sets_completed: 0,
-          set_data: [] as unknown as Json,
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
+      const data = await api.post(`/api/workouts/logs/${workoutLogId}/exercises`, {
+        exerciseId,
+        exerciseName,
+        orderIndex,
+      });
       return data;
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["workout-log-detail", variables.workoutLogId] });
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to add exercise");
     },
   });
 }
@@ -335,23 +202,18 @@ export function useUpdateWorkoutExercise() {
       setData?: SetData[];
       notes?: string;
     }) => {
-      const updates: Record<string, unknown> = {};
-      if (setsCompleted !== undefined) updates.sets_completed = setsCompleted;
-      if (setData !== undefined) updates.set_data = setData as unknown as Json;
-      if (notes !== undefined) updates.notes = notes;
-
-      const { data, error } = await supabase
-        .from("workout_log_exercises")
-        .update(updates)
-        .eq("id", id)
-        .select()
-        .single();
-
-      if (error) throw error;
+      const data = await api.put(`/api/workouts/logs/exercises/${id}`, {
+        setsCompleted,
+        setData,
+        notes,
+      });
       return data;
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["workout-log-detail", variables.workoutLogId] });
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to update exercise");
     },
   });
 }
@@ -361,21 +223,14 @@ export function useDeleteWorkoutLog() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      // Delete exercises first
-      await supabase
-        .from("workout_log_exercises")
-        .delete()
-        .eq("workout_log_id", id);
-
-      const { error } = await supabase
-        .from("workout_logs")
-        .delete()
-        .eq("id", id);
-
-      if (error) throw error;
+      await api.delete(`/api/workouts/logs/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["workout-logs"] });
+      toast.success("Workout deleted");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to delete workout");
     },
   });
 }
@@ -388,63 +243,14 @@ export function useWorkoutStats(clientId?: string) {
     queryKey: ["workout-stats", targetId],
     queryFn: async () => {
       if (!targetId) return null;
-
-      // Get this week's workouts
-      const startOfWeek = new Date();
-      startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
-      startOfWeek.setHours(0, 0, 0, 0);
-
-      const { data: weekWorkouts, error: weekError } = await supabase
-        .from("workout_logs")
-        .select("id, status, duration_minutes")
-        .eq("client_id", targetId)
-        .gte("workout_date", startOfWeek.toISOString().split('T')[0])
-        .eq("status", "completed");
-
-      if (weekError) throw weekError;
-
-      // Get streak (consecutive days with workouts)
-      const { data: recentLogs, error: streakError } = await supabase
-        .from("workout_logs")
-        .select("workout_date")
-        .eq("client_id", targetId)
-        .eq("status", "completed")
-        .order("workout_date", { ascending: false })
-        .limit(30);
-
-      if (streakError) throw streakError;
-
-      let streak = 0;
-      if (recentLogs.length > 0) {
-        const today = new Date().toISOString().split('T')[0];
-        const dates = [...new Set(recentLogs.map(l => l.workout_date))];
-        
-        for (let i = 0; i < dates.length; i++) {
-          const checkDate = new Date();
-          checkDate.setDate(checkDate.getDate() - i);
-          const checkDateStr = checkDate.toISOString().split('T')[0];
-          
-          if (dates.includes(checkDateStr)) {
-            streak++;
-          } else if (i > 0) {
-            break;
-          }
-        }
-      }
-
-      // Get total workouts
-      const { count: totalWorkouts } = await supabase
-        .from("workout_logs")
-        .select("*", { count: "exact", head: true })
-        .eq("client_id", targetId)
-        .eq("status", "completed");
-
-      return {
-        workoutsThisWeek: weekWorkouts?.length || 0,
-        totalMinutesThisWeek: weekWorkouts?.reduce((acc, w) => acc + (w.duration_minutes || 0), 0) || 0,
-        currentStreak: streak,
-        totalWorkouts: totalWorkouts || 0,
-      };
+      const endpoint = clientId ? `/api/coach/clients/${clientId}/workout-stats` : '/api/client/workout-stats';
+      const data = await api.get<{
+        workoutsThisWeek: number;
+        totalMinutesThisWeek: number;
+        currentStreak: number;
+        totalWorkouts: number;
+      }>(endpoint);
+      return data;
     },
     enabled: !!targetId,
   });

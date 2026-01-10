@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -80,12 +80,7 @@ export function BulkImportExport() {
   const exportData = async () => {
     setExporting(true);
     try {
-      const { data, error } = await supabase
-        .from(selectedType)
-        .select("*")
-        .eq("is_system", true);
-
-      if (error) throw error;
+      const data = await api.get<Record<string, unknown>[]>(`/api/admin/content/${selectedType}/export`);
 
       const headers = CSV_HEADERS[selectedType];
       const csvContent = [
@@ -187,11 +182,7 @@ export function BulkImportExport() {
         return transformed;
       });
 
-      const { error } = await supabase
-        .from(selectedType)
-        .insert(transformedRows as any);
-
-      if (error) throw error;
+      await api.post(`/api/admin/content/${selectedType}/import`, { data: transformedRows });
 
       queryClient.invalidateQueries({ queryKey: [`admin-${selectedType}`] });
       toast({ title: `Successfully imported ${rows.length} ${selectedType}` });

@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
@@ -17,35 +17,10 @@ export function useStartProgram() {
     }) => {
       if (!user?.id) throw new Error("Not authenticated");
 
-      // Check if already assigned/active
-      const { data: existing } = await supabase
-        .from("plan_assignments")
-        .select("id")
-        .eq("client_id", user.id)
-        .eq("workout_template_id", templateId)
-        .eq("status", "active")
-        .maybeSingle();
-
-      if (existing) {
-        throw new Error("You already have this program active");
-      }
-
-      // Create self-assignment (coach_id = client_id for self-assigned)
-      const { data, error } = await supabase
-        .from("plan_assignments")
-        .insert({
-          coach_id: user.id,
-          client_id: user.id,
-          plan_type: "workout",
-          workout_template_id: templateId,
-          start_date: startDate,
-          status: "active",
-          coach_notes: "Self-assigned program",
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
+      const data = await api.post('/api/client/start-program', {
+        templateId,
+        startDate,
+      });
 
       return data;
     },
@@ -74,35 +49,10 @@ export function useStartDietPlan() {
     }) => {
       if (!user?.id) throw new Error("Not authenticated");
 
-      // Check if already assigned/active
-      const { data: existing } = await supabase
-        .from("plan_assignments")
-        .select("id")
-        .eq("client_id", user.id)
-        .eq("diet_plan_id", dietPlanId)
-        .eq("status", "active")
-        .maybeSingle();
-
-      if (existing) {
-        throw new Error("You already have this diet plan active");
-      }
-
-      // Create self-assignment
-      const { data, error } = await supabase
-        .from("plan_assignments")
-        .insert({
-          coach_id: user.id,
-          client_id: user.id,
-          plan_type: "diet",
-          diet_plan_id: dietPlanId,
-          start_date: startDate,
-          status: "active",
-          coach_notes: "Self-assigned diet plan",
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
+      const data = await api.post('/api/client/start-diet-plan', {
+        dietPlanId,
+        startDate,
+      });
 
       return data;
     },

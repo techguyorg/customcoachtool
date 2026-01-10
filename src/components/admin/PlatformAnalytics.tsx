@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { useAdminStats } from "@/hooks/useAdminStats";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Users, UserCheck, Shield, Handshake, Dumbbell, UtensilsCrossed, ChefHat, Apple, ArrowRight, TrendingUp, Activity, Calendar, Star } from "lucide-react";
 import { format, subDays } from "date-fns";
@@ -16,44 +16,13 @@ export function PlatformAnalytics() {
   const { data: recentActivity } = useQuery({
     queryKey: ["admin-recent-activity"],
     queryFn: async () => {
-      const sevenDaysAgo = subDays(new Date(), 7).toISOString();
-      const thirtyDaysAgo = subDays(new Date(), 30).toISOString();
-      
-      const [newUsersRes, checkinsRes, workoutLogsRes, topCoachesRes] = await Promise.all([
-        // New users in last 7 days
-        supabase
-          .from("profiles")
-          .select("id", { count: "exact", head: true })
-          .gte("created_at", sevenDaysAgo),
-        // Checkins in last 30 days
-        supabase
-          .from("client_checkins")
-          .select("id", { count: "exact", head: true })
-          .gte("created_at", thirtyDaysAgo),
-        // Workout logs in last 30 days
-        supabase
-          .from("workout_logs")
-          .select("id", { count: "exact", head: true })
-          .gte("created_at", thirtyDaysAgo),
-        // Top coaches by client count
-        supabase
-          .from("coach_client_relationships")
-          .select("coach_id")
-          .eq("status", "active"),
-      ]);
-
-      // Count clients per coach
-      const coachCounts = new Map<string, number>();
-      topCoachesRes.data?.forEach(r => {
-        coachCounts.set(r.coach_id, (coachCounts.get(r.coach_id) || 0) + 1);
-      });
-
-      return {
-        newUsersWeek: newUsersRes.count || 0,
-        checkinsMonth: checkinsRes.count || 0,
-        workoutsMonth: workoutLogsRes.count || 0,
-        topCoachClientCount: Math.max(...Array.from(coachCounts.values()), 0),
-      };
+      const data = await api.get<{
+        newUsersWeek: number;
+        checkinsMonth: number;
+        workoutsMonth: number;
+        topCoachClientCount: number;
+      }>('/api/admin/recent-activity');
+      return data;
     },
   });
 

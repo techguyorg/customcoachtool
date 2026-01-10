@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,66 +30,18 @@ export function SuperAdminManagement() {
   const { data: superAdmins, isLoading } = useQuery({
     queryKey: ["super-admins"],
     queryFn: async (): Promise<SuperAdmin[]> => {
-      const { data, error } = await supabase.rpc("list_super_admins");
-      if (error) throw error;
-      return data || [];
+      const data = await api.get<SuperAdmin[]>('/api/admin/super-admins');
+      return data;
     },
   });
 
-  const logAuditAction = async (actionType: string, targetUserId: string, details: Record<string, string>) => {
-    try {
-      await supabase.from("admin_audit_logs").insert([{
-        admin_user_id: user?.id,
-        action_type: actionType,
-        target_user_id: targetUserId,
-        target_resource_type: "user",
-        details: details as any,
-      }]);
-    } catch (error) {
-      console.error("Failed to log audit action:", error);
-    }
-  };
-
-  const sendNotification = async (type: "super_admin_granted" | "super_admin_revoked", targetEmail: string, targetName: string) => {
-    try {
-      await supabase.functions.invoke("send-admin-notification", {
-        body: {
-          type,
-          targetEmail,
-          targetName,
-          performedByName: user?.fullName || "System Admin",
-        },
-      });
-    } catch (error) {
-      console.error("Failed to send notification:", error);
-    }
-  };
-
   const assignMutation = useMutation({
     mutationFn: async (targetEmail: string) => {
-      const { data, error } = await supabase.rpc("assign_super_admin_by_email", {
-        target_email: targetEmail,
-      });
-      if (error) throw error;
-      return { result: data as string, email: targetEmail };
+      const data = await api.post<{ result: string }>('/api/admin/super-admins', { email: targetEmail });
+      return { result: data.result, email: targetEmail };
     },
     onSuccess: async ({ result, email: targetEmail }) => {
       if (result.startsWith("SUCCESS")) {
-        // Get the user info for audit log
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("user_id, full_name")
-          .eq("email", targetEmail)
-          .single();
-        
-        if (profile) {
-          await logAuditAction("super_admin_granted", profile.user_id, { 
-            target_email: targetEmail,
-            target_name: profile.full_name 
-          });
-          await sendNotification("super_admin_granted", targetEmail, profile.full_name);
-        }
-        
         toast.success("Super admin role assigned successfully");
         queryClient.invalidateQueries({ queryKey: ["super-admins"] });
         setEmail("");
@@ -107,20 +59,11 @@ export function SuperAdminManagement() {
 
   const revokeMutation = useMutation({
     mutationFn: async (admin: SuperAdmin) => {
-      const { data, error } = await supabase.rpc("revoke_super_admin_by_email", {
-        target_email: admin.email,
-      });
-      if (error) throw error;
-      return { result: data as string, admin };
+      const data = await api.delete<{ result: string }>(`/api/admin/super-admins/${admin.user_id}`);
+      return { result: data.result, admin };
     },
     onSuccess: async ({ result, admin }) => {
       if (result.startsWith("SUCCESS")) {
-        await logAuditAction("super_admin_revoked", admin.user_id, { 
-          target_email: admin.email,
-          target_name: admin.full_name 
-        });
-        await sendNotification("super_admin_revoked", admin.email, admin.full_name);
-        
         toast.success("Super admin role revoked");
         queryClient.invalidateQueries({ queryKey: ["super-admins"] });
       } else {
