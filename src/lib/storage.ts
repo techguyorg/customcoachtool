@@ -113,3 +113,17 @@ export function getStorageService(): StorageService {
 
 // Export singleton instance
 export const storageService = getStorageService();
+
+/**
+ * Convenience function for uploading files
+ * Used by profile pages for avatar uploads
+ */
+export async function uploadFile(
+  file: File,
+  bucket: string,
+  userId: string
+): Promise<UploadResult> {
+  const fileExt = file.name.split('.').pop();
+  const fileName = `${userId}-${Date.now()}.${fileExt}`;
+  return storageService.uploadFile(bucket, fileName, file);
+}

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
+import { uploadFile } from "@/lib/storage";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -57,6 +58,25 @@ const CERTIFICATION_OPTIONS = [
   "USA Weightlifting",
 ];
 
+interface ProfileData {
+  full_name?: string;
+  bio?: string;
+  phone?: string;
+  avatar_url?: string;
+}
+
+interface CoachProfileData {
+  specializations?: string[];
+  certifications?: string[];
+  experience_years?: number;
+  hourly_rate?: number | null;
+  currency?: string;
+  max_clients?: number;
+  is_accepting_clients?: boolean;
+  email_checkin_received?: boolean;
+  email_plan_assigned?: boolean;
+}
+
 export default function CoachSettingsPage() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -66,16 +86,7 @@ export default function CoachSettingsPage() {
     queryKey: ["coach-settings", user?.id],
     queryFn: async () => {
       if (!user?.id) return null;
-
-      const [profileRes, coachRes] = await Promise.all([
-        supabase.from("profiles").select("*").eq("user_id", user.id).single(),
-        supabase.from("coach_profiles").select("*").eq("user_id", user.id).single(),
-      ]);
-
-      return {
-        profile: profileRes.data,
-        coachProfile: coachRes.data,
-      };
+      return api.get<{ profile: ProfileData; coachProfile: CoachProfileData }>("/api/coach/settings");
     },
     enabled: !!user?.id,
   });
@@ -114,7 +125,7 @@ export default function CoachSettingsPage() {
       setSpecializations(profiles.coachProfile?.specializations || []);
       setCertifications(profiles.coachProfile?.certifications || []);
       setExperienceYears(profiles.coachProfile?.experience_years || 0);
-      setHourlyRate(profiles.coachProfile?.hourly_rate);
+      setHourlyRate(profiles.coachProfile?.hourly_rate ?? null);
       setCurrency(profiles.coachProfile?.currency || "USD");
       setMaxClients(profiles.coachProfile?.max_clients || 50);
       setIsAcceptingClients(profiles.coachProfile?.is_accepting_clients ?? true);
@@ -135,23 +146,14 @@ export default function CoachSettingsPage() {
         finalCertifications = [...finalCertifications, pendingCert];
       }
 
-      // Update profile
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .update({
+      await api.put("/api/coach/settings", {
+        profile: {
           full_name: fullName,
           bio,
           phone,
           avatar_url: avatarUrl || null,
-        })
-        .eq("user_id", user.id);
-
-      if (profileError) throw profileError;
-
-      // Update coach profile
-      const { error: coachError } = await supabase
-        .from("coach_profiles")
-        .update({
+        },
+        coachProfile: {
           specializations,
           certifications: finalCertifications,
           experience_years: experienceYears,
@@ -161,10 +163,8 @@ export default function CoachSettingsPage() {
           is_accepting_clients: isAcceptingClients,
           email_checkin_received: emailCheckinReceived,
           email_plan_assigned: emailPlanAssigned,
-        })
-        .eq("user_id", user.id);
-
-      if (coachError) throw coachError;
+        },
+      });
     },
     onSuccess: () => {
       setCustomCertification(""); // Clear the input after successful save
@@ -281,23 +281,13 @@ export default function CoachSettingsPage() {
                   
                   setUploading(true);
                   try {
-                    // Upload to Supabase Storage
-                    const fileExt = file.name.split('.').pop();
-                    const fileName = `${user.id}-${Date.now()}.${fileExt}`;
-                    
-                    const { data, error } = await supabase.storage
-                      .from('avatars')
-                      .upload(fileName, file, { upsert: true });
-                    
-                    if (error) throw error;
-                    
-                    // Get public URL
-                    const { data: { publicUrl } } = supabase.storage
-                      .from('avatars')
-                      .getPublicUrl(fileName);
-                    
-                    setAvatarUrl(publicUrl);
-                    toast.success("Photo uploaded successfully!");
+                    const result = await uploadFile(file, "avatars", user.id);
+                    if (result.url) {
+                      setAvatarUrl(result.url);
+                      toast.success("Photo uploaded successfully!");
+                    } else {
+                      throw new Error(result.error || "Upload failed");
+                    }
                   } catch (error) {
                     console.error("Upload error:", error);
                     toast.error("Failed to upload photo. Try using a URL instead.");
@@ -492,8 +482,6 @@ export default function CoachSettingsPage() {
                     <SelectItem value="EUR">EUR</SelectItem>
                     <SelectItem value="GBP">GBP</SelectItem>
                     <SelectItem value="INR">INR</SelectItem>
-                    <SelectItem value="AUD">AUD</SelectItem>
-                    <SelectItem value="CAD">CAD</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -504,25 +492,22 @@ export default function CoachSettingsPage() {
                 id="maxClients"
                 type="number"
                 min={1}
-                max={100}
+                max={500}
                 value={maxClients}
-                onChange={(e) => setMaxClients(parseInt(e.target.value) || 1)}
+                onChange={(e) => setMaxClients(parseInt(e.target.value) || 50)}
                 className="mt-1"
               />
             </div>
           </div>
 
-          <Separator />
-
           <div className="flex items-center justify-between">
             <div>
-              <Label htmlFor="accepting" className="font-medium">Accepting New Clients</Label>
+              <p className="font-medium">Accepting New Clients</p>
               <p className="text-sm text-muted-foreground">
-                When enabled, you'll appear in the coach marketplace
+                Show your profile in the coach marketplace
               </p>
             </div>
             <Switch
-              id="accepting"
               checked={isAcceptingClients}
               onCheckedChange={setIsAcceptingClients}
             />
@@ -530,7 +515,7 @@ export default function CoachSettingsPage() {
         </CardContent>
       </Card>
 
-      {/* Email Notifications */}
+      {/* Email Preferences */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -538,19 +523,16 @@ export default function CoachSettingsPage() {
             Email Notifications
           </CardTitle>
           <CardDescription>
-            Control which emails you receive
+            Control which emails you receive from CustomCoachPro
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <Label htmlFor="email-checkin" className="font-medium">Check-in Received</Label>
-              <p className="text-sm text-muted-foreground">
-                Get notified when a client submits a check-in
-              </p>
+              <p className="font-medium">Check-in Received</p>
+              <p className="text-sm text-muted-foreground">Get notified when a client submits a check-in</p>
             </div>
             <Switch
-              id="email-checkin"
               checked={emailCheckinReceived}
               onCheckedChange={setEmailCheckinReceived}
             />
@@ -558,13 +540,10 @@ export default function CoachSettingsPage() {
           <Separator />
           <div className="flex items-center justify-between">
             <div>
-              <Label htmlFor="email-plan" className="font-medium">Plan Assignment Confirmation</Label>
-              <p className="text-sm text-muted-foreground">
-                Get confirmation when you assign a plan to a client
-              </p>
+              <p className="font-medium">Plan Assignment Confirmation</p>
+              <p className="text-sm text-muted-foreground">Get confirmation when you assign a plan to a client</p>
             </div>
             <Switch
-              id="email-plan"
               checked={emailPlanAssigned}
               onCheckedChange={setEmailPlanAssigned}
             />
@@ -572,7 +551,7 @@ export default function CoachSettingsPage() {
         </CardContent>
       </Card>
 
-      {/* Change Password */}
+      {/* Password Change */}
       <ChangePasswordCard />
 
       {/* Save Button */}
@@ -580,14 +559,14 @@ export default function CoachSettingsPage() {
         <Button 
           onClick={() => saveMutation.mutate()}
           disabled={saveMutation.isPending}
-          className="gap-2"
+          size="lg"
         >
           {saveMutation.isPending ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
+            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
           ) : (
-            <Save className="w-4 h-4" />
+            <Save className="w-4 h-4 mr-2" />
           )}
-          Save Changes
+          Save All Changes
         </Button>
       </div>
     </div>
