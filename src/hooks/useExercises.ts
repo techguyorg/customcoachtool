@@ -1,48 +1,26 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import type { Database } from "@/integrations/supabase/types";
-
-type Exercise = Database["public"]["Tables"]["exercises"]["Row"];
-type MuscleGroup = Database["public"]["Enums"]["muscle_group"];
-type EquipmentType = Database["public"]["Enums"]["equipment_type"];
-type DifficultyLevel = Database["public"]["Enums"]["difficulty_level"];
+import { api, Exercise } from "@/lib/api";
 
 export interface ExerciseFilters {
   search: string;
-  muscleGroup: MuscleGroup | "all";
-  equipment: EquipmentType | "all";
-  difficulty: DifficultyLevel | "all";
+  muscleGroup: string;
+  equipment: string;
+  difficulty: string;
 }
 
 export function useExercises(filters: ExerciseFilters) {
   return useQuery({
     queryKey: ["exercises", filters],
     queryFn: async () => {
-      let query = supabase
-        .from("exercises")
-        .select("*")
-        .order("name");
-
-      if (filters.search) {
-        query = query.ilike("name", `%${filters.search}%`);
-      }
-
-      if (filters.muscleGroup !== "all") {
-        query = query.eq("primary_muscle", filters.muscleGroup);
-      }
-
-      if (filters.equipment !== "all") {
-        query = query.eq("equipment", filters.equipment);
-      }
-
-      if (filters.difficulty !== "all") {
-        query = query.eq("difficulty", filters.difficulty);
-      }
-
-      const { data, error } = await query;
-
-      if (error) throw error;
-      return data as Exercise[];
+      const params = new URLSearchParams();
+      if (filters.search) params.append('search', filters.search);
+      if (filters.muscleGroup !== "all") params.append('muscle', filters.muscleGroup);
+      if (filters.equipment !== "all") params.append('equipment', filters.equipment);
+      if (filters.difficulty !== "all") params.append('difficulty', filters.difficulty);
+      
+      const queryString = params.toString();
+      const endpoint = `/api/exercises${queryString ? `?${queryString}` : ''}`;
+      return api.get<Exercise[]>(endpoint);
     },
   });
 }
@@ -51,13 +29,7 @@ export function useAllExercises() {
   return useQuery({
     queryKey: ["all-exercises"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("exercises")
-        .select("*")
-        .order("name");
-
-      if (error) throw error;
-      return data as Exercise[];
+      return api.get<Exercise[]>('/api/exercises');
     },
   });
 }
@@ -67,32 +39,22 @@ export function useExercise(id: string | null) {
     queryKey: ["exercise", id],
     queryFn: async () => {
       if (!id) return null;
-      
-      const { data, error } = await supabase
-        .from("exercises")
-        .select("*")
-        .eq("id", id)
-        .maybeSingle();
-
-      if (error) throw error;
-      return data as Exercise | null;
+      return api.get<Exercise>(`/api/exercises/${id}`);
     },
     enabled: !!id,
   });
 }
 
-export const MUSCLE_GROUPS: MuscleGroup[] = [
+export const MUSCLE_GROUPS = [
   "chest", "back", "shoulders", "biceps", "triceps", "forearms",
   "quadriceps", "hamstrings", "glutes", "calves", "abs", "obliques",
   "lower_back", "traps", "lats"
 ];
 
-export const EQUIPMENT_TYPES: EquipmentType[] = [
+export const EQUIPMENT_TYPES = [
   "barbell", "dumbbell", "cable", "machine", "bodyweight", "kettlebell",
   "resistance_band", "ez_bar", "smith_machine", "pull_up_bar", "dip_station",
   "bench", "cardio_machine", "other"
 ];
 
-export const DIFFICULTY_LEVELS: DifficultyLevel[] = [
-  "beginner", "intermediate", "advanced"
-];
+export const DIFFICULTY_LEVELS = ["beginner", "intermediate", "advanced"];

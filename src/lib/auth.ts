@@ -1,237 +1,31 @@
-/**
- * Authentication Service Layer
- * Abstraction for auth operations - can be swapped for Azure AD B2C later
- */
+// Re-export auth functions from api.ts for backward compatibility
+export { auth, type User as AuthUser } from './api';
+export type AppRole = 'client' | 'coach' | 'super_admin';
 
-import { supabase } from "@/integrations/supabase/client";
-import type { User, Session } from "@supabase/supabase-js";
+export const getStoredTokens = () => ({
+  accessToken: localStorage.getItem('access_token'),
+  refreshToken: localStorage.getItem('refresh_token'),
+});
 
-export type AppRole = "super_admin" | "coach" | "client";
+export const clearAuth = () => {
+  localStorage.removeItem('access_token');
+  localStorage.removeItem('refresh_token');
+};
 
-export interface AuthUser {
-  id: string;
-  email: string;
-  fullName: string;
-  role: AppRole;
-  allRoles?: AppRole[];
-  avatarUrl?: string;
-}
+export const resetPassword = (email: string) => {
+  const { auth } = require('./api');
+  return auth.forgotPassword(email);
+};
 
-export interface SignUpData {
-  email: string;
-  password: string;
-  fullName: string;
-  role: AppRole;
-}
+export const updatePassword = async (newPassword: string) => {
+  // This would need to be called with a token from email link
+  throw new Error('Use reset password flow via email');
+};
 
-export interface SignInData {
-  email: string;
-  password: string;
-}
-
-export interface AuthResult {
-  user: User | null;
-  session: Session | null;
-  error: Error | null;
-}
-
-/**
- * Sign up a new user with role
- */
-export async function signUp(data: SignUpData): Promise<AuthResult> {
-  const { data: result, error } = await supabase.auth.signUp({
-    email: data.email,
-    password: data.password,
-    options: {
-      emailRedirectTo: window.location.origin,
-      data: {
-        full_name: data.fullName,
-        role: data.role,
-      },
-    },
-  });
-
-  return {
-    user: result.user,
-    session: result.session,
-    error: error ? new Error(error.message) : null,
-  };
-}
-
-/**
- * Sign in an existing user
- */
-export async function signIn(data: SignInData): Promise<AuthResult> {
-  const { data: result, error } = await supabase.auth.signInWithPassword({
-    email: data.email,
-    password: data.password,
-  });
-
-  return {
-    user: result.user,
-    session: result.session,
-    error: error ? new Error(error.message) : null,
-  };
-}
-
-/**
- * Sign out the current user
- */
-export async function signOut(): Promise<{ error: Error | null }> {
-  const { error } = await supabase.auth.signOut();
-  return { error: error ? new Error(error.message) : null };
-}
-
-/**
- * Request password reset email
- */
-export async function resetPassword(email: string): Promise<{ error: Error | null }> {
-  const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${window.location.origin}/reset-password`,
-  });
-  return { error: error ? new Error(error.message) : null };
-}
-
-/**
- * Update password (after reset or for logged in user)
- */
-export async function updatePassword(newPassword: string): Promise<{ error: Error | null }> {
-  const { error } = await supabase.auth.updateUser({
-    password: newPassword,
-  });
-  return { error: error ? new Error(error.message) : null };
-}
-
-/**
- * Get the current session
- */
-export async function getSession(): Promise<Session | null> {
-  const { data } = await supabase.auth.getSession();
-  return data.session;
-}
-
-/**
- * Get the current user
- */
-export async function getCurrentUser(): Promise<User | null> {
-  const { data } = await supabase.auth.getUser();
-  return data.user;
-}
-
-/**
- * Subscribe to auth state changes
- */
-export function onAuthStateChange(
-  callback: (event: string, session: Session | null) => void
-) {
-  return supabase.auth.onAuthStateChange((event, session) => {
-    callback(event, session);
-  });
-}
-
-/**
- * Get user roles from database
- */
-export async function getUserRoles(userId: string): Promise<AppRole[]> {
-  const { data, error } = await supabase.rpc("get_user_roles", {
-    _user_id: userId,
-  });
-
-  if (error) {
-    console.error("Error fetching user roles:", error);
-    return [];
-  }
-
-  return (data as AppRole[]) || [];
-}
-
-/**
- * Check if user has a specific role
- */
-export async function hasRole(userId: string, role: AppRole): Promise<boolean> {
-  const { data, error } = await supabase.rpc("has_role", {
-    _user_id: userId,
-    _role: role,
-  });
-
-  if (error) {
-    console.error("Error checking role:", error);
-    return false;
-  }
-
-  return data || false;
-}
-
-/**
- * Get user profile from database
- */
-export async function getUserProfile(userId: string) {
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("user_id", userId)
-    .maybeSingle();
-
-  if (error) {
-    console.error("Error fetching profile:", error);
-    return null;
-  }
-
-  return data;
-}
-
-/**
- * Get the highest priority role from a list of roles
- * Priority: super_admin > coach > client
- */
-function getHighestPriorityRole(roles: AppRole[]): AppRole {
-  const rolePriority: Record<AppRole, number> = {
-    super_admin: 3,
-    coach: 2,
-    client: 1,
-  };
-  
-  if (roles.length === 0) return "client";
-  
-  return roles.reduce((highest, current) => 
-    rolePriority[current] > rolePriority[highest] ? current : highest
-  , roles[0]);
-}
-
-/**
- * Get all roles for the current user
- */
-export async function getAllUserRoles(userId: string): Promise<AppRole[]> {
-  return getUserRoles(userId);
-}
-
-/**
- * Get full auth user with profile and roles
- */
-export async function getAuthUser(): Promise<AuthUser | null> {
-  const user = await getCurrentUser();
-  if (!user) return null;
-
-  const [profile, roles] = await Promise.all([
-    getUserProfile(user.id),
-    getUserRoles(user.id),
-  ]);
-
-  if (!profile) return null;
-
-  return {
-    id: user.id,
-    email: profile.email,
-    fullName: profile.full_name,
-    role: getHighestPriorityRole(roles),
-    avatarUrl: profile.avatar_url,
-    allRoles: roles,
-  } as AuthUser;
-}
-
-/**
- * Extended AuthUser with all roles for impersonation feature
- */
-export interface AuthUserWithRoles extends AuthUser {
-  allRoles: AppRole[];
-}
+// Stub for Google OAuth
+export const getGoogleOAuthUrl = (role?: string) => {
+  const clientId = '123456789.apps.googleusercontent.com'; // Replace with actual
+  const redirectUri = encodeURIComponent(`${window.location.origin}/auth/google/callback`);
+  const state = role ? encodeURIComponent(JSON.stringify({ role })) : '';
+  return `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=email%20profile&state=${state}`;
+};
