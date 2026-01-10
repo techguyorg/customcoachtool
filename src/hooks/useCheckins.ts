@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 
 export interface CheckinTemplate {
@@ -65,15 +65,7 @@ export function useMyCheckins() {
     queryKey: ["my-checkins", user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
-
-      const { data, error } = await supabase
-        .from("client_checkins")
-        .select("*")
-        .eq("client_id", user.id)
-        .order("checkin_date", { ascending: false });
-
-      if (error) throw error;
-      return data as ClientCheckin[];
+      return api.get<ClientCheckin[]>('/api/checkins/my');
     },
     enabled: !!user?.id,
   });
@@ -86,55 +78,7 @@ export function useSubmitCheckin() {
   return useMutation({
     mutationFn: async (checkin: CheckinInput) => {
       if (!user?.id) throw new Error("Not authenticated");
-
-      // Get coach if assigned
-      const { data: relationship } = await supabase
-        .from("coach_client_relationships")
-        .select("coach_id")
-        .eq("client_id", user.id)
-        .eq("status", "active")
-        .single();
-
-      const { data, error } = await supabase
-        .from("client_checkins")
-        .insert({
-          ...checkin,
-          client_id: user.id,
-          coach_id: relationship?.coach_id || null,
-          status: "submitted",
-          submitted_at: new Date().toISOString(),
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      // Create notification for coach
-      if (relationship?.coach_id) {
-        await supabase.from("notifications").insert({
-          user_id: relationship.coach_id,
-          type: "checkin_submitted",
-          title: "New Check-in Submitted",
-          message: `Your client has submitted a new check-in`,
-          reference_type: "checkin",
-          reference_id: data.id,
-        });
-
-        // Send email notification to coach if opted in
-        try {
-          await supabase.functions.invoke("send-checkin-notification", {
-            body: { 
-              type: "submitted", 
-              checkinId: data.id,
-              coachId: relationship.coach_id,
-            },
-          });
-        } catch (e) {
-          console.log("Email notification failed (non-critical):", e);
-        }
-      }
-
-      return data;
+      return api.post<ClientCheckin>('/api/checkins', checkin);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["my-checkins", user?.id] });
@@ -149,30 +93,10 @@ export function useSaveCheckinDraft() {
   return useMutation({
     mutationFn: async ({ id, ...checkin }: CheckinInput & { id?: string }) => {
       if (!user?.id) throw new Error("Not authenticated");
-
       if (id) {
-        const { data, error } = await supabase
-          .from("client_checkins")
-          .update({ ...checkin, status: "draft" })
-          .eq("id", id)
-          .select()
-          .single();
-
-        if (error) throw error;
-        return data;
+        return api.put<ClientCheckin>(`/api/checkins/${id}/draft`, checkin);
       } else {
-        const { data, error } = await supabase
-          .from("client_checkins")
-          .insert({
-            ...checkin,
-            client_id: user.id,
-            status: "draft",
-          })
-          .select()
-          .single();
-
-        if (error) throw error;
-        return data;
+        return api.post<ClientCheckin>('/api/checkins/draft', checkin);
       }
     },
     onSuccess: () => {
@@ -190,24 +114,14 @@ export function useCoachCheckins() {
     queryKey: ["coach-checkins", user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
-
-      const { data, error } = await supabase
-        .from("client_checkins")
-        .select("*")
-        .eq("coach_id", user.id)
-        .order("submitted_at", { ascending: false });
-
-      if (error) throw error;
-      return data as ClientCheckin[];
+      return api.get<ClientCheckin[]>('/api/checkins/coach');
     },
     enabled: !!user?.id,
   });
 }
 
 export function usePendingCheckins() {
-  const { user } = useAuth();
   const { data: checkins } = useCoachCheckins();
-
   return checkins?.filter(c => c.status === "submitted") || [];
 }
 
@@ -228,47 +142,11 @@ export function useReviewCheckin() {
       nextCheckinDate?: string;
     }) => {
       if (!user?.id) throw new Error("Not authenticated");
-
-      const { data, error } = await supabase
-        .from("client_checkins")
-        .update({
-          coach_feedback: feedback,
-          coach_rating: rating,
-          reviewed_at: new Date().toISOString(),
-          reviewed_by: user.id,
-          status: "reviewed",
-          next_checkin_date: nextCheckinDate || null,
-        })
-        .eq("id", checkinId)
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      // Notify client
-      await supabase.from("notifications").insert({
-        user_id: data.client_id,
-        type: "checkin_reviewed",
-        title: "Check-in Reviewed",
-        message: "Your coach has reviewed your check-in",
-        reference_type: "checkin",
-        reference_id: checkinId,
+      return api.post<ClientCheckin>(`/api/checkins/${checkinId}/review`, {
+        feedback,
+        rating,
+        nextCheckinDate,
       });
-
-      // Send email notification if opted in
-      try {
-        await supabase.functions.invoke("send-checkin-notification", {
-          body: { 
-            type: "reviewed", 
-            checkinId,
-            clientId: data.client_id,
-          },
-        });
-      } catch (e) {
-        console.log("Email notification failed (non-critical):", e);
-      }
-
-      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["coach-checkins", user?.id] });
@@ -285,15 +163,7 @@ export function useCheckinTemplates() {
     queryKey: ["checkin-templates", user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
-
-      const { data, error } = await supabase
-        .from("checkin_templates")
-        .select("*")
-        .eq("coach_id", user.id)
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      return data as CheckinTemplate[];
+      return api.get<CheckinTemplate[]>('/api/checkins/templates');
     },
     enabled: !!user?.id,
   });
@@ -306,18 +176,7 @@ export function useCreateCheckinTemplate() {
   return useMutation({
     mutationFn: async (template: Partial<CheckinTemplate>) => {
       if (!user?.id) throw new Error("Not authenticated");
-
-      const { data, error } = await supabase
-        .from("checkin_templates")
-        .insert({
-          ...template,
-          coach_id: user.id,
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
+      return api.post<CheckinTemplate>('/api/checkins/templates', template);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["checkin-templates", user?.id] });
@@ -332,38 +191,11 @@ export function useClientCheckinTemplate() {
     queryKey: ["my-checkin-template", user?.id],
     queryFn: async () => {
       if (!user?.id) return null;
-
-      // Get coach relationship
-      const { data: relationship } = await supabase
-        .from("coach_client_relationships")
-        .select("coach_id")
-        .eq("client_id", user.id)
-        .eq("status", "active")
-        .single();
-
-      if (!relationship?.coach_id) return null;
-
-      // Check for client-specific template first
-      const { data: specificTemplate } = await supabase
-        .from("checkin_templates")
-        .select("*")
-        .eq("coach_id", relationship.coach_id)
-        .eq("client_id", user.id)
-        .eq("is_active", true)
-        .single();
-
-      if (specificTemplate) return specificTemplate as CheckinTemplate;
-
-      // Fall back to default template
-      const { data: defaultTemplate } = await supabase
-        .from("checkin_templates")
-        .select("*")
-        .eq("coach_id", relationship.coach_id)
-        .is("client_id", null)
-        .eq("is_active", true)
-        .single();
-
-      return defaultTemplate as CheckinTemplate | null;
+      try {
+        return await api.get<CheckinTemplate | null>('/api/checkins/my-template');
+      } catch {
+        return null;
+      }
     },
     enabled: !!user?.id,
   });

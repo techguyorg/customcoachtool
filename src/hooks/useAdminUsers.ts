@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import { AppRole } from "@/lib/auth";
 import { toast } from "sonner";
 
@@ -20,62 +20,20 @@ export function useAdminUsers() {
   const usersQuery = useQuery({
     queryKey: ["admin-users"],
     queryFn: async (): Promise<AdminUser[]> => {
-      // Get all profiles
-      const { data: profiles, error: profilesError } = await supabase
-        .from("profiles")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      if (profilesError) throw profilesError;
-
-      // Get all roles
-      const { data: roles, error: rolesError } = await supabase
-        .from("user_roles")
-        .select("user_id, role");
-
-      if (rolesError) throw rolesError;
-
-      // Map roles to users
-      const roleMap = new Map<string, AppRole[]>();
-      roles?.forEach((r) => {
-        const existing = roleMap.get(r.user_id) || [];
-        roleMap.set(r.user_id, [...existing, r.role as AppRole]);
-      });
-
-      return (profiles || []).map((p) => ({
-        id: p.id,
-        user_id: p.user_id,
-        email: p.email,
-        full_name: p.full_name,
-        avatar_url: p.avatar_url,
-        phone: p.phone,
-        created_at: p.created_at,
-        roles: roleMap.get(p.user_id) || [],
-      }));
+      return api.get<AdminUser[]>('/api/admin/users');
     },
   });
 
   const addRoleMutation = useMutation({
     mutationFn: async ({ userId, role }: { userId: string; role: AppRole }) => {
-      const { error } = await supabase
-        .from("user_roles")
-        .insert({ user_id: userId, role });
-
-      if (error) throw error;
-
-      // Create role-specific profile if needed
-      if (role === "coach") {
-        await supabase.from("coach_profiles").upsert({ user_id: userId }, { onConflict: "user_id" });
-      } else if (role === "client") {
-        await supabase.from("client_profiles").upsert({ user_id: userId }, { onConflict: "user_id" });
-      }
+      return api.post('/api/admin/users/roles', { userId, role });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-users"] });
       toast.success("Role added successfully");
     },
-    onError: (error: any) => {
-      if (error.code === "23505") {
+    onError: (error: Error) => {
+      if (error.message.includes("duplicate") || error.message.includes("already")) {
         toast.error("User already has this role");
       } else {
         toast.error("Failed to add role");
@@ -85,13 +43,7 @@ export function useAdminUsers() {
 
   const removeRoleMutation = useMutation({
     mutationFn: async ({ userId, role }: { userId: string; role: AppRole }) => {
-      const { error } = await supabase
-        .from("user_roles")
-        .delete()
-        .eq("user_id", userId)
-        .eq("role", role);
-
-      if (error) throw error;
+      return api.delete(`/api/admin/users/${userId}/roles/${role}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-users"] });
@@ -104,33 +56,13 @@ export function useAdminUsers() {
 
   const deleteUserMutation = useMutation({
     mutationFn: async (userId: string) => {
-      // Delete all roles first
-      const { error: rolesError } = await supabase
-        .from("user_roles")
-        .delete()
-        .eq("user_id", userId);
-      
-      if (rolesError) throw rolesError;
-
-      // Delete coach profile if exists
-      await supabase.from("coach_profiles").delete().eq("user_id", userId);
-      
-      // Delete client profile if exists
-      await supabase.from("client_profiles").delete().eq("user_id", userId);
-      
-      // Delete main profile
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .delete()
-        .eq("user_id", userId);
-      
-      if (profileError) throw profileError;
+      return api.delete(`/api/admin/users/${userId}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-users"] });
       toast.success("User deleted successfully");
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       console.error("Delete user error:", error);
       toast.error("Failed to delete user. They may have related data.");
     },

@@ -1,21 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { api, Notification as ApiNotification } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCallback, useState, useEffect } from "react";
 
-export interface Notification {
-  id: string;
-  user_id: string;
-  type: string;
-  title: string;
-  message: string;
-  reference_type: string | null;
-  reference_id: string | null;
-  data: Record<string, unknown>;
-  is_read: boolean;
-  read_at: string | null;
-  created_at: string;
-}
+export type { Notification } from "@/lib/api";
 
 export function useNotifications() {
   const { user } = useAuth();
@@ -24,18 +12,11 @@ export function useNotifications() {
     queryKey: ["notifications", user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
-
-      const { data, error } = await supabase
-        .from("notifications")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false })
-        .limit(50);
-
-      if (error) throw error;
-      return data as Notification[];
+      return api.get<ApiNotification[]>('/api/notifications');
     },
     enabled: !!user?.id,
+    // Poll every 30 seconds for new notifications
+    refetchInterval: 30000,
   });
 }
 
@@ -50,12 +31,7 @@ export function useMarkAsRead() {
 
   return useMutation({
     mutationFn: async (notificationId: string) => {
-      const { error } = await supabase
-        .from("notifications")
-        .update({ is_read: true, read_at: new Date().toISOString() })
-        .eq("id", notificationId);
-
-      if (error) throw error;
+      return api.put(`/api/notifications/${notificationId}/read`, {});
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notifications", user?.id] });
@@ -70,14 +46,7 @@ export function useMarkAllAsRead() {
   return useMutation({
     mutationFn: async () => {
       if (!user?.id) return;
-
-      const { error } = await supabase
-        .from("notifications")
-        .update({ is_read: true, read_at: new Date().toISOString() })
-        .eq("user_id", user.id)
-        .eq("is_read", false);
-
-      if (error) throw error;
+      return api.post('/api/notifications/mark-all-read', {});
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notifications", user?.id] });
@@ -85,39 +54,20 @@ export function useMarkAllAsRead() {
   });
 }
 
-export function useRealtimeNotifications() {
+export function useRealtimeNotifications(): { newNotification: ApiNotification | null; clearNewNotification: () => void } {
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const [newNotification, setNewNotification] = useState<Notification | null>(null);
+  const [newNotification, setNewNotification] = useState<ApiNotification | null>(null);
 
   const clearNewNotification = useCallback(() => {
     setNewNotification(null);
   }, []);
 
+  // For Azure, we use polling instead of realtime subscriptions
+  // The useNotifications hook already polls every 30 seconds
   useEffect(() => {
-    if (!user?.id) return;
-
-    const channel = supabase
-      .channel(`notifications:${user.id}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'notifications',
-          filter: `user_id=eq.${user.id}`,
-        },
-        (payload) => {
-          const notification = payload.new as Notification;
-          setNewNotification(notification);
-          queryClient.invalidateQueries({ queryKey: ["notifications", user.id] });
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    // In Azure mode, we rely on polling in useNotifications
+    // This hook is kept for API compatibility
   }, [user?.id, queryClient]);
 
   return { newNotification, clearNewNotification };

@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 
 // Types
@@ -66,15 +66,8 @@ export function useClientMeasurements(clientId?: string) {
     queryKey: ["client-measurements", targetId],
     queryFn: async () => {
       if (!targetId) return [];
-
-      const { data, error } = await supabase
-        .from("client_measurements")
-        .select("*")
-        .eq("client_id", targetId)
-        .order("recorded_at", { ascending: false });
-
-      if (error) throw error;
-      return data as ClientMeasurement[];
+      const endpoint = clientId ? `/api/client/${clientId}/measurements` : '/api/client/measurements';
+      return api.get<ClientMeasurement[]>(endpoint);
     },
     enabled: !!targetId,
   });
@@ -87,18 +80,7 @@ export function useAddMeasurement() {
   return useMutation({
     mutationFn: async (measurement: MeasurementInput) => {
       if (!user?.id) throw new Error("Not authenticated");
-
-      const { data, error } = await supabase
-        .from("client_measurements")
-        .insert({
-          ...measurement,
-          client_id: user.id,
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
+      return api.post<ClientMeasurement>('/api/client/measurements', measurement);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["client-measurements", user?.id] });
@@ -114,15 +96,8 @@ export function useProgressPhotos(clientId?: string) {
     queryKey: ["progress-photos", targetId],
     queryFn: async () => {
       if (!targetId) return [];
-
-      const { data, error } = await supabase
-        .from("progress_photos")
-        .select("*")
-        .eq("client_id", targetId)
-        .order("recorded_at", { ascending: false });
-
-      if (error) throw error;
-      return data as ProgressPhoto[];
+      const endpoint = clientId ? `/api/client/${clientId}/photos` : '/api/client/photos';
+      return api.get<ProgressPhoto[]>(endpoint);
     },
     enabled: !!targetId,
   });
@@ -141,35 +116,14 @@ export function useUploadProgressPhoto() {
     }) => {
       if (!user?.id) throw new Error("Not authenticated");
 
-      // Upload to Azure via edge function
+      // Upload photo via API
       const formData = new FormData();
       formData.append("file", file);
-      formData.append("clientId", user.id);
       formData.append("poseType", poseType);
+      if (notes) formData.append("notes", notes);
+      if (recordedAt) formData.append("recordedAt", recordedAt);
 
-      const { data: uploadData, error: uploadError } = await supabase.functions.invoke(
-        "upload-progress-photo",
-        { body: formData }
-      );
-
-      if (uploadError) throw uploadError;
-      if (!uploadData?.photoUrl) throw new Error("Failed to get photo URL");
-
-      // Save to database
-      const { data, error } = await supabase
-        .from("progress_photos")
-        .insert({
-          client_id: user.id,
-          photo_url: uploadData.photoUrl,
-          pose_type: poseType,
-          notes,
-          recorded_at: recordedAt || new Date().toISOString().split('T')[0],
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
+      return api.upload<ProgressPhoto>('/api/storage/progress-photo', file, 'progress-photos');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["progress-photos", user?.id] });
@@ -185,15 +139,8 @@ export function useClientGoals(clientId?: string) {
     queryKey: ["client-goals", targetId],
     queryFn: async () => {
       if (!targetId) return [];
-
-      const { data, error } = await supabase
-        .from("client_goals")
-        .select("*")
-        .eq("client_id", targetId)
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      return data as ClientGoal[];
+      const endpoint = clientId ? `/api/client/${clientId}/goals` : '/api/client/goals';
+      return api.get<ClientGoal[]>(endpoint);
     },
     enabled: !!targetId,
   });
@@ -206,18 +153,7 @@ export function useAddGoal() {
   return useMutation({
     mutationFn: async (goal: GoalInput) => {
       if (!user?.id) throw new Error("Not authenticated");
-
-      const { data, error } = await supabase
-        .from("client_goals")
-        .insert({
-          ...goal,
-          client_id: user.id,
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
+      return api.post<ClientGoal>('/api/client/goals', goal);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["client-goals", user?.id] });
@@ -231,15 +167,7 @@ export function useUpdateGoal() {
 
   return useMutation({
     mutationFn: async ({ id, ...updates }: Partial<ClientGoal> & { id: string }) => {
-      const { data, error } = await supabase
-        .from("client_goals")
-        .update(updates)
-        .eq("id", id)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
+      return api.put<ClientGoal>(`/api/client/goals/${id}`, updates);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["client-goals", user?.id] });

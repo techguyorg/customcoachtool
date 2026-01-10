@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 
 export interface ClientProfileData {
@@ -32,15 +32,9 @@ export function useClientProfile() {
         };
       }
 
-      const { data, error } = await supabase
-        .from("client_profiles")
-        .select("*")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      if (error) throw error;
-
-      if (!data) {
+      try {
+        return await api.get<ClientProfileData>('/api/client/profile');
+      } catch {
         return {
           hasProfile: false,
           isComplete: false,
@@ -48,29 +42,6 @@ export function useClientProfile() {
           profile: null,
         };
       }
-
-      // Check which critical fields are missing
-      const missingFields: string[] = [];
-      if (!data.fitness_level) missingFields.push("Fitness level");
-      if (!data.fitness_goals || data.fitness_goals.length === 0) {
-        missingFields.push("Fitness goals");
-      }
-      if (!data.current_weight_kg) missingFields.push("Current weight");
-
-      return {
-        hasProfile: true,
-        isComplete: missingFields.length === 0,
-        missingFields,
-        profile: {
-          height_cm: data.height_cm,
-          current_weight_kg: data.current_weight_kg,
-          target_weight_kg: data.target_weight_kg,
-          fitness_goals: data.fitness_goals,
-          fitness_level: data.fitness_level,
-          medical_conditions: data.medical_conditions,
-          dietary_restrictions: data.dietary_restrictions,
-        },
-      };
     },
     enabled: !!user?.id,
   });

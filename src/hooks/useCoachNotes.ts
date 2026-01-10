@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 
 export interface CoachNote {
@@ -26,17 +26,7 @@ export function useClientNotes(clientId: string) {
     queryKey: ["coach-notes", clientId],
     queryFn: async () => {
       if (!user?.id || !clientId) return [];
-
-      const { data, error } = await supabase
-        .from("coach_client_notes")
-        .select("*")
-        .eq("coach_id", user.id)
-        .eq("client_id", clientId)
-        .order("is_pinned", { ascending: false })
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      return data as CoachNote[];
+      return api.get<CoachNote[]>(`/api/coach/clients/${clientId}/notes`);
     },
     enabled: !!user?.id && !!clientId,
   });
@@ -49,15 +39,7 @@ export function useAllNotes() {
     queryKey: ["all-coach-notes", user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
-
-      const { data, error } = await supabase
-        .from("coach_client_notes")
-        .select("*")
-        .eq("coach_id", user.id)
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      return data as CoachNote[];
+      return api.get<CoachNote[]>('/api/coach/notes');
     },
     enabled: !!user?.id,
   });
@@ -70,18 +52,7 @@ export function useAddNote() {
   return useMutation({
     mutationFn: async (note: NoteInput) => {
       if (!user?.id) throw new Error("Not authenticated");
-
-      const { data, error } = await supabase
-        .from("coach_client_notes")
-        .insert({
-          ...note,
-          coach_id: user.id,
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
+      return api.post<CoachNote>('/api/coach/notes', note);
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["coach-notes", variables.client_id] });
@@ -96,15 +67,7 @@ export function useUpdateNote() {
 
   return useMutation({
     mutationFn: async ({ id, ...updates }: Partial<CoachNote> & { id: string }) => {
-      const { data, error } = await supabase
-        .from("coach_client_notes")
-        .update(updates)
-        .eq("id", id)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data as CoachNote;
+      return api.put<CoachNote>(`/api/coach/notes/${id}`, updates);
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["coach-notes", data.client_id] });
@@ -119,12 +82,7 @@ export function useDeleteNote() {
 
   return useMutation({
     mutationFn: async ({ id, clientId }: { id: string; clientId: string }) => {
-      const { error } = await supabase
-        .from("coach_client_notes")
-        .delete()
-        .eq("id", id);
-
-      if (error) throw error;
+      await api.delete(`/api/coach/notes/${id}`);
       return { clientId };
     },
     onSuccess: (data) => {
@@ -140,15 +98,7 @@ export function useTogglePinNote() {
 
   return useMutation({
     mutationFn: async ({ id, isPinned }: { id: string; isPinned: boolean }) => {
-      const { data, error } = await supabase
-        .from("coach_client_notes")
-        .update({ is_pinned: !isPinned })
-        .eq("id", id)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data as CoachNote;
+      return api.put<CoachNote>(`/api/coach/notes/${id}`, { is_pinned: !isPinned });
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["coach-notes", data.client_id] });

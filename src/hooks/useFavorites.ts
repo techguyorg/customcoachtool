@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { api, Favorite } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 
 export type FavoriteItemType = "diet_plan" | "recipe" | "workout_template" | "exercise";
@@ -18,18 +18,10 @@ export function useFavorites(itemType?: FavoriteItemType) {
   return useQuery({
     queryKey: ["favorites", user?.id, itemType],
     queryFn: async () => {
-      let query = supabase
-        .from("user_favorites")
-        .select("*")
-        .eq("user_id", user!.id);
-
-      if (itemType) {
-        query = query.eq("item_type", itemType);
-      }
-
-      const { data, error } = await query.order("created_at", { ascending: false });
-      if (error) throw error;
-      return data as UserFavorite[];
+      const endpoint = itemType 
+        ? `/api/favorites?itemType=${itemType}` 
+        : '/api/favorites';
+      return api.get<UserFavorite[]>(endpoint);
     },
     enabled: !!user?.id,
   });
@@ -41,16 +33,12 @@ export function useIsFavorite(itemType: FavoriteItemType, itemId: string) {
   return useQuery({
     queryKey: ["favorite-check", user?.id, itemType, itemId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("user_favorites")
-        .select("id")
-        .eq("user_id", user!.id)
-        .eq("item_type", itemType)
-        .eq("item_id", itemId)
-        .maybeSingle();
-
-      if (error) throw error;
-      return !!data;
+      try {
+        const data = await api.get<{ isFavorite: boolean }>(`/api/favorites/check?itemType=${itemType}&itemId=${itemId}`);
+        return data.isFavorite;
+      } catch {
+        return false;
+      }
     },
     enabled: !!user?.id && !!itemId,
   });
@@ -74,23 +62,10 @@ export function useToggleFavorite() {
 
       if (isFavorite) {
         // Remove favorite
-        const { error } = await supabase
-          .from("user_favorites")
-          .delete()
-          .eq("user_id", user.id)
-          .eq("item_type", itemType)
-          .eq("item_id", itemId);
-
-        if (error) throw error;
+        return api.delete(`/api/favorites?itemType=${itemType}&itemId=${itemId}`);
       } else {
         // Add favorite
-        const { error } = await supabase.from("user_favorites").insert({
-          user_id: user.id,
-          item_type: itemType,
-          item_id: itemId,
-        });
-
-        if (error) throw error;
+        return api.post('/api/favorites', { itemType, itemId });
       }
     },
     onSuccess: (_, variables) => {
