@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -101,38 +101,24 @@ export function CreateExerciseDialog({ trigger, initialData, open: controlledOpe
 
   const saveMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
+      const exerciseData = {
+        name: data.name,
+        description: data.description || null,
+        primary_muscle: data.primary_muscle as MuscleGroup,
+        secondary_muscles: data.secondary_muscles.length > 0 ? data.secondary_muscles : null,
+        equipment: data.equipment as EquipmentType,
+        difficulty: data.difficulty,
+        exercise_type: data.exercise_type,
+        instructions: data.instructions.filter((i) => i.trim()),
+        tips: data.tips.filter((t) => t.trim()),
+        video_url: data.video_url || null,
+        image_url: data.image_url || null,
+      };
+
       if (isEditing && initialData?.id) {
-        const { error } = await supabase.from("exercises").update({
-          name: data.name,
-          description: data.description || null,
-          primary_muscle: data.primary_muscle as MuscleGroup,
-          secondary_muscles: data.secondary_muscles.length > 0 ? data.secondary_muscles : null,
-          equipment: data.equipment as EquipmentType,
-          difficulty: data.difficulty,
-          exercise_type: data.exercise_type,
-          instructions: data.instructions.filter((i) => i.trim()),
-          tips: data.tips.filter((t) => t.trim()),
-          video_url: data.video_url || null,
-          image_url: data.image_url || null,
-        }).eq("id", initialData.id);
-        if (error) throw error;
+        return api.put(`/api/exercises/${initialData.id}`, exerciseData);
       } else {
-        const { error } = await supabase.from("exercises").insert({
-          name: data.name,
-          description: data.description || null,
-          primary_muscle: data.primary_muscle as MuscleGroup,
-          secondary_muscles: data.secondary_muscles.length > 0 ? data.secondary_muscles : null,
-          equipment: data.equipment as EquipmentType,
-          difficulty: data.difficulty,
-          exercise_type: data.exercise_type,
-          instructions: data.instructions.filter((i) => i.trim()),
-          tips: data.tips.filter((t) => t.trim()),
-          video_url: data.video_url || null,
-          image_url: data.image_url || null,
-          is_system: false,
-          created_by: user?.id,
-        });
-        if (error) throw error;
+        return api.post('/api/exercises', { ...exerciseData, is_system: false });
       }
     },
     onSuccess: () => {
@@ -142,7 +128,7 @@ export function CreateExerciseDialog({ trigger, initialData, open: controlledOpe
       setOpen(false);
       resetForm();
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast({
         title: isEditing ? "Failed to update exercise" : "Failed to create exercise",
         description: error.message,
@@ -501,17 +487,10 @@ export function CreateExerciseDialog({ trigger, initialData, open: controlledOpe
               Cancel
             </Button>
             <Button type="submit" disabled={saveMutation.isPending}>
-              {saveMutation.isPending ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  {isEditing ? "Saving..." : "Creating..."}
-                </>
-              ) : (
-                <>
-                  <Plus className="w-4 h-4 mr-2" />
-                  {isEditing ? "Save Changes" : "Create Exercise"}
-                </>
+              {saveMutation.isPending && (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
               )}
+              {isEditing ? "Save Changes" : "Create Exercise"}
             </Button>
           </div>
         </form>

@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -130,19 +130,13 @@ function ExercisesTab() {
   const { data: exercises, isLoading } = useQuery({
     queryKey: ["admin-exercises"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("exercises")
-        .select("*")
-        .eq("is_system", true);
-      if (error) throw error;
-      return data;
+      return api.get<any[]>('/api/exercises?is_system=true');
     },
   });
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("exercises").delete().eq("id", id);
-      if (error) throw error;
+      return api.delete(`/api/exercises/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-exercises"] });
@@ -184,7 +178,6 @@ function ExercisesTab() {
   const totalPages = Math.ceil(filteredAndSorted.length / ITEMS_PER_PAGE);
   const paginatedData = filteredAndSorted.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
 
-  // Reset page when filters change
   const handleFilterChange = (newFilters: ExerciseFilterState) => {
     setFilters(newFilters);
     setCurrentPage(1);
@@ -273,16 +266,13 @@ function WorkoutsTab() {
   const { data: templates, isLoading } = useQuery({
     queryKey: ["admin-workout-templates"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("workout_templates").select("*").eq("is_system", true);
-      if (error) throw error;
-      return data;
+      return api.get<any[]>('/api/workouts/templates?is_system=true');
     },
   });
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("workout_templates").delete().eq("id", id);
-      if (error) throw error;
+      return api.delete(`/api/workouts/templates/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-workout-templates"] });
@@ -387,20 +377,16 @@ function DietsTab() {
   const { data: plans, isLoading } = useQuery({
     queryKey: ["admin-diet-plans"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("diet_plans").select("*").eq("is_system", true);
-      if (error) throw error;
-      return data;
+      return api.get<any[]>('/api/diet/plans?is_system=true');
     },
   });
 
-  // Fetch plan with meals for viewing
   const { data: selectedPlan } = useDietPlanWithMeals(selectedPlanId || undefined);
   const { data: editingPlan } = useDietPlanWithMeals(editingPlanId || undefined);
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("diet_plans").delete().eq("id", id);
-      if (error) throw error;
+      return api.delete(`/api/diet/plans/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-diet-plans"] });
@@ -510,20 +496,16 @@ function RecipesTab() {
   const { data: recipes, isLoading } = useQuery({
     queryKey: ["admin-recipes"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("recipes").select("*").eq("is_system", true);
-      if (error) throw error;
-      return data;
+      return api.get<any[]>('/api/recipes?is_system=true');
     },
   });
 
-  // Fetch recipe with ingredients for viewing/editing
   const { data: selectedRecipe } = useRecipeWithIngredients(selectedRecipeId || undefined);
   const { data: editingRecipe } = useRecipeWithIngredients(editingRecipeId || undefined);
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("recipes").delete().eq("id", id);
-      if (error) throw error;
+      return api.delete(`/api/recipes/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-recipes"] });
@@ -630,16 +612,13 @@ function FoodsTab() {
   const { data: foods, isLoading } = useQuery({
     queryKey: ["admin-foods"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("foods").select("*").eq("is_system", true);
-      if (error) throw error;
-      return data;
+      return api.get<any[]>('/api/foods?is_system=true');
     },
   });
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("foods").delete().eq("id", id);
-      if (error) throw error;
+      return api.delete(`/api/foods/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-foods"] });

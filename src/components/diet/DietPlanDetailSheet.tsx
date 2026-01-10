@@ -13,7 +13,7 @@ import { Separator } from "@/components/ui/separator";
 import { useDietPlanWithMeals, DietPlan } from "@/hooks/useDietPlans";
 import { useStartDietPlan } from "@/hooks/useStartProgram";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import { ExportPdfButton } from "@/components/shared/ExportPdfButton";
 import { DietPlanPdf } from "@/components/pdf/DietPlanPdf";
 
@@ -79,18 +79,7 @@ export function DietPlanDetailSheet({ plan, onOpenChange, open }: Props) {
     queryFn: async () => {
       if (mealIds.length === 0) return [];
       
-      const { data, error } = await supabase
-        .from("meal_food_items")
-        .select(`
-          *,
-          food:foods(id, name, calories_per_100g),
-          recipe:recipes(id, name, calories_per_serving)
-        `)
-        .in("meal_id", mealIds)
-        .order("order_index");
-      
-      if (error) throw error;
-      return data as MealFoodItem[];
+      return api.get<MealFoodItem[]>(`/api/diet/meal-food-items?mealIds=${mealIds.join(',')}`);
     },
     enabled: mealIds.length > 0,
   });

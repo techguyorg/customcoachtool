@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,7 +13,6 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   Accordion,
@@ -21,19 +20,17 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Plus, Trash2, GripVertical, Save, Loader2, Dumbbell, Edit2 } from "lucide-react";
+import { Plus, Trash2, Loader2, Dumbbell } from "lucide-react";
 import { toast } from "sonner";
 import { useExercises } from "@/hooks/useExercises";
-import type { Database } from "@/integrations/supabase/types";
 
-type Exercise = Database["public"]["Tables"]["exercises"]["Row"];
+interface Exercise {
+  id: string;
+  name: string;
+  primary_muscle: string;
+  equipment: string;
+  difficulty: string;
+}
 
 interface DayExercise {
   id: string;
@@ -86,49 +83,7 @@ export function WorkoutProgramEditor({ templateId, onClose }: WorkoutProgramEdit
   const { data: structure, isLoading } = useQuery({
     queryKey: ["template-structure", templateId],
     queryFn: async () => {
-      const { data: weeks, error: weeksError } = await supabase
-        .from("workout_template_weeks")
-        .select("*")
-        .eq("template_id", templateId)
-        .order("week_number");
-
-      if (weeksError) throw weeksError;
-
-      const weekIds = weeks.map(w => w.id);
-      
-      const { data: days, error: daysError } = await supabase
-        .from("workout_template_days")
-        .select("*")
-        .eq("template_id", templateId)
-        .order("day_number");
-
-      if (daysError) throw daysError;
-
-      const dayIds = days.map(d => d.id);
-
-      const { data: exercises, error: exError } = await supabase
-        .from("workout_template_exercises")
-        .select(`
-          *,
-          exercise:exercises(*)
-        `)
-        .in("day_id", dayIds.length > 0 ? dayIds : [""])
-        .order("order_index");
-
-      if (exError) throw exError;
-
-      // Build structure
-      const result: Week[] = weeks.map(week => ({
-        ...week,
-        days: days
-          .filter(d => d.week_id === week.id)
-          .map(day => ({
-            ...day,
-            exercises: (exercises || []).filter(e => e.day_id === day.id) as DayExercise[],
-          })),
-      }));
-
-      return result;
+      return api.get<Week[]>(`/api/workouts/templates/${templateId}/structure`);
     },
   });
 
@@ -159,30 +114,15 @@ export function WorkoutProgramEditor({ templateId, onClose }: WorkoutProgramEdit
       repsMin: number;
       repsMax?: number;
     }) => {
-      // Get max order index
-      const { data: existing } = await supabase
-        .from("workout_template_exercises")
-        .select("order_index")
-        .eq("day_id", dayId)
-        .order("order_index", { ascending: false })
-        .limit(1);
-
-      const nextIndex = (existing?.[0]?.order_index ?? -1) + 1;
-
-      const { error } = await supabase
-        .from("workout_template_exercises")
-        .insert({
-          day_id: dayId,
-          exercise_id: exerciseId || null,
-          custom_exercise_name: customName || null,
-          sets_min: setsMin,
-          sets_max: setsMax || null,
-          reps_min: repsMin,
-          reps_max: repsMax || null,
-          order_index: nextIndex,
-        });
-
-      if (error) throw error;
+      return api.post('/api/workouts/template-exercises', {
+        day_id: dayId,
+        exercise_id: exerciseId || null,
+        custom_exercise_name: customName || null,
+        sets_min: setsMin,
+        sets_max: setsMax || null,
+        reps_min: repsMin,
+        reps_max: repsMax || null,
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["template-structure", templateId] });
@@ -200,12 +140,7 @@ export function WorkoutProgramEditor({ templateId, onClose }: WorkoutProgramEdit
   // Remove exercise mutation
   const removeExerciseMutation = useMutation({
     mutationFn: async (exerciseId: string) => {
-      const { error } = await supabase
-        .from("workout_template_exercises")
-        .delete()
-        .eq("id", exerciseId);
-
-      if (error) throw error;
+      return api.delete(`/api/workouts/template-exercises/${exerciseId}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["template-structure", templateId] });
@@ -217,12 +152,7 @@ export function WorkoutProgramEditor({ templateId, onClose }: WorkoutProgramEdit
   // Update day name mutation
   const updateDayMutation = useMutation({
     mutationFn: async ({ dayId, name }: { dayId: string; name: string }) => {
-      const { error } = await supabase
-        .from("workout_template_days")
-        .update({ name })
-        .eq("id", dayId);
-
-      if (error) throw error;
+      return api.put(`/api/workouts/template-days/${dayId}`, { name });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["template-structure", templateId] });
