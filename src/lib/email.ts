@@ -2,15 +2,15 @@
  * Email Service Abstraction Layer
  * 
  * Provides a unified interface for email operations that works with:
- * - Supabase Edge Functions (current development)
- * - Azure Functions (future production)
+ * - Azure Functions (production)
+ * - Backend Express API
  * 
  * Gmail SMTP Configuration:
  * - Sender: s.susheel9@gmail.com
  * - Display Name: CustomCoachPro
  */
 
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 
 export interface EmailResult {
   success: boolean;
@@ -50,20 +50,13 @@ export interface EmailService {
 }
 
 /**
- * Supabase Edge Function implementation
- * Uses Gmail SMTP via edge functions
+ * Azure/Backend API implementation
+ * Uses backend Express API which connects to Gmail SMTP
  */
-class SupabaseEmailService implements EmailService {
+class AzureEmailService implements EmailService {
   async sendEmail(options: EmailOptions): Promise<EmailResult> {
     try {
-      const { data, error } = await supabase.functions.invoke("send-email", {
-        body: options,
-      });
-
-      if (error) {
-        return { success: false, error: error.message };
-      }
-
+      const data = await api.post<{ id?: string }>("/api/email/send", options);
       return { success: true, messageId: data?.id };
     } catch (err) {
       return { 
@@ -75,14 +68,7 @@ class SupabaseEmailService implements EmailService {
 
   async sendTemplatedEmail(options: TemplatedEmailOptions): Promise<EmailResult> {
     try {
-      const { data, error } = await supabase.functions.invoke("send-templated-email", {
-        body: options,
-      });
-
-      if (error) {
-        return { success: false, error: error.message };
-      }
-
+      const data = await api.post<{ id?: string }>("/api/email/send-templated", options);
       return { success: true, messageId: data?.id };
     } catch (err) {
       return { 
@@ -100,14 +86,7 @@ class SupabaseEmailService implements EmailService {
     coachName: string;
   }): Promise<EmailResult> {
     try {
-      const { data, error } = await supabase.functions.invoke("send-client-invitation", {
-        body: params,
-      });
-
-      if (error) {
-        return { success: false, error: error.message };
-      }
-
+      const data = await api.post<{ data?: { id?: string } }>("/api/email/client-invitation", params);
       return { success: true, messageId: data?.data?.id };
     } catch (err) {
       return { 
@@ -124,14 +103,7 @@ class SupabaseEmailService implements EmailService {
     performedByName: string;
   }): Promise<EmailResult> {
     try {
-      const { data, error } = await supabase.functions.invoke("send-admin-notification", {
-        body: params,
-      });
-
-      if (error) {
-        return { success: false, error: error.message };
-      }
-
+      const data = await api.post<{ id?: string }>("/api/email/admin-notification", params);
       return { success: true, messageId: data?.id };
     } catch (err) {
       return { 
@@ -142,39 +114,9 @@ class SupabaseEmailService implements EmailService {
   }
 }
 
-/**
- * Azure Functions implementation (future)
- * Uncomment and configure when migrating to Azure
- */
-// class AzureEmailService implements EmailService {
-//   private baseUrl: string;
-//   
-//   constructor(baseUrl: string) {
-//     this.baseUrl = baseUrl;
-//   }
-//
-//   async sendEmail(options: EmailOptions): Promise<EmailResult> {
-//     const response = await fetch(`${this.baseUrl}/api/send-email`, {
-//       method: "POST",
-//       headers: { "Content-Type": "application/json" },
-//       body: JSON.stringify(options),
-//     });
-//     
-//     const data = await response.json();
-//     return data;
-//   }
-//   // ... implement other methods
-// }
-
-// Factory function - switch implementation based on environment
+// Factory function
 export function getEmailService(): EmailService {
-  // Future: Check environment variable to determine which service to use
-  // const provider = import.meta.env.VITE_EMAIL_PROVIDER;
-  // if (provider === 'azure') {
-  //   return new AzureEmailService(import.meta.env.VITE_AZURE_FUNCTIONS_URL);
-  // }
-  
-  return new SupabaseEmailService();
+  return new AzureEmailService();
 }
 
 // Export singleton instance

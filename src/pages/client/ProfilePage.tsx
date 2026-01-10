@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
+import { uploadFile } from "@/lib/storage";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -48,6 +49,28 @@ const DIETARY_RESTRICTIONS = [
   "Kosher",
 ];
 
+interface ProfileData {
+  full_name?: string;
+  phone?: string;
+  bio?: string;
+  avatar_url?: string;
+  date_of_birth?: string;
+  gender?: string;
+}
+
+interface ClientProfileData {
+  height_cm?: number;
+  current_weight_kg?: number;
+  target_weight_kg?: number;
+  fitness_level?: string;
+  fitness_goals?: string[];
+  dietary_restrictions?: string[];
+  medical_conditions?: string;
+  email_checkin_submitted?: boolean;
+  email_checkin_reviewed?: boolean;
+  email_plan_assigned?: boolean;
+}
+
 export default function ClientProfilePage() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -57,27 +80,7 @@ export default function ClientProfilePage() {
     queryKey: ["client-profile", user?.id],
     queryFn: async () => {
       if (!user?.id) return null;
-
-      const [profileRes, clientRes] = await Promise.all([
-        supabase.from("profiles").select("*").eq("user_id", user.id).single(),
-        supabase.from("client_profiles").select("*").eq("user_id", user.id).single(),
-      ]);
-
-      return {
-        profile: profileRes.data,
-        clientProfile: clientRes.data as {
-          height_cm?: number;
-          current_weight_kg?: number;
-          target_weight_kg?: number;
-          fitness_level?: string;
-          fitness_goals?: string[];
-          dietary_restrictions?: string[];
-          medical_conditions?: string;
-          email_checkin_submitted?: boolean;
-          email_checkin_reviewed?: boolean;
-          email_plan_assigned?: boolean;
-        } | null,
-      };
+      return api.get<{ profile: ProfileData; clientProfile: ClientProfileData | null }>("/api/users/profile");
     },
     enabled: !!user?.id,
   });
@@ -142,52 +145,27 @@ export default function ClientProfilePage() {
     mutationFn: async () => {
       if (!user?.id) throw new Error("Not authenticated");
 
-      // Update profile
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .update({
+      await api.put("/api/users/profile", {
+        profile: {
           full_name: fullName,
           phone,
           bio,
           avatar_url: avatarUrl || null,
           date_of_birth: dateOfBirth || null,
           gender: gender || null,
-        })
-        .eq("user_id", user.id);
-
-      if (profileError) throw profileError;
-
-      // Check if client_profile exists
-      const { data: existing } = await supabase
-        .from("client_profiles")
-        .select("id")
-        .eq("user_id", user.id)
-        .single();
-
-      const clientData = {
-        height_cm: heightCm ? parseFloat(heightCm) : null,
-        current_weight_kg: currentWeightKg ? parseFloat(currentWeightKg) : null,
-        target_weight_kg: targetWeightKg ? parseFloat(targetWeightKg) : null,
-        fitness_level: fitnessLevel || null,
-        fitness_goals: fitnessGoals.length > 0 ? fitnessGoals : null,
-        dietary_restrictions: dietaryRestrictions.length > 0 ? dietaryRestrictions : null,
-        medical_conditions: medicalConditions || null,
-        email_checkin_reviewed: emailCheckinReviewed,
-        email_plan_assigned: emailPlanAssigned,
-      };
-
-      if (existing) {
-        const { error } = await supabase
-          .from("client_profiles")
-          .update(clientData)
-          .eq("user_id", user.id);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase
-          .from("client_profiles")
-          .insert({ user_id: user.id, ...clientData });
-        if (error) throw error;
-      }
+        },
+        clientProfile: {
+          height_cm: heightCm ? parseFloat(heightCm) : null,
+          current_weight_kg: currentWeightKg ? parseFloat(currentWeightKg) : null,
+          target_weight_kg: targetWeightKg ? parseFloat(targetWeightKg) : null,
+          fitness_level: fitnessLevel || null,
+          fitness_goals: fitnessGoals.length > 0 ? fitnessGoals : null,
+          dietary_restrictions: dietaryRestrictions.length > 0 ? dietaryRestrictions : null,
+          medical_conditions: medicalConditions || null,
+          email_checkin_reviewed: emailCheckinReviewed,
+          email_plan_assigned: emailPlanAssigned,
+        },
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["client-profile"] });
@@ -262,21 +240,13 @@ export default function ClientProfilePage() {
                   
                   setUploading(true);
                   try {
-                    const fileExt = file.name.split('.').pop();
-                    const fileName = `${user.id}-${Date.now()}.${fileExt}`;
-                    
-                    const { error } = await supabase.storage
-                      .from('avatars')
-                      .upload(fileName, file, { upsert: true });
-                    
-                    if (error) throw error;
-                    
-                    const { data: { publicUrl } } = supabase.storage
-                      .from('avatars')
-                      .getPublicUrl(fileName);
-                    
-                    setAvatarUrl(publicUrl);
-                    toast.success("Photo uploaded!");
+                    const result = await uploadFile(file, "avatars", user.id);
+                    if (result.url) {
+                      setAvatarUrl(result.url);
+                      toast.success("Photo uploaded!");
+                    } else {
+                      throw new Error(result.error || "Upload failed");
+                    }
                   } catch (error) {
                     toast.error("Failed to upload photo");
                   } finally {
@@ -495,49 +465,43 @@ export default function ClientProfilePage() {
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <Label className="text-sm font-medium">Check-in Reviewed</Label>
-              <p className="text-xs text-muted-foreground">
-                Receive an email when your coach reviews your check-in
-              </p>
+              <p className="text-sm font-medium">Check-in Reviewed</p>
+              <p className="text-xs text-muted-foreground">Get notified when your coach reviews your check-in</p>
             </div>
-            <Switch 
-              checked={emailCheckinReviewed} 
+            <Switch
+              checked={emailCheckinReviewed}
               onCheckedChange={setEmailCheckinReviewed}
             />
           </div>
           <Separator />
           <div className="flex items-center justify-between">
             <div>
-              <Label className="text-sm font-medium">Plan Assigned</Label>
-              <p className="text-xs text-muted-foreground">
-                Receive an email when your coach assigns a new workout or diet plan
-              </p>
+              <p className="text-sm font-medium">Plan Assigned</p>
+              <p className="text-xs text-muted-foreground">Get notified when a new plan is assigned to you</p>
             </div>
-            <Switch 
-              checked={emailPlanAssigned} 
+            <Switch
+              checked={emailPlanAssigned}
               onCheckedChange={setEmailPlanAssigned}
             />
           </div>
         </CardContent>
       </Card>
 
-      {/* Change Password */}
+      {/* Password Change */}
       <ChangePasswordCard />
 
       {/* Save Button */}
       <div className="flex justify-end">
-        <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
+        <Button 
+          onClick={() => saveMutation.mutate()}
+          disabled={saveMutation.isPending}
+        >
           {saveMutation.isPending ? (
-            <>
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Saving...
-            </>
+            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
           ) : (
-            <>
-              <Save className="w-4 h-4 mr-2" />
-              Save Changes
-            </>
+            <Save className="w-4 h-4 mr-2" />
           )}
+          Save Changes
         </Button>
       </div>
     </div>
