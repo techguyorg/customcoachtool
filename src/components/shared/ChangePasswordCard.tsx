@@ -25,12 +25,8 @@ export function ChangePasswordCard() {
 
     setIsLoading(true);
     try {
-      const { error } = await updatePassword(newPassword);
-      
-      if (error) {
-        toast.error(error.message);
-        return;
-      }
+      await updatePassword(newPassword);
+      // Password updated successfully - updatePassword throws on error
 
       toast.success("Password updated successfully!");
       setNewPassword("");

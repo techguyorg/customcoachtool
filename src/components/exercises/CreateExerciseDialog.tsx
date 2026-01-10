@@ -22,15 +22,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Plus, Loader2, X, Dumbbell } from "lucide-react";
-import { MUSCLE_GROUPS, EQUIPMENT_TYPES, DIFFICULTY_LEVELS } from "@/hooks/useExercises";
-import type { Database } from "@/integrations/supabase/types";
+import { 
+  MUSCLE_GROUPS, EQUIPMENT_TYPES, DIFFICULTY_LEVELS, EXERCISE_TYPES,
+  type MuscleGroup, type EquipmentType, type DifficultyLevel, type ExerciseTypeValue 
+} from "@/hooks/useExercises";
 
-type MuscleGroup = Database["public"]["Enums"]["muscle_group"];
-type EquipmentType = Database["public"]["Enums"]["equipment_type"];
-type DifficultyLevel = Database["public"]["Enums"]["difficulty_level"];
-type ExerciseType = Database["public"]["Enums"]["exercise_type"];
-
-const EXERCISE_TYPES: ExerciseType[] = ["compound", "isolation", "cardio", "plyometric", "stretching"];
+type ExerciseType = ExerciseTypeValue;
 
 const formatLabel = (value: string) =>
   value.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());

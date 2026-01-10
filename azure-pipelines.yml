@@ -1,5 +1,5 @@
 # Azure DevOps Pipeline for CustomCoachPro
-# Builds and deploys React frontend + Azure Functions backend.
+# Deploys React frontend and Express.js backend to Azure App Services
 
 trigger:
   branches:
@@ -13,155 +13,88 @@ pr:
       - main
 
 pool:
-  name: Default
-  demands:
-    - Agent.Name -equals ubuntu-pipeline-agent
+  vmImage: 'ubuntu-latest'
 
 variables:
-  - name: nodeVersion
-    value: '20.x'
-  - name: buildDirectory
-    value: 'dist'
-  - name: functionsDirectory
-    value: 'azure-functions'
+  nodeVersion: '20.x'
 
 stages:
-# ===========================================
-# BUILD STAGE - Frontend + Functions
-# ===========================================
-- stage: Build
-  displayName: 'Build Stage'
-  jobs:
-    - job: BuildFrontend
-      displayName: 'Build React Frontend'
-      steps:
-        - task: NodeTool@0
-          inputs:
-            versionSpec: $(nodeVersion)
-          displayName: 'Install Node.js'
+  - stage: Build
+    displayName: 'Build Frontend and Backend'
+    jobs:
+      - job: BuildFrontend
+        displayName: 'Build React Frontend'
+        steps:
+          - task: NodeTool@0
+            inputs:
+              versionSpec: $(nodeVersion)
+            displayName: 'Install Node.js'
+          - script: npm ci
+            displayName: 'Install dependencies'
+          - script: npm run build
+            displayName: 'Build frontend'
+          - task: ArchiveFiles@2
+            inputs:
+              rootFolderOrFile: 'dist'
+              includeRootFolder: false
+              archiveFile: '$(Build.ArtifactStagingDirectory)/frontend.zip'
+          - publish: $(Build.ArtifactStagingDirectory)/frontend.zip
+            artifact: frontend
 
-        - script: npm ci --include=dev
-          displayName: 'Install dependencies'
+      - job: BuildBackend
+        displayName: 'Build Express.js Backend'
+        steps:
+          - task: NodeTool@0
+            inputs:
+              versionSpec: $(nodeVersion)
+          - script: cd backend && npm ci && npm run build
+            displayName: 'Build backend'
+          - task: CopyFiles@2
+            inputs:
+              SourceFolder: 'backend'
+              Contents: |
+                dist/**
+                package.json
+                web.config
+              TargetFolder: '$(Build.ArtifactStagingDirectory)/backend-files'
+          - task: ArchiveFiles@2
+            inputs:
+              rootFolderOrFile: '$(Build.ArtifactStagingDirectory)/backend-files'
+              includeRootFolder: false
+              archiveFile: '$(Build.ArtifactStagingDirectory)/backend.zip'
+          - publish: $(Build.ArtifactStagingDirectory)/backend.zip
+            artifact: backend
 
-        - script: npm run build
-          displayName: 'Build application'
-          env:
-            VITE_API_BASE_URL: $(VITE_API_BASE_URL)
-            VITE_GOOGLE_CLIENT_ID: $(GOOGLE_CLIENT_ID)
+  - stage: DeployProd
+    displayName: 'Deploy to Production'
+    dependsOn: Build
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+    jobs:
+      - deployment: DeployBackend
+        environment: 'production'
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - download: current
+                  artifact: backend
+                - task: AzureWebApp@1
+                  inputs:
+                    azureSubscription: 'YOUR_SERVICE_CONNECTION'
+                    appName: 'customcoachpro-api'
+                    package: '$(Pipeline.Workspace)/backend/backend.zip'
 
-        - script: npm run lint
-          displayName: 'Run linting'
-          continueOnError: true
-
-        - publish: .
-          artifact: webapp
-
-    - job: BuildFunctions
-      displayName: 'Build Azure Functions'
-      steps:
-        - task: NodeTool@0
-          inputs:
-            versionSpec: $(nodeVersion)
-          displayName: 'Install Node.js'
-
-        - script: |
-            cd $(functionsDirectory)
-            npm install --include=dev
-          displayName: 'Install function dependencies (including dev)'
-
-        - script: |
-            cd $(functionsDirectory)
-            npm run build
-          displayName: 'Build functions'
-
-        - task: CopyFiles@2
-          inputs:
-            sourceFolder: '$(functionsDirectory)'
-            contents: |
-              dist/**
-              host.json
-              package.json
-              package-lock.json
-            targetFolder: '$(Build.ArtifactStagingDirectory)/functions'
-          displayName: 'Copy function files'
-
-        - task: PublishBuildArtifacts@1
-          inputs:
-            pathToPublish: '$(Build.ArtifactStagingDirectory)/functions'
-            artifactName: 'functions'
-          displayName: 'Publish function artifacts'
-
-# ===========================================
-# DEPLOY TO PRODUCTION
-# ===========================================
-- stage: DeployProd
-  displayName: 'Deploy to Production'
-  dependsOn: Build
-  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
-  jobs:
-    - deployment: DeployFunctionsProd
-      displayName: 'Deploy Functions to Production'
-      environment: 'production'
-      strategy:
-        runOnce:
-          deploy:
-            steps:
-              - task: DownloadBuildArtifacts@1
-                inputs:
-                  buildType: 'current'
-                  downloadType: 'single'
-                  artifactName: 'functions'
-                  downloadPath: '$(System.ArtifactsDirectory)'
-
-              - task: AzureCLI@2
-                displayName: 'Set Function App settings'
-                inputs:
-                  azureSubscription: $(AZURE_SERVICE_CONNECTION)
-                  scriptType: bash
-                  scriptLocation: inlineScript
-                  inlineScript: |
-                    az functionapp config appsettings set \
-                      --name customcoachprofn \
-                      --resource-group rg-customer-coach-pro-prod \
-                      --settings \
-                      SQL_SERVER="$(SQL_SERVER)" \
-                      SQL_DATABASE="$(SQL_DATABASE)" \
-                      SQL_USER="$(SQL_USER)" \
-                      SQL_PASSWORD="$(SQL_PASSWORD)" \
-                      JWT_SECRET="$(JWT_SECRET)" \
-                      GOOGLE_CLIENT_ID="$(GOOGLE_CLIENT_ID)" \
-                      GOOGLE_CLIENT_SECRET="$(GOOGLE_CLIENT_SECRET)" \
-                      GOOGLE_EMAIL="$(GOOGLE_EMAIL)" \
-                      GOOGLE_APP_PASSWORD="$(GOOGLE_APP_PASSWORD)" \
-                      STORAGE_CONNECTION_STRING="$(STORAGE_CONNECTION_STRING)" \
-                      FRONTEND_URL="https://customcoachpro.azurewebsites.net"
-
-              - task: AzureFunctionApp@2
-                inputs:
-                  connectedServiceNameARM: $(AZURE_SERVICE_CONNECTION)
-                  appType: 'functionApp'
-                  appName: 'customcoachprofn'
-                  package: '$(System.ArtifactsDirectory)/functions'
-
-    - deployment: DeployFrontendProd
-      displayName: 'Deploy Frontend to Production'
-      environment: 'production'
-      dependsOn: DeployFunctionsProd
-      strategy:
-        runOnce:
-          deploy:
-            steps:
-              - task: DownloadBuildArtifacts@1
-                inputs:
-                  buildType: 'current'
-                  downloadType: 'single'
-                  artifactName: 'webapp'
-                  downloadPath: '$(System.ArtifactsDirectory)/webapp'
-                  
-              - task: AzureWebApp@1
-                inputs:
-                  azureSubscription: $(AZURE_SERVICE_CONNECTION)
-                  appType: 'webApp'
-                  appName: 'customcoachpro'
-                  package: '$(System.ArtifactsDirectory)/webapp'
-
+      - deployment: DeployFrontend
+        environment: 'production'
+        dependsOn: DeployBackend
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - download: current
+                  artifact: frontend
+                - task: AzureWebApp@1
+                  inputs:
+                    azureSubscription: 'YOUR_SERVICE_CONNECTION'
+                    appName: 'customcoachpro'
+                    package: '$(Pipeline.Workspace)/frontend/frontend.zip'
