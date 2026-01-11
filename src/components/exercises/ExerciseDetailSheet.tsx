@@ -22,6 +22,7 @@ import {
 import { useExercise } from "@/hooks/useExercises";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
+import { ensureArray } from "@/lib/utils";
 
 interface ExerciseDetailSheetProps {
   exerciseId: string | null;
@@ -214,13 +215,13 @@ export function ExerciseDetailSheet({ exerciseId, open, onOpenChange }: Exercise
                 )}
 
                 {/* Secondary Muscles */}
-                {exercise.secondary_muscles && exercise.secondary_muscles.length > 0 && (
+                {ensureArray(exercise.secondary_muscles).length > 0 && (
                   <div>
                     <h4 className="text-sm font-medium text-muted-foreground mb-2">
                       Secondary Muscles
                     </h4>
                     <div className="flex flex-wrap gap-2">
-                      {exercise.secondary_muscles.map((muscle) => (
+                      {ensureArray(exercise.secondary_muscles).map((muscle) => (
                         <Badge key={muscle} variant="secondary" className="text-xs">
                           {formatLabel(muscle)}
                         </Badge>
@@ -232,14 +233,14 @@ export function ExerciseDetailSheet({ exerciseId, open, onOpenChange }: Exercise
                 <Separator />
 
                 {/* Instructions */}
-                {exercise.instructions && exercise.instructions.length > 0 && (
+                {ensureArray(exercise.instructions).length > 0 && (
                   <div>
                     <h4 className="font-semibold flex items-center gap-2 mb-3">
                       <ListChecks className="w-5 h-5 text-primary" />
                       Instructions
                     </h4>
                     <ol className="space-y-3">
-                      {exercise.instructions.map((instruction, index) => (
+                      {ensureArray(exercise.instructions).map((instruction, index) => (
                         <li key={index} className="flex gap-3">
                           <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/20 text-primary text-sm font-medium flex items-center justify-center">
                             {index + 1}
@@ -254,14 +255,14 @@ export function ExerciseDetailSheet({ exerciseId, open, onOpenChange }: Exercise
                 )}
 
                 {/* Tips */}
-                {exercise.tips && exercise.tips.length > 0 && (
+                {ensureArray(exercise.tips).length > 0 && (
                   <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
                     <h4 className="font-semibold flex items-center gap-2 mb-3 text-primary">
                       <Lightbulb className="w-5 h-5" />
                       Pro Tips
                     </h4>
                     <ul className="space-y-2">
-                      {exercise.tips.map((tip, index) => (
+                      {ensureArray(exercise.tips).map((tip, index) => (
                         <li key={index} className="flex gap-2 text-sm text-muted-foreground">
                           <span className="text-primary">•</span>
                           {tip}
@@ -272,14 +273,14 @@ export function ExerciseDetailSheet({ exerciseId, open, onOpenChange }: Exercise
                 )}
 
                 {/* Common Mistakes */}
-                {exercise.common_mistakes && exercise.common_mistakes.length > 0 && (
+                {ensureArray(exercise.common_mistakes).length > 0 && (
                   <div className="bg-destructive/5 border border-destructive/20 rounded-lg p-4">
                     <h4 className="font-semibold flex items-center gap-2 mb-3 text-destructive">
                       <AlertTriangle className="w-5 h-5" />
                       Common Mistakes
                     </h4>
                     <ul className="space-y-2">
-                      {exercise.common_mistakes.map((mistake, index) => (
+                      {ensureArray(exercise.common_mistakes).map((mistake, index) => (
                         <li key={index} className="flex gap-2 text-sm text-muted-foreground">
                           <span className="text-destructive">•</span>
                           {mistake}
