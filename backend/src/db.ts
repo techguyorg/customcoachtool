@@ -40,6 +40,78 @@ export function getPool(): ConnectionPool {
   return pool;
 }
 
+// ============ JSON Parsing Utilities for Azure SQL ============
+// Azure SQL stores JSON as NVARCHAR strings, these helpers safely parse them
+
+/**
+ * Parse a JSON field from Azure SQL (stored as NVARCHAR string) to an array or object
+ */
+export function parseJsonField<T>(value: unknown): T | null {
+  if (value === null || value === undefined) return null;
+  if (Array.isArray(value)) return value as T;
+  if (typeof value === 'object') return value as T;
+  if (typeof value === 'string') {
+    if (value === '' || value === 'null') return null;
+    try {
+      return JSON.parse(value) as T;
+    } catch {
+      // If it's a comma-separated string, convert to array
+      if (value.includes(',')) {
+        return value.split(',').map(s => s.trim()).filter(s => s) as unknown as T;
+      }
+      return [value] as unknown as T;
+    }
+  }
+  return null;
+}
+
+/**
+ * Ensure a value is an array - handles SQL Server returning strings
+ */
+export function ensureArray<T>(value: unknown): T[] {
+  if (value === null || value === undefined) return [];
+  if (Array.isArray(value)) return value as T[];
+  if (typeof value === 'string') {
+    if (value === '' || value === 'null') return [];
+    try {
+      const parsed = JSON.parse(value);
+      return Array.isArray(parsed) ? parsed : [parsed];
+    } catch {
+      return value.split(',').map(s => s.trim()).filter(s => s) as unknown as T[];
+    }
+  }
+  return [value] as unknown as T[];
+}
+
+/**
+ * Transform a database row by parsing specified JSON fields
+ */
+export function transformRow<T extends Record<string, unknown>>(
+  row: T,
+  jsonFields: (keyof T)[]
+): T {
+  if (!row) return row;
+  const result = { ...row };
+  for (const field of jsonFields) {
+    if (field in result) {
+      result[field] = parseJsonField(result[field]) as T[keyof T];
+    }
+  }
+  return result;
+}
+
+/**
+ * Transform multiple database rows by parsing specified JSON fields
+ */
+export function transformRows<T extends Record<string, unknown>>(
+  rows: T[],
+  jsonFields: (keyof T)[]
+): T[] {
+  return rows.map(row => transformRow(row, jsonFields));
+}
+
+// ============ Query Utilities ============
+
 // Execute a query with parameters
 export async function query<T>(
   queryText: string,

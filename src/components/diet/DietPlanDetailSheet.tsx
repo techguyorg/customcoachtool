@@ -16,6 +16,7 @@ import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { ExportPdfButton } from "@/components/shared/ExportPdfButton";
 import { DietPlanPdf } from "@/components/pdf/DietPlanPdf";
+import { ensureArray } from "@/lib/utils";
 
 const goalLabels: Record<string, string> = {
   weight_loss: "Weight Loss",
@@ -268,11 +269,11 @@ export function DietPlanDetailSheet({ plan, onOpenChange, open }: Props) {
                             )}
 
                             {/* Food suggestions (text-based) */}
-                            {meal.food_suggestions && meal.food_suggestions.length > 0 && mealFoods.length === 0 && (
+                            {ensureArray(meal.food_suggestions).length > 0 && mealFoods.length === 0 && (
                               <div className="mt-3 pt-3 border-t">
                                 <p className="text-xs text-muted-foreground font-medium mb-2">Suggested Foods</p>
                                 <div className="flex flex-wrap gap-1">
-                                  {meal.food_suggestions.map((suggestion, i) => (
+                                  {ensureArray(meal.food_suggestions).map((suggestion, i) => (
                                     <Badge key={i} variant="secondary" className="text-xs">
                                       {suggestion}
                                     </Badge>

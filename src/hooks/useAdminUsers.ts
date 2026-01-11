@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { AppRole } from "@/lib/auth";
 import { toast } from "sonner";
+import { ensureArray } from "@/lib/utils";
 
 export interface AdminUser {
   id: string;
@@ -20,7 +21,12 @@ export function useAdminUsers() {
   const usersQuery = useQuery({
     queryKey: ["admin-users"],
     queryFn: async (): Promise<AdminUser[]> => {
-      return api.get<AdminUser[]>('/api/admin/users');
+      const users = await api.get<AdminUser[]>('/api/admin/users');
+      // Ensure roles is always an array (Azure SQL returns comma-separated string)
+      return users.map(user => ({
+        ...user,
+        roles: ensureArray<AppRole>(user.roles as unknown as string | AppRole[])
+      }));
     },
   });
 
