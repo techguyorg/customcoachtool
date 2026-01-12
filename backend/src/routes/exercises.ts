@@ -1,7 +1,7 @@
 import { Router, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
-import { queryOne, queryAll, execute } from '../db';
-import { authenticate, optionalAuth, AuthenticatedRequest, requireRole } from '../middleware/auth';
+import { queryOne, queryAll, execute, transformRow, transformRows } from '../db';
+import { authenticate, optionalAuth, AuthenticatedRequest } from '../middleware/auth';
 import { asyncHandler, NotFoundError, BadRequestError, ForbiddenError } from '../middleware/errorHandler';
 
 const router = Router();
@@ -12,21 +12,6 @@ const router = Router();
  *   get:
  *     tags: [Exercises]
  *     summary: Get all exercises
- *     parameters:
- *       - in: query
- *         name: muscle
- *         schema: { type: string }
- *       - in: query
- *         name: equipment
- *         schema: { type: string }
- *       - in: query
- *         name: difficulty
- *         schema: { type: string }
- *       - in: query
- *         name: search
- *         schema: { type: string }
- *     responses:
- *       200: { description: List of exercises }
  */
 router.get('/', optionalAuth, asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const { muscle, equipment, difficulty, search, type } = req.query;
@@ -71,6 +56,9 @@ router.get('/', optionalAuth, asyncHandler(async (req: AuthenticatedRequest, res
     params
   );
 
+  // Parse JSON fields
+  transformRows(exercises, ['instructions', 'tips', 'common_mistakes', 'secondary_muscles']);
+
   res.json(exercises);
 }));
 
@@ -80,14 +68,6 @@ router.get('/', optionalAuth, asyncHandler(async (req: AuthenticatedRequest, res
  *   get:
  *     tags: [Exercises]
  *     summary: Get exercise by ID
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema: { type: string, format: uuid }
- *     responses:
- *       200: { description: Exercise details }
- *       404: { description: Exercise not found }
  */
 router.get('/:id', optionalAuth, asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const { id } = req.params;
@@ -109,9 +89,12 @@ router.get('/:id', optionalAuth, asyncHandler(async (req: AuthenticatedRequest, 
     throw ForbiddenError('You do not have access to this exercise');
   }
 
+  // Parse JSON fields
+  transformRow(exercise, ['instructions', 'tips', 'common_mistakes', 'secondary_muscles']);
+
   // Get alternatives
-  const alternatives = await queryAll<{ id: string; name: string }>(
-    `SELECT e.id, e.name 
+  const alternatives = await queryAll<{ id: string; name: string; primary_muscle: string }>(
+    `SELECT e.id, e.name, e.primary_muscle
      FROM exercises e
      JOIN exercise_alternatives ea ON e.id = ea.alternative_exercise_id
      WHERE ea.exercise_id = @id`,
@@ -127,16 +110,6 @@ router.get('/:id', optionalAuth, asyncHandler(async (req: AuthenticatedRequest, 
  *   post:
  *     tags: [Exercises]
  *     summary: Create a new exercise
- *     security: [{ bearerAuth: [] }]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             $ref: '#/components/schemas/Exercise'
- *     responses:
- *       201: { description: Exercise created }
- *       401: { description: Unauthorized }
  */
 router.post('/', authenticate, asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const {
@@ -149,7 +122,7 @@ router.post('/', authenticate, asyncHandler(async (req: AuthenticatedRequest, re
     secondary_muscles,
     equipment,
     difficulty = 'intermediate',
-    exercise_type = 'strength',
+    exercise_type = 'compound',
     video_url,
     image_url,
   } = req.body;
@@ -185,10 +158,14 @@ router.post('/', authenticate, asyncHandler(async (req: AuthenticatedRequest, re
     }
   );
 
-  const exercise = await queryOne(
+  const exercise = await queryOne<Record<string, unknown>>(
     'SELECT * FROM exercises WHERE id = @id',
     { id }
   );
+
+  if (exercise) {
+    transformRow(exercise, ['instructions', 'tips', 'common_mistakes', 'secondary_muscles']);
+  }
 
   res.status(201).json(exercise);
 }));
@@ -199,22 +176,6 @@ router.post('/', authenticate, asyncHandler(async (req: AuthenticatedRequest, re
  *   put:
  *     tags: [Exercises]
  *     summary: Update an exercise
- *     security: [{ bearerAuth: [] }]
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema: { type: string, format: uuid }
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             $ref: '#/components/schemas/Exercise'
- *     responses:
- *       200: { description: Exercise updated }
- *       403: { description: Cannot modify system exercises }
- *       404: { description: Exercise not found }
  */
 router.put('/:id', authenticate, asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const { id } = req.params;
@@ -287,7 +248,10 @@ router.put('/:id', authenticate, asyncHandler(async (req: AuthenticatedRequest, 
     }
   );
 
-  const exercise = await queryOne('SELECT * FROM exercises WHERE id = @id', { id });
+  const exercise = await queryOne<Record<string, unknown>>('SELECT * FROM exercises WHERE id = @id', { id });
+  if (exercise) {
+    transformRow(exercise, ['instructions', 'tips', 'common_mistakes', 'secondary_muscles']);
+  }
   res.json(exercise);
 }));
 
@@ -297,15 +261,6 @@ router.put('/:id', authenticate, asyncHandler(async (req: AuthenticatedRequest, 
  *   delete:
  *     tags: [Exercises]
  *     summary: Delete an exercise
- *     security: [{ bearerAuth: [] }]
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema: { type: string, format: uuid }
- *     responses:
- *       200: { description: Exercise deleted }
- *       403: { description: Cannot delete system exercises }
  */
 router.delete('/:id', authenticate, asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const { id } = req.params;
@@ -329,9 +284,44 @@ router.delete('/:id', authenticate, asyncHandler(async (req: AuthenticatedReques
     throw ForbiddenError('You can only delete your own exercises');
   }
 
+  // Delete alternatives first
+  await execute('DELETE FROM exercise_alternatives WHERE exercise_id = @id OR alternative_exercise_id = @id', { id });
   await execute('DELETE FROM exercises WHERE id = @id', { id });
 
   res.json({ message: 'Exercise deleted' });
+}));
+
+// Add exercise alternative
+router.post('/:id/alternatives', authenticate, asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  const { id } = req.params;
+  const { alternative_exercise_id, notes } = req.body;
+
+  if (!alternative_exercise_id) {
+    throw BadRequestError('alternative_exercise_id is required');
+  }
+
+  // Verify both exercises exist
+  const exercise = await queryOne('SELECT id, created_by, is_system FROM exercises WHERE id = @id', { id });
+  const alternative = await queryOne('SELECT id FROM exercises WHERE id = @altId', { altId: alternative_exercise_id });
+
+  if (!exercise || !alternative) {
+    throw NotFoundError('Exercise');
+  }
+
+  // Check permission
+  const isSuperAdmin = req.user!.roles.includes('super_admin');
+  if (!exercise.is_system && exercise.created_by !== req.user!.id && !isSuperAdmin) {
+    throw ForbiddenError('You can only modify your own exercises');
+  }
+
+  const altId = uuidv4();
+  await execute(
+    `INSERT INTO exercise_alternatives (id, exercise_id, alternative_exercise_id, notes)
+     VALUES (@id, @exerciseId, @alternativeId, @notes)`,
+    { id: altId, exerciseId: id, alternativeId: alternative_exercise_id, notes }
+  );
+
+  res.status(201).json({ id: altId, message: 'Alternative added' });
 }));
 
 export default router;

@@ -42,11 +42,26 @@ app.use(helmet({
 
 // CORS configuration
 app.use(cors({
-  origin: [
-    config.frontendUrl,
-    'http://localhost:5173', // Local development
-    'http://localhost:8080',
-  ],
+  origin: (origin, callback) => {
+    // Allow requests with no origin (mobile apps, curl, etc.)
+    if (!origin) return callback(null, true);
+    
+    // Allow localhost on any port
+    if (/^http:\/\/localhost:\d+$/.test(origin)) return callback(null, true);
+    
+    // Allow LAN IPs (192.168.x.x, 10.x.x.x, 172.16-31.x.x)
+    if (/^http:\/\/(192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+|172\.(1[6-9]|2\d|3[01])\.\d+\.\d+):\d+$/.test(origin)) {
+      return callback(null, true);
+    }
+    
+    // Allow configured frontend URL
+    if (origin === config.frontendUrl) return callback(null, true);
+    
+    // Allow Azure URLs
+    if (/\.azurewebsites\.net$/.test(origin)) return callback(null, true);
+    
+    callback(null, true); // Allow all for now in development
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
