@@ -8,8 +8,8 @@
 export const config = {
   // API Configuration
   api: {
-    // Azure backend API URL
-    baseUrl: import.meta.env.VITE_API_URL || "http://localhost:3001",
+    // Azure backend API URL - aligned with api.ts (port 3000)
+    baseUrl: import.meta.env.VITE_API_URL || "http://localhost:3000",
     functionsPath: "/api",
   },
 
@@ -45,10 +45,10 @@ export const config = {
     enableRealtime: true,
   },
 
-  // Azure-specific configuration (for future migration)
+  // Azure-specific configuration
   azure: {
-    // Azure Functions URL
-    apiUrl: import.meta.env.VITE_API_URL || "http://localhost:7071/api",
+    // Azure Functions URL - aligned with api.ts (port 3000)
+    apiUrl: import.meta.env.VITE_API_URL || "http://localhost:3000/api",
     functionsUrl: import.meta.env.VITE_AZURE_FUNCTIONS_URL || "",
     storageUrl: import.meta.env.VITE_AZURE_STORAGE_URL || "",
     googleClientId: import.meta.env.VITE_GOOGLE_CLIENT_ID || "",

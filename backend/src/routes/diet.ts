@@ -1,6 +1,6 @@
 import { Router, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
-import { queryOne, queryAll, execute } from '../db';
+import { queryOne, queryAll, execute, transformRow, transformRows } from '../db';
 import { authenticate, optionalAuth, AuthenticatedRequest } from '../middleware/auth';
 import { asyncHandler, NotFoundError, BadRequestError, ForbiddenError } from '../middleware/errorHandler';
 
@@ -12,8 +12,6 @@ const router = Router();
  *   get:
  *     tags: [Diet]
  *     summary: Get all diet plans
- *     responses:
- *       200: { description: List of diet plans }
  */
 router.get('/plans', optionalAuth, asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const { goal, dietary_type, search } = req.query;
@@ -57,14 +55,6 @@ router.get('/plans', optionalAuth, asyncHandler(async (req: AuthenticatedRequest
  *   get:
  *     tags: [Diet]
  *     summary: Get diet plan with meals
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema: { type: string, format: uuid }
- *     responses:
- *       200: { description: Diet plan with meals }
- *       404: { description: Plan not found }
  */
 router.get('/plans/:id', optionalAuth, asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const { id } = req.params;
@@ -87,6 +77,9 @@ router.get('/plans/:id', optionalAuth, asyncHandler(async (req: AuthenticatedReq
      ORDER BY meal_number`,
     { id }
   );
+
+  // Parse food_suggestions for each meal
+  transformRows(meals, ['food_suggestions']);
 
   // Get food items for each meal
   for (const meal of meals) {
@@ -114,9 +107,6 @@ router.get('/plans/:id', optionalAuth, asyncHandler(async (req: AuthenticatedReq
  *   post:
  *     tags: [Diet]
  *     summary: Create a new diet plan
- *     security: [{ bearerAuth: [] }]
- *     responses:
- *       201: { description: Diet plan created }
  */
 router.post('/plans', authenticate, asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const {
@@ -217,9 +207,6 @@ router.post('/plans', authenticate, asyncHandler(async (req: AuthenticatedReques
  *   delete:
  *     tags: [Diet]
  *     summary: Delete a diet plan
- *     security: [{ bearerAuth: [] }]
- *     responses:
- *       200: { description: Plan deleted }
  */
 router.delete('/plans/:id', authenticate, asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const { id } = req.params;
@@ -261,9 +248,6 @@ router.delete('/plans/:id', authenticate, asyncHandler(async (req: Authenticated
  *   get:
  *     tags: [Diet]
  *     summary: Get diet plan assignments for current user
- *     security: [{ bearerAuth: [] }]
- *     responses:
- *       200: { description: List of assignments }
  */
 router.get('/assignments', authenticate, asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const assignments = await queryAll<Record<string, unknown>>(
@@ -279,6 +263,182 @@ router.get('/assignments', authenticate, asyncHandler(async (req: AuthenticatedR
   );
 
   res.json(assignments);
+}));
+
+// Get meal food items by meal IDs (for bulk fetching)
+router.post('/meal-food-items', authenticate, asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  const { meal_ids } = req.body;
+
+  if (!meal_ids || !Array.isArray(meal_ids) || meal_ids.length === 0) {
+    res.json([]);
+    return;
+  }
+
+  // Build IN clause
+  const placeholders = meal_ids.map((_, i) => `@mealId${i}`).join(', ');
+  const params: Record<string, unknown> = {};
+  meal_ids.forEach((id, i) => {
+    params[`mealId${i}`] = id;
+  });
+
+  const items = await queryAll(
+    `SELECT mfi.*, f.name as food_name, f.calories_per_100g, f.protein_per_100g, f.carbs_per_100g, f.fat_per_100g,
+            r.name as recipe_name, r.calories_per_serving
+     FROM meal_food_items mfi
+     LEFT JOIN foods f ON mfi.food_id = f.id
+     LEFT JOIN recipes r ON mfi.recipe_id = r.id
+     WHERE mfi.meal_id IN (${placeholders})
+     ORDER BY mfi.meal_id, mfi.order_index`,
+    params
+  );
+
+  res.json(items);
+}));
+
+// Add food item to meal
+router.post('/meals/:mealId/items', authenticate, asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  const { mealId } = req.params;
+  const { food_id, recipe_id, quantity, unit = 'g', notes } = req.body;
+
+  if (!food_id && !recipe_id) {
+    throw BadRequestError('Either food_id or recipe_id is required');
+  }
+
+  // Verify meal exists and user has access
+  const meal = await queryOne<{ plan_id: string }>(
+    'SELECT plan_id FROM diet_plan_meals WHERE id = @mealId',
+    { mealId }
+  );
+
+  if (!meal) {
+    throw NotFoundError('Meal');
+  }
+
+  const plan = await queryOne<{ created_by: string; is_system: boolean }>(
+    'SELECT created_by, is_system FROM diet_plans WHERE id = @planId',
+    { planId: meal.plan_id }
+  );
+
+  if (!plan) {
+    throw NotFoundError('Diet plan');
+  }
+
+  const isSuperAdmin = req.user!.roles.includes('super_admin');
+  if (!plan.is_system && plan.created_by !== req.user!.id && !isSuperAdmin) {
+    throw ForbiddenError('You cannot edit this diet plan');
+  }
+
+  // Calculate nutrition
+  let calcCal = 0, calcProtein = 0, calcCarbs = 0, calcFat = 0;
+  
+  if (food_id) {
+    const food = await queryOne<{
+      calories_per_100g: number;
+      protein_per_100g: number;
+      carbs_per_100g: number;
+      fat_per_100g: number;
+    }>('SELECT calories_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g FROM foods WHERE id = @id', { id: food_id });
+    
+    if (food) {
+      const factor = (quantity || 100) / 100;
+      calcCal = Math.round(food.calories_per_100g * factor);
+      calcProtein = Math.round(food.protein_per_100g * factor * 10) / 10;
+      calcCarbs = Math.round(food.carbs_per_100g * factor * 10) / 10;
+      calcFat = Math.round(food.fat_per_100g * factor * 10) / 10;
+    }
+  } else if (recipe_id) {
+    const recipe = await queryOne<{
+      calories_per_serving: number;
+      protein_per_serving: number;
+      carbs_per_serving: number;
+      fat_per_serving: number;
+    }>('SELECT calories_per_serving, protein_per_serving, carbs_per_serving, fat_per_serving FROM recipes WHERE id = @id', { id: recipe_id });
+    
+    if (recipe) {
+      const servings = quantity || 1;
+      calcCal = Math.round((recipe.calories_per_serving || 0) * servings);
+      calcProtein = Math.round((recipe.protein_per_serving || 0) * servings * 10) / 10;
+      calcCarbs = Math.round((recipe.carbs_per_serving || 0) * servings * 10) / 10;
+      calcFat = Math.round((recipe.fat_per_serving || 0) * servings * 10) / 10;
+    }
+  }
+
+  // Get next order index
+  const maxOrder = await queryOne<{ max_order: number }>(
+    'SELECT MAX(order_index) as max_order FROM meal_food_items WHERE meal_id = @mealId',
+    { mealId }
+  );
+
+  const id = uuidv4();
+  await execute(
+    `INSERT INTO meal_food_items (id, meal_id, food_id, recipe_id, quantity, unit, order_index, notes, calculated_calories, calculated_protein, calculated_carbs, calculated_fat)
+     VALUES (@id, @mealId, @foodId, @recipeId, @quantity, @unit, @orderIndex, @notes, @calcCal, @calcProtein, @calcCarbs, @calcFat)`,
+    {
+      id,
+      mealId,
+      foodId: food_id,
+      recipeId: recipe_id,
+      quantity: quantity || (food_id ? 100 : 1),
+      unit,
+      orderIndex: (maxOrder?.max_order ?? -1) + 1,
+      notes,
+      calcCal,
+      calcProtein,
+      calcCarbs,
+      calcFat,
+    }
+  );
+
+  const item = await queryOne(
+    `SELECT mfi.*, f.name as food_name, r.name as recipe_name
+     FROM meal_food_items mfi
+     LEFT JOIN foods f ON mfi.food_id = f.id
+     LEFT JOIN recipes r ON mfi.recipe_id = r.id
+     WHERE mfi.id = @id`,
+    { id }
+  );
+
+  res.status(201).json(item);
+}));
+
+// Remove food item from meal
+router.delete('/meal-items/:id', authenticate, asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  const { id } = req.params;
+
+  const item = await queryOne<{ meal_id: string }>(
+    'SELECT meal_id FROM meal_food_items WHERE id = @id',
+    { id }
+  );
+
+  if (!item) {
+    throw NotFoundError('Meal food item');
+  }
+
+  const meal = await queryOne<{ plan_id: string }>(
+    'SELECT plan_id FROM diet_plan_meals WHERE id = @mealId',
+    { mealId: item.meal_id }
+  );
+
+  if (!meal) {
+    throw NotFoundError('Meal');
+  }
+
+  const plan = await queryOne<{ created_by: string; is_system: boolean }>(
+    'SELECT created_by, is_system FROM diet_plans WHERE id = @planId',
+    { planId: meal.plan_id }
+  );
+
+  if (!plan) {
+    throw NotFoundError('Diet plan');
+  }
+
+  const isSuperAdmin = req.user!.roles.includes('super_admin');
+  if (!plan.is_system && plan.created_by !== req.user!.id && !isSuperAdmin) {
+    throw ForbiddenError('You cannot edit this diet plan');
+  }
+
+  await execute('DELETE FROM meal_food_items WHERE id = @id', { id });
+  res.json({ message: 'Food item removed' });
 }));
 
 export default router;
