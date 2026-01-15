@@ -31,7 +31,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Trash2, Loader2, Dumbbell, Calendar, ArrowUp, ArrowDown, GripVertical } from "lucide-react";
+import { Plus, Trash2, Loader2, Dumbbell, Calendar, ArrowUp, ArrowDown, GripVertical, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { useExercises } from "@/hooks/useExercises";
 
@@ -83,9 +83,17 @@ interface WorkoutProgramEditorProps {
 export function WorkoutProgramEditor({ templateId, onClose }: WorkoutProgramEditorProps) {
   const queryClient = useQueryClient();
   const [addExerciseDialog, setAddExerciseDialog] = useState<{ dayId: string } | null>(null);
+  const [editExerciseDialog, setEditExerciseDialog] = useState<{ exercise: DayExercise } | null>(null);
   const [addDayDialog, setAddDayDialog] = useState<{ weekId: string } | null>(null);
   const [addWeekDialog, setAddWeekDialog] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<{ type: 'day' | 'week'; id: string; name: string } | null>(null);
+  
+  // Edit exercise state
+  const [editSetsMin, setEditSetsMin] = useState(3);
+  const [editSetsMax, setEditSetsMax] = useState<number | undefined>();
+  const [editRepsMin, setEditRepsMin] = useState(8);
+  const [editRepsMax, setEditRepsMax] = useState<number | undefined>();
+  const [editNotes, setEditNotes] = useState("");
   
   const [exerciseSearch, setExerciseSearch] = useState("");
   const [customExerciseName, setCustomExerciseName] = useState("");
@@ -170,7 +178,41 @@ export function WorkoutProgramEditor({ templateId, onClose }: WorkoutProgramEdit
     },
   });
 
-  // Add day mutation
+  // Update exercise mutation
+  const updateExerciseMutation = useMutation({
+    mutationFn: async ({
+      exerciseId,
+      setsMin,
+      setsMax,
+      repsMin,
+      repsMax,
+      notes,
+    }: {
+      exerciseId: string;
+      setsMin: number;
+      setsMax?: number;
+      repsMin: number;
+      repsMax?: number;
+      notes?: string;
+    }) => {
+      return api.put(`/api/workouts/template-exercises/${exerciseId}`, {
+        sets_min: setsMin,
+        sets_max: setsMax || null,
+        reps_min: repsMin,
+        reps_max: repsMax || null,
+        notes: notes || null,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["template-structure", templateId] });
+      queryClient.invalidateQueries({ queryKey: ["workout-template-detail", templateId] });
+      toast.success("Exercise updated");
+      setEditExerciseDialog(null);
+    },
+    onError: () => {
+      toast.error("Failed to update exercise");
+    },
+  });
   const addDayMutation = useMutation({
     mutationFn: async ({ weekId, name }: { weekId: string; name: string }) => {
       return api.post('/api/workouts/template-days', {
@@ -265,6 +307,27 @@ export function WorkoutProgramEditor({ templateId, onClose }: WorkoutProgramEdit
       setsMax: newSetsMax,
       repsMin: newRepsMin,
       repsMax: newRepsMax,
+    });
+  };
+
+  const handleOpenEditExercise = (exercise: DayExercise) => {
+    setEditSetsMin(exercise.sets_min);
+    setEditSetsMax(exercise.sets_max || undefined);
+    setEditRepsMin(exercise.reps_min);
+    setEditRepsMax(exercise.reps_max || undefined);
+    setEditNotes(exercise.notes || "");
+    setEditExerciseDialog({ exercise });
+  };
+
+  const handleUpdateExercise = () => {
+    if (!editExerciseDialog) return;
+    updateExerciseMutation.mutate({
+      exerciseId: editExerciseDialog.exercise.id,
+      setsMin: editSetsMin,
+      setsMax: editSetsMax,
+      repsMin: editRepsMin,
+      repsMax: editRepsMax,
+      notes: editNotes,
     });
   };
 
@@ -398,8 +461,8 @@ export function WorkoutProgramEditor({ templateId, onClose }: WorkoutProgramEdit
                                   {idx + 1}.
                                 </span>
                                 <Dumbbell className="w-3 h-3 text-muted-foreground shrink-0" />
-                                <span className="flex-1 font-medium text-xs truncate">
-                                  {ex.exercise?.name || ex.custom_exercise_name || "Unknown"}
+                                <span className="flex-1 font-medium text-xs truncate" title={ex.exercise?.name || ex.custom_exercise_name || "Custom Exercise"}>
+                                  {ex.exercise?.name || ex.custom_exercise_name || "Custom Exercise"}
                                 </span>
                                 <Badge variant="secondary" className="text-[10px] shrink-0">
                                   {ex.sets_min}{ex.sets_max && ex.sets_max !== ex.sets_min ? `-${ex.sets_max}` : ""} × {ex.reps_min}{ex.reps_max && ex.reps_max !== ex.reps_min ? `-${ex.reps_max}` : ""}
@@ -408,7 +471,17 @@ export function WorkoutProgramEditor({ templateId, onClose }: WorkoutProgramEdit
                                   variant="ghost"
                                   size="icon"
                                   className="h-5 w-5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity shrink-0"
+                                  onClick={() => handleOpenEditExercise(ex)}
+                                  title="Edit sets/reps"
+                                >
+                                  <Pencil className="w-3 h-3 text-muted-foreground" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-5 w-5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity shrink-0"
                                   onClick={() => removeExerciseMutation.mutate(ex.id)}
+                                  title="Delete exercise"
                                 >
                                   <Trash2 className="w-3 h-3 text-destructive" />
                                 </Button>
@@ -650,6 +723,97 @@ export function WorkoutProgramEditor({ templateId, onClose }: WorkoutProgramEdit
             >
               {addWeekMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               Add Week
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Exercise Dialog */}
+      <Dialog open={!!editExerciseDialog} onOpenChange={(open) => !open && setEditExerciseDialog(null)}>
+        <DialogContent className="max-w-[95vw] sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-base">Edit Exercise</DialogTitle>
+            <DialogDescription className="text-xs">
+              {editExerciseDialog?.exercise.exercise?.name || editExerciseDialog?.exercise.custom_exercise_name || "Exercise"}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 mt-4">
+            {/* Sets Config */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label className="text-xs">Sets</Label>
+                <div className="flex gap-2 mt-1">
+                  <Input
+                    type="number"
+                    min={1}
+                    max={20}
+                    value={editSetsMin}
+                    onChange={(e) => setEditSetsMin(parseInt(e.target.value) || 1)}
+                    placeholder="Min"
+                    className="h-8 text-sm"
+                  />
+                  <span className="text-muted-foreground self-center text-sm">-</span>
+                  <Input
+                    type="number"
+                    min={1}
+                    max={20}
+                    value={editSetsMax || ""}
+                    onChange={(e) => setEditSetsMax(e.target.value ? parseInt(e.target.value) : undefined)}
+                    placeholder="Max"
+                    className="h-8 text-sm"
+                  />
+                </div>
+              </div>
+              <div>
+                <Label className="text-xs">Reps</Label>
+                <div className="flex gap-2 mt-1">
+                  <Input
+                    type="number"
+                    min={1}
+                    max={100}
+                    value={editRepsMin}
+                    onChange={(e) => setEditRepsMin(parseInt(e.target.value) || 1)}
+                    placeholder="Min"
+                    className="h-8 text-sm"
+                  />
+                  <span className="text-muted-foreground self-center text-sm">-</span>
+                  <Input
+                    type="number"
+                    min={1}
+                    max={100}
+                    value={editRepsMax || ""}
+                    onChange={(e) => setEditRepsMax(e.target.value ? parseInt(e.target.value) : undefined)}
+                    placeholder="Max"
+                    className="h-8 text-sm"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Notes */}
+            <div>
+              <Label className="text-xs">Notes (optional)</Label>
+              <Input
+                value={editNotes}
+                onChange={(e) => setEditNotes(e.target.value)}
+                placeholder="Any notes for this exercise..."
+                className="mt-1 h-8 text-sm"
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="mt-4">
+            <Button variant="outline" size="sm" onClick={() => setEditExerciseDialog(null)}>
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleUpdateExercise}
+              disabled={updateExerciseMutation.isPending}
+            >
+              {updateExerciseMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Save Changes
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -153,10 +153,22 @@ router.get('/templates/:id', optionalAuth, asyncHandler(async (req: Authenticate
     (day as Record<string, unknown>).exercises = exercises;
   }
 
+  // Calculate total exercises
+  let totalExercises = 0;
+  for (const week of weeks) {
+    for (const day of (week as Record<string, unknown>).days as Record<string, unknown>[]) {
+      totalExercises += ((day as Record<string, unknown>).exercises as unknown[]).length;
+    }
+  }
+  for (const day of standaloneDays) {
+    totalExercises += ((day as Record<string, unknown>).exercises as unknown[]).length;
+  }
+
   res.json({
     ...template,
     weeks,
     days: standaloneDays,
+    total_exercises: totalExercises,
   });
 }));
 
@@ -687,6 +699,76 @@ router.post('/template-exercises', authenticate, asyncHandler(async (req: Authen
   );
 
   res.status(201).json(exercise);
+}));
+
+// Update a template exercise
+router.put('/template-exercises/:id', authenticate, asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  const { id } = req.params;
+  const { sets_min, sets_max, reps_min, reps_max, rest_seconds_min, rest_seconds_max, notes } = req.body;
+
+  // Get exercise and verify ownership
+  const exercise = await queryOne<{ day_id: string }>(
+    'SELECT day_id FROM workout_template_exercises WHERE id = @id',
+    { id }
+  );
+
+  if (!exercise) {
+    throw NotFoundError('Template exercise');
+  }
+
+  const day = await queryOne<{ template_id: string }>(
+    'SELECT template_id FROM workout_template_days WHERE id = @dayId',
+    { dayId: exercise.day_id }
+  );
+
+  if (!day) {
+    throw NotFoundError('Template day');
+  }
+
+  const template = await queryOne<{ created_by: string; is_system: boolean }>(
+    'SELECT created_by, is_system FROM workout_templates WHERE id = @templateId',
+    { templateId: day.template_id }
+  );
+
+  if (!template) {
+    throw NotFoundError('Template');
+  }
+
+  if (!template.is_system && template.created_by !== req.user!.id && !req.user!.roles.includes('super_admin')) {
+    throw ForbiddenError('You cannot edit this template');
+  }
+
+  await execute(
+    `UPDATE workout_template_exercises SET
+       sets_min = COALESCE(@setsMin, sets_min),
+       sets_max = @setsMax,
+       reps_min = COALESCE(@repsMin, reps_min),
+       reps_max = @repsMax,
+       rest_seconds_min = COALESCE(@restSecondsMin, rest_seconds_min),
+       rest_seconds_max = @restSecondsMax,
+       notes = @notes
+     WHERE id = @id`,
+    {
+      id,
+      setsMin: sets_min,
+      setsMax: sets_max,
+      repsMin: reps_min,
+      repsMax: reps_max,
+      restSecondsMin: rest_seconds_min,
+      restSecondsMax: rest_seconds_max,
+      notes,
+    }
+  );
+
+  const updated = await queryOne(
+    `SELECT wte.*, e.name as exercise_name, e.primary_muscle, e.equipment
+     FROM workout_template_exercises wte
+     LEFT JOIN exercises e ON wte.exercise_id = e.id
+     WHERE wte.id = @id`,
+    { id }
+  );
+
+  res.json(updated);
 }));
 
 // Reorder exercises within a day
