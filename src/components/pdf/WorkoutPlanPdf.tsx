@@ -53,7 +53,7 @@ export function WorkoutPlanPdf({ data }: { data: WorkoutPlanData }) {
         {/* Header */}
         <View style={pdfStyles.header}>
           <Text style={pdfStyles.title}>{data.name}</Text>
-          {data.goal && <Text style={pdfStyles.subtitle}>Goal: {data.goal}</Text>}
+          {data.goal && <Text style={pdfStyles.subtitle}>Goal: {data.goal.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</Text>}
           {data.clientName && (
             <Text style={{ fontSize: 10, color: '#6b7280', marginTop: 2 }}>
               Prepared for: {data.clientName}
@@ -97,7 +97,7 @@ export function WorkoutPlanPdf({ data }: { data: WorkoutPlanData }) {
           {data.templateType && (
             <View style={pdfStyles.row}>
               <Text style={pdfStyles.label}>Program Type</Text>
-              <Text style={pdfStyles.value}>{data.templateType.replace(/_/g, ' ')}</Text>
+              <Text style={pdfStyles.value}>{data.templateType.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</Text>
             </View>
           )}
         </View>

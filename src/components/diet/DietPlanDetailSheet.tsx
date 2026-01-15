@@ -150,6 +150,9 @@ export function DietPlanDetailSheet({ plan, onOpenChange, open }: Props) {
                             quantity: f.quantity,
                             unit: f.unit,
                             calories: f.calculated_calories || undefined,
+                            protein: f.calculated_protein || undefined,
+                            carbs: f.calculated_carbs || undefined,
+                            fat: f.calculated_fat || undefined,
                           })),
                           notes: m.notes || undefined,
                         })) || [],
@@ -259,15 +262,26 @@ export function DietPlanDetailSheet({ plan, onOpenChange, open }: Props) {
                                 {mealFoods.map((item) => (
                                   <div 
                                     key={item.id} 
-                                    className="flex items-center justify-between text-sm bg-muted/50 rounded-md px-2 py-1.5"
+                                    className="flex items-center justify-between text-sm bg-muted/50 rounded-md px-3 py-2"
                                   >
-                                    <span className="font-medium">
-                                      {item.food?.name || item.recipe?.name || "Unknown"}
-                                    </span>
-                                    <span className="text-muted-foreground text-xs">
-                                      {item.quantity} {item.unit}
-                                      {item.calculated_calories && ` • ${item.calculated_calories} kcal`}
-                                    </span>
+                                    <div className="flex-1">
+                                      <span className="font-medium">
+                                        {item.food?.name || item.recipe?.name || "Unknown"}
+                                      </span>
+                                      <span className="text-muted-foreground ml-2 text-xs">
+                                        {item.quantity} {item.unit}
+                                      </span>
+                                    </div>
+                                    <div className="text-xs text-muted-foreground text-right">
+                                      {item.calculated_calories && (
+                                        <span className="font-medium text-foreground">{item.calculated_calories} kcal</span>
+                                      )}
+                                      <div className="flex gap-2 mt-0.5">
+                                        {item.calculated_protein !== null && <span>P: {item.calculated_protein}g</span>}
+                                        {item.calculated_carbs !== null && <span>C: {item.calculated_carbs}g</span>}
+                                        {item.calculated_fat !== null && <span>F: {item.calculated_fat}g</span>}
+                                      </div>
+                                    </div>
                                   </div>
                                 ))}
                               </div>

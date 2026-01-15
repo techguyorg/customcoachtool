@@ -53,7 +53,7 @@ export function DietPlanPdf({ data }: { data: DietPlanData }) {
         {/* Header */}
         <View style={pdfStyles.header}>
           <Text style={pdfStyles.title}>{data.name}</Text>
-          {data.goal && <Text style={pdfStyles.subtitle}>Goal: {data.goal}</Text>}
+          {data.goal && <Text style={pdfStyles.subtitle}>Goal: {data.goal.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</Text>}
           {data.clientName && (
             <Text style={{ fontSize: 10, color: '#6b7280', marginTop: 2 }}>
               Prepared for: {data.clientName}
@@ -251,22 +251,6 @@ export function DietPlanPdf({ data }: { data: DietPlanData }) {
           </View>
         )}
 
-        {/* Shopping List - All Foods */}
-        <View style={pdfStyles.section} wrap={false}>
-          <Text style={pdfStyles.sectionTitle}>Shopping List</Text>
-          <View style={{ marginTop: 8 }}>
-            {data.meals.flatMap((meal) => 
-              meal.foods.map((food) => food.name)
-            ).filter((name, index, self) => self.indexOf(name) === index)
-            .sort()
-            .map((foodName, index) => (
-              <View key={index} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 3 }}>
-                <View style={{ width: 12, height: 12, borderWidth: 1, borderColor: '#9ca3af', borderRadius: 2, marginRight: 8 }} />
-                <Text style={{ fontSize: 9, color: '#4b5563' }}>{foodName}</Text>
-              </View>
-            ))}
-          </View>
-        </View>
 
         {/* Notes */}
         {data.notes && (
