@@ -16,10 +16,13 @@ export interface CoachClient {
     avatar_url: string | null;
   } | null;
   client_profile: {
+    height_cm: number | null;
     current_weight_kg: number | null;
     target_weight_kg: number | null;
     fitness_level: string | null;
     fitness_goals: string[] | null;
+    dietary_restrictions: string[] | null;
+    medical_conditions: string | null;
     subscription_status: string | null;
   } | null;
 }

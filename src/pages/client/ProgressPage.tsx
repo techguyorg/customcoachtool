@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { 
   Scale, 
   TrendingUp, 
@@ -10,7 +10,8 @@ import {
   Activity,
   ChevronRight,
   Ruler,
-  BarChart3
+  BarChart3,
+  ArrowRightLeft
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -31,10 +32,19 @@ import { MeasurementChart } from "@/components/client/MeasurementChart";
 import { PhotoGallery } from "@/components/client/PhotoGallery";
 import { GoalCard } from "@/components/client/GoalCard";
 import { GoalDetailModal } from "@/components/client/GoalDetailModal";
+import { DateRangeSelector, DateRangeOption, getDateRangeStart } from "@/components/client/DateRangeSelector";
+import { StatDetailModal } from "@/components/client/StatDetailModal";
 import { ExportPdfButton } from "@/components/shared/ExportPdfButton";
 import { ProgressReportPdf } from "@/components/pdf/ProgressReportPdf";
 import { format } from "date-fns";
 import { useAuth } from "@/contexts/AuthContext";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export default function ProgressPage() {
   const { user } = useAuth();
@@ -46,11 +56,39 @@ export default function ProgressPage() {
   const [photoDialogOpen, setPhotoDialogOpen] = useState(false);
   const [goalDialogOpen, setGoalDialogOpen] = useState(false);
   const [selectedGoal, setSelectedGoal] = useState<ClientGoal | null>(null);
+  const [dateRange, setDateRange] = useState<DateRangeOption>("3M");
+  const [statModalType, setStatModalType] = useState<"weight" | "photos" | "goals" | "checkins" | null>(null);
+  const [compareMode, setCompareMode] = useState(false);
+  const [comparePhoto1, setComparePhoto1] = useState<string>("");
+  const [comparePhoto2, setComparePhoto2] = useState<string>("");
 
   const latestMeasurement = getLatestMeasurement(measurements);
   const weightProgress = calculateWeightProgress(measurements);
   const activeGoals = goals.filter(g => g.status === 'active');
   const completedGoals = goals.filter(g => g.status === 'completed');
+
+  // Filter measurements by date range
+  const filteredMeasurements = useMemo(() => {
+    const startDate = getDateRangeStart(dateRange);
+    if (!startDate) return measurements;
+    return measurements.filter(m => new Date(m.recorded_at) >= startDate);
+  }, [measurements, dateRange]);
+
+  // Group photos by month for better organization
+  const photosByMonth = useMemo(() => {
+    const groups: Record<string, typeof photos> = {};
+    photos.forEach(photo => {
+      const monthKey = format(new Date(photo.recorded_at), "yyyy-MM");
+      if (!groups[monthKey]) groups[monthKey] = [];
+      groups[monthKey].push(photo);
+    });
+    return Object.entries(groups)
+      .sort(([a], [b]) => b.localeCompare(a))
+      .map(([key, photos]) => ({
+        month: format(new Date(key + "-01"), "MMMM yyyy"),
+        photos
+      }));
+  }, [photos]);
 
   // Prepare PDF data
   const pdfData = {
@@ -111,9 +149,12 @@ export default function ProgressPage() {
         </div>
       </div>
 
-      {/* Quick Stats */}
+      {/* Quick Stats - Now Clickable */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
+        <Card 
+          className="cursor-pointer hover:border-primary/50 transition-colors"
+          onClick={() => setStatModalType("weight")}
+        >
           <CardContent className="pt-6">
             <div className="flex items-center justify-between mb-2">
               <Scale className="w-5 h-5 text-muted-foreground" />
@@ -137,7 +178,10 @@ export default function ProgressPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card 
+          className="cursor-pointer hover:border-primary/50 transition-colors"
+          onClick={() => setStatModalType("photos")}
+        >
           <CardContent className="pt-6">
             <div className="flex items-center justify-between mb-2">
               <Camera className="w-5 h-5 text-muted-foreground" />
@@ -149,7 +193,10 @@ export default function ProgressPage() {
               variant="link" 
               size="sm" 
               className="p-0 h-auto text-xs mt-1"
-              onClick={() => setPhotoDialogOpen(true)}
+              onClick={(e) => {
+                e.stopPropagation();
+                setPhotoDialogOpen(true);
+              }}
             >
               Add photo <ChevronRight className="w-3 h-3 ml-1" />
             </Button>
@@ -158,7 +205,7 @@ export default function ProgressPage() {
 
         <Card 
           className="cursor-pointer hover:border-primary/50 transition-colors"
-          onClick={() => activeGoals.length > 0 && setSelectedGoal(activeGoals[0])}
+          onClick={() => setStatModalType("goals")}
         >
           <CardContent className="pt-6">
             <div className="flex items-center justify-between mb-2">
@@ -181,7 +228,10 @@ export default function ProgressPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card 
+          className="cursor-pointer hover:border-primary/50 transition-colors"
+          onClick={() => setStatModalType("checkins")}
+        >
           <CardContent className="pt-6">
             <div className="flex items-center justify-between mb-2">
               <Calendar className="w-5 h-5 text-muted-foreground" />
@@ -207,21 +257,26 @@ export default function ProgressPage() {
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
-          {/* Weight Chart */}
+          {/* Weight Chart with Date Range Selector */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <BarChart3 className="w-5 h-5" />
-                Weight Progress
-              </CardTitle>
-              <CardDescription>
-                Your weight trend over time
-              </CardDescription>
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <BarChart3 className="w-5 h-5" />
+                    Weight Progress
+                  </CardTitle>
+                  <CardDescription>
+                    Your weight trend over time
+                  </CardDescription>
+                </div>
+                <DateRangeSelector value={dateRange} onChange={setDateRange} />
+              </div>
             </CardHeader>
             <CardContent>
-              {measurements.length > 1 ? (
+              {filteredMeasurements.length > 1 ? (
                 <MeasurementChart 
-                  measurements={measurements} 
+                  measurements={filteredMeasurements} 
                   dataKey="weight_kg" 
                   label="Weight (kg)"
                   color="hsl(var(--primary))"
@@ -231,7 +286,10 @@ export default function ProgressPage() {
                   <div className="text-center">
                     <Scale className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
                     <p className="text-muted-foreground">
-                      Log at least 2 measurements to see your chart
+                      {measurements.length > 1 
+                        ? "No data for the selected time range"
+                        : "Log at least 2 measurements to see your chart"
+                      }
                     </p>
                     <Button 
                       variant="outline" 
@@ -271,17 +329,80 @@ export default function ProgressPage() {
             </Card>
           )}
 
-          {/* Recent Photos */}
+          {/* Recent Photos - Improved Design */}
           {photos.length > 0 && (
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Camera className="w-5 h-5" />
-                  Recent Progress Photos
-                </CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <Camera className="w-5 h-5" />
+                    Recent Progress Photos
+                  </CardTitle>
+                  {photos.length >= 2 && (
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => {
+                        setCompareMode(!compareMode);
+                        if (!compareMode && photos.length >= 2) {
+                          setComparePhoto1(photos[photos.length - 1].id);
+                          setComparePhoto2(photos[0].id);
+                        }
+                      }}
+                    >
+                      <ArrowRightLeft className="w-4 h-4 mr-2" />
+                      {compareMode ? "Exit Compare" : "Compare"}
+                    </Button>
+                  )}
+                </div>
               </CardHeader>
               <CardContent>
-                <PhotoGallery photos={photos.slice(0, 4)} compact />
+                {compareMode && photos.length >= 2 ? (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Select value={comparePhoto1} onValueChange={setComparePhoto1}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select first photo" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {photos.map(p => (
+                              <SelectItem key={p.id} value={p.id}>
+                                {format(new Date(p.recorded_at), "MMM d, yyyy")} - {p.pose_type.replace("_", " ")}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Select value={comparePhoto2} onValueChange={setComparePhoto2}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select second photo" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {photos.map(p => (
+                              <SelectItem key={p.id} value={p.id}>
+                                {format(new Date(p.recorded_at), "MMM d, yyyy")} - {p.pose_type.replace("_", " ")}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <PhotoGallery 
+                        photos={photos.filter(p => p.id === comparePhoto1)} 
+                        compact 
+                      />
+                      <PhotoGallery 
+                        photos={photos.filter(p => p.id === comparePhoto2)} 
+                        compact 
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <PhotoGallery photos={photos.slice(0, 4)} compact />
+                )}
               </CardContent>
             </Card>
           )}
@@ -391,7 +512,15 @@ export default function ProgressPage() {
             </CardHeader>
             <CardContent>
               {photos.length > 0 ? (
-                <PhotoGallery photos={photos} />
+                <div className="space-y-8">
+                  {/* Photos grouped by month */}
+                  {photosByMonth.map(({ month, photos: monthPhotos }) => (
+                    <div key={month}>
+                      <h3 className="text-sm font-semibold text-muted-foreground mb-4">{month}</h3>
+                      <PhotoGallery photos={monthPhotos} />
+                    </div>
+                  ))}
+                </div>
               ) : (
                 <div className="text-center py-12">
                   <Camera className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
@@ -498,6 +627,15 @@ export default function ProgressPage() {
         goal={selectedGoal}
         open={!!selectedGoal}
         onOpenChange={(open) => !open && setSelectedGoal(null)}
+      />
+      <StatDetailModal
+        open={!!statModalType}
+        onOpenChange={(open) => !open && setStatModalType(null)}
+        type={statModalType || "weight"}
+        measurements={measurements}
+        photos={photos}
+        goals={goals}
+        weightProgress={weightProgress}
       />
     </div>
   );

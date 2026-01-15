@@ -23,14 +23,33 @@ const router = Router();
  *       200: { description: List of recipes }
  */
 router.get('/', optionalAuth, asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-  const { category, search, limit = 100 } = req.query;
+  const { category, search, limit = 100, is_system } = req.query;
 
-  let whereClause = 'WHERE (is_system = 1';
+  // Build visibility logic:
+  // - Super admins see all recipes (or filtered by is_system if specified)
+  // - Regular users see: published system recipes + their own recipes
+  // - Anonymous users see: published system recipes only
+  let whereClause = 'WHERE (';
   const params: Record<string, unknown> = {};
-
-  if (req.user) {
-    whereClause += ' OR created_by = @userId';
+  
+  const isSuperAdmin = req.user?.roles?.includes('super_admin');
+  
+  if (isSuperAdmin) {
+    // Super admin sees everything, but can filter by is_system
+    if (is_system === 'true') {
+      whereClause += 'is_system = 1';
+    } else if (is_system === 'false') {
+      whereClause += 'is_system = 0';
+    } else {
+      whereClause += '1=1';
+    }
+  } else if (req.user) {
+    // Logged-in users see published system recipes + their own
+    whereClause += '(is_system = 1 AND ISNULL(is_published, 1) = 1) OR created_by = @userId';
     params.userId = req.user.id;
+  } else {
+    // Anonymous users see only published system recipes
+    whereClause += 'is_system = 1 AND ISNULL(is_published, 1) = 1';
   }
   whereClause += ')';
 
@@ -48,7 +67,7 @@ router.get('/', optionalAuth, asyncHandler(async (req: AuthenticatedRequest, res
             id, name, description, category, prep_time_minutes, cook_time_minutes,
             servings, total_weight_g, calories_per_serving, protein_per_serving,
             carbs_per_serving, fat_per_serving, fiber_per_serving, image_url,
-            is_system, created_by, created_at
+            is_system, is_published, created_by, created_at
      FROM recipes ${whereClause}
      ORDER BY name`,
     params
@@ -136,6 +155,8 @@ router.post('/', authenticate, asyncHandler(async (req: AuthenticatedRequest, re
     fiber_per_serving,
     image_url,
     ingredients,
+    is_system, // Allow super admin to set this
+    is_published = true, // Default to published
   } = req.body;
 
   if (!name) {
@@ -143,16 +164,21 @@ router.post('/', authenticate, asyncHandler(async (req: AuthenticatedRequest, re
   }
 
   const id = uuidv4();
+  const isSuperAdmin = req.user!.roles.includes('super_admin');
+  // Only super admins can create system recipes
+  const systemFlag = isSuperAdmin && is_system ? 1 : 0;
+  // is_published only applies to system recipes
+  const publishedFlag = systemFlag ? (is_published ? 1 : 0) : 1;
 
   await execute(
     `INSERT INTO recipes (id, name, description, category, instructions, prep_time_minutes, cook_time_minutes,
                          servings, total_weight_g, calories_per_serving, protein_per_serving,
                          carbs_per_serving, fat_per_serving, fiber_per_serving, image_url,
-                         is_system, created_by)
+                         is_system, is_published, created_by)
      VALUES (@id, @name, @description, @category, @instructions, @prepTimeMinutes, @cookTimeMinutes,
              @servings, @totalWeightG, @caloriesPerServing, @proteinPerServing,
              @carbsPerServing, @fatPerServing, @fiberPerServing, @imageUrl,
-             0, @createdBy)`,
+             @isSystem, @isPublished, @createdBy)`,
     {
       id,
       name,
@@ -169,6 +195,8 @@ router.post('/', authenticate, asyncHandler(async (req: AuthenticatedRequest, re
       fatPerServing: fat_per_serving,
       fiberPerServing: fiber_per_serving,
       imageUrl: image_url,
+      isSystem: systemFlag,
+      isPublished: publishedFlag,
       createdBy: req.user!.id,
     }
   );
@@ -348,6 +376,38 @@ router.delete('/:id', authenticate, asyncHandler(async (req: AuthenticatedReques
   await execute('DELETE FROM recipes WHERE id = @id', { id });
 
   res.json({ message: 'Recipe deleted' });
+}));
+
+// Toggle published status for system recipes (super admin only)
+router.patch('/:id/publish', authenticate, asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  const { id } = req.params;
+  const { is_published } = req.body;
+
+  const isSuperAdmin = req.user!.roles.includes('super_admin');
+  if (!isSuperAdmin) {
+    throw ForbiddenError('Only super admins can change publish status');
+  }
+
+  const existing = await queryOne<{ is_system: boolean }>(
+    'SELECT is_system FROM recipes WHERE id = @id',
+    { id }
+  );
+
+  if (!existing) {
+    throw NotFoundError('Recipe');
+  }
+
+  if (!existing.is_system) {
+    throw BadRequestError('Only system recipes can have publish status changed');
+  }
+
+  await execute(
+    'UPDATE recipes SET is_published = @isPublished, updated_at = GETUTCDATE() WHERE id = @id',
+    { id, isPublished: is_published ? 1 : 0 }
+  );
+
+  const recipe = await queryOne('SELECT * FROM recipes WHERE id = @id', { id });
+  res.json(recipe);
 }));
 
 export default router;

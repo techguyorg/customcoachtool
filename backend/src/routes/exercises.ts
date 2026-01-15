@@ -50,16 +50,16 @@ router.get('/', optionalAuth, asyncHandler(async (req: AuthenticatedRequest, res
   const exercises = await queryAll<Record<string, unknown>>(
     `SELECT id, name, description, instructions, tips, common_mistakes,
             primary_muscle, secondary_muscles, equipment, difficulty,
-            exercise_type, video_url, image_url, is_system, created_by, created_at
+            exercise_type, video_url, is_system, created_by, created_at
      FROM exercises ${whereClause}
      ORDER BY name`,
     params
   );
 
-  // Parse JSON fields
-  transformRows(exercises, ['instructions', 'tips', 'common_mistakes', 'secondary_muscles']);
+  // Parse JSON fields and ensure arrays
+  const transformed = transformRows(exercises, [], ['instructions', 'tips', 'common_mistakes', 'secondary_muscles']);
 
-  res.json(exercises);
+  res.json(transformed);
 }));
 
 /**
@@ -75,7 +75,7 @@ router.get('/:id', optionalAuth, asyncHandler(async (req: AuthenticatedRequest, 
   const exercise = await queryOne<Record<string, unknown>>(
     `SELECT id, name, description, instructions, tips, common_mistakes,
             primary_muscle, secondary_muscles, equipment, difficulty,
-            exercise_type, video_url, image_url, is_system, created_by, created_at
+            exercise_type, video_url, is_system, created_by, created_at
      FROM exercises WHERE id = @id`,
     { id }
   );
@@ -89,8 +89,8 @@ router.get('/:id', optionalAuth, asyncHandler(async (req: AuthenticatedRequest, 
     throw ForbiddenError('You do not have access to this exercise');
   }
 
-  // Parse JSON fields
-  transformRow(exercise, ['instructions', 'tips', 'common_mistakes', 'secondary_muscles']);
+  // Parse JSON fields and ensure arrays
+  const transformedExercise = transformRow(exercise, [], ['instructions', 'tips', 'common_mistakes', 'secondary_muscles']);
 
   // Get alternatives
   const alternatives = await queryAll<{ id: string; name: string; primary_muscle: string }>(
@@ -101,7 +101,7 @@ router.get('/:id', optionalAuth, asyncHandler(async (req: AuthenticatedRequest, 
     { id }
   );
 
-  res.json({ ...exercise, alternatives });
+  res.json({ ...transformedExercise, alternatives });
 }));
 
 /**
@@ -124,7 +124,6 @@ router.post('/', authenticate, asyncHandler(async (req: AuthenticatedRequest, re
     difficulty = 'intermediate',
     exercise_type = 'compound',
     video_url,
-    image_url,
   } = req.body;
 
   if (!name || !primary_muscle || !equipment) {
@@ -136,10 +135,10 @@ router.post('/', authenticate, asyncHandler(async (req: AuthenticatedRequest, re
   await execute(
     `INSERT INTO exercises (id, name, description, instructions, tips, common_mistakes,
                            primary_muscle, secondary_muscles, equipment, difficulty,
-                           exercise_type, video_url, image_url, is_system, created_by)
+                           exercise_type, video_url, is_system, created_by)
      VALUES (@id, @name, @description, @instructions, @tips, @commonMistakes,
              @primaryMuscle, @secondaryMuscles, @equipment, @difficulty,
-             @exerciseType, @videoUrl, @imageUrl, 0, @createdBy)`,
+             @exerciseType, @videoUrl, 0, @createdBy)`,
     {
       id,
       name,
@@ -153,7 +152,6 @@ router.post('/', authenticate, asyncHandler(async (req: AuthenticatedRequest, re
       difficulty,
       exerciseType: exercise_type,
       videoUrl: video_url,
-      imageUrl: image_url,
       createdBy: req.user!.id,
     }
   );
@@ -163,11 +161,9 @@ router.post('/', authenticate, asyncHandler(async (req: AuthenticatedRequest, re
     { id }
   );
 
-  if (exercise) {
-    transformRow(exercise, ['instructions', 'tips', 'common_mistakes', 'secondary_muscles']);
-  }
+  const result = exercise ? transformRow(exercise, [], ['instructions', 'tips', 'common_mistakes', 'secondary_muscles']) : null;
 
-  res.status(201).json(exercise);
+  res.status(201).json(result);
 }));
 
 /**
@@ -212,7 +208,6 @@ router.put('/:id', authenticate, asyncHandler(async (req: AuthenticatedRequest, 
     difficulty,
     exercise_type,
     video_url,
-    image_url,
   } = req.body;
 
   await execute(
@@ -228,7 +223,6 @@ router.put('/:id', authenticate, asyncHandler(async (req: AuthenticatedRequest, 
        difficulty = COALESCE(@difficulty, difficulty),
        exercise_type = COALESCE(@exerciseType, exercise_type),
        video_url = COALESCE(@videoUrl, video_url),
-       image_url = COALESCE(@imageUrl, image_url),
        updated_at = GETUTCDATE()
      WHERE id = @id`,
     {
@@ -244,15 +238,12 @@ router.put('/:id', authenticate, asyncHandler(async (req: AuthenticatedRequest, 
       difficulty,
       exerciseType: exercise_type,
       videoUrl: video_url,
-      imageUrl: image_url,
     }
   );
 
   const exercise = await queryOne<Record<string, unknown>>('SELECT * FROM exercises WHERE id = @id', { id });
-  if (exercise) {
-    transformRow(exercise, ['instructions', 'tips', 'common_mistakes', 'secondary_muscles']);
-  }
-  res.json(exercise);
+  const result = exercise ? transformRow(exercise, [], ['instructions', 'tips', 'common_mistakes', 'secondary_muscles']) : null;
+  res.json(result);
 }));
 
 /**
@@ -301,7 +292,10 @@ router.post('/:id/alternatives', authenticate, asyncHandler(async (req: Authenti
   }
 
   // Verify both exercises exist
-  const exercise = await queryOne('SELECT id, created_by, is_system FROM exercises WHERE id = @id', { id });
+  const exercise = await queryOne<{ id: string; created_by: string; is_system: boolean }>(
+    'SELECT id, created_by, is_system FROM exercises WHERE id = @id', 
+    { id }
+  );
   const alternative = await queryOne('SELECT id FROM exercises WHERE id = @altId', { altId: alternative_exercise_id });
 
   if (!exercise || !alternative) {

@@ -6,7 +6,7 @@ import { api } from "@/lib/api";
 import { TemplateCard } from "@/components/templates/TemplateCard";
 import { TemplateFilters } from "@/components/templates/TemplateFilters";
 import { TemplateDetailSheet } from "@/components/templates/TemplateDetailSheet";
-import { CreateWorkoutTemplateDialog } from "@/components/templates/CreateWorkoutTemplateDialog";
+import { WorkoutProgramWizard } from "@/components/templates/WorkoutProgramWizard";
 import { QuickAssignDialog } from "@/components/coach/QuickAssignDialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -83,7 +83,7 @@ export default function CoachWorkoutProgramsPage() {
             Create and manage workout programs for your clients
           </p>
         </div>
-        <CreateWorkoutTemplateDialog />
+        <WorkoutProgramWizard />
       </div>
 
       {/* Tabs */}

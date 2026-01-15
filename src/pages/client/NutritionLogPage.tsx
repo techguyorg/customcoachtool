@@ -67,6 +67,13 @@ export default function NutritionLogPage() {
   const [quantity, setQuantity] = useState(100);
   const [unit, setUnit] = useState("g");
   const [notes, setNotes] = useState("");
+  const [pendingItems, setPendingItems] = useState<Array<{
+    food: Food | null;
+    customName: string;
+    quantity: number;
+    unit: string;
+    mealType: MealType;
+  }>>([]);
 
   const { data: entries = [], isLoading } = useNutritionLog(selectedDate);
   const { data: assignments = [] } = useClientAssignments();
@@ -89,6 +96,84 @@ export default function NutritionLogPage() {
     fat: activeDietPlan?.diet_plan?.fat_grams || 65,
   };
 
+  // Add item to pending list
+  const handleAddToPending = () => {
+    if (!selectedFood && !customFoodName.trim()) {
+      toast.error("Please select a food or enter a custom name");
+      return;
+    }
+
+    setPendingItems([...pendingItems, {
+      food: selectedFood,
+      customName: customFoodName.trim(),
+      quantity,
+      unit,
+      mealType: selectedMealType,
+    }]);
+
+    // Reset for next item
+    setSelectedFood(null);
+    setCustomFoodName("");
+    setQuantity(100);
+    setUnit("g");
+    toast.success("Added to list - keep adding or save all");
+  };
+
+  // Remove item from pending list
+  const handleRemovePending = (index: number) => {
+    setPendingItems(pendingItems.filter((_, i) => i !== index));
+  };
+
+  // Save all pending items
+  const handleSaveAll = async () => {
+    // Combine pending items with current item if filled
+    const itemsToSave = [...pendingItems];
+    if (selectedFood || customFoodName.trim()) {
+      itemsToSave.push({
+        food: selectedFood,
+        customName: customFoodName.trim(),
+        quantity,
+        unit,
+        mealType: selectedMealType,
+      });
+    }
+
+    if (itemsToSave.length === 0) {
+      toast.error("Please add at least one food item");
+      return;
+    }
+
+    try {
+      for (const item of itemsToSave) {
+        let nutrition = { calories: 0, protein: 0, carbs: 0, fat: 0 };
+        if (item.food) {
+          nutrition = calculateNutrition(item.food, item.quantity, item.unit);
+        }
+
+        await addMutation.mutateAsync({
+          log_date: format(selectedDate, "yyyy-MM-dd"),
+          meal_type: item.mealType,
+          food_id: item.food?.id || null,
+          recipe_id: null,
+          custom_food_name: item.food ? null : item.customName,
+          quantity: item.quantity,
+          unit: item.unit,
+          calories: nutrition.calories || null,
+          protein_grams: nutrition.protein || null,
+          carbs_grams: nutrition.carbs || null,
+          fat_grams: nutrition.fat || null,
+          notes: null,
+        });
+      }
+      toast.success(`Logged ${itemsToSave.length} food item${itemsToSave.length > 1 ? 's' : ''}`);
+      setShowAddDialog(false);
+      resetForm();
+    } catch {
+      toast.error("Failed to log some items");
+    }
+  };
+
+  // Legacy single item handler
   const handleAddEntry = async () => {
     if (!selectedFood && !customFoodName.trim()) {
       toast.error("Please select a food or enter a custom name");
@@ -139,6 +224,7 @@ export default function NutritionLogPage() {
     setQuantity(100);
     setUnit("g");
     setNotes("");
+    setPendingItems([]);
   };
 
   const getProgressColor = (current: number, target: number) => {
@@ -356,14 +442,56 @@ export default function NutritionLogPage() {
       </div>
 
       {/* Add Food Dialog */}
-      <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-        <DialogContent>
+      <Dialog open={showAddDialog} onOpenChange={(open) => {
+        if (!open) resetForm();
+        setShowAddDialog(open);
+      }}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Log Food</DialogTitle>
-            <DialogDescription>Add a food entry to your nutrition log</DialogDescription>
+            <DialogDescription>Add one or multiple foods to your nutrition log</DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4">
+            {/* Pending Items List */}
+            {pendingItems.length > 0 && (
+              <div className="space-y-2">
+                <Label className="flex items-center justify-between">
+                  <span>Items to log ({pendingItems.length})</span>
+                  <Badge variant="secondary">
+                    {pendingItems.reduce((sum, item) => {
+                      if (item.food) {
+                        return sum + calculateNutrition(item.food, item.quantity, item.unit).calories;
+                      }
+                      return sum;
+                    }, 0).toFixed(0)} kcal total
+                  </Badge>
+                </Label>
+                <div className="border rounded-lg divide-y max-h-32 overflow-y-auto">
+                  {pendingItems.map((item, index) => (
+                    <div key={index} className="flex items-center justify-between p-2 text-sm">
+                      <div className="flex-1 min-w-0">
+                        <span className="font-medium truncate block">
+                          {item.food?.name || item.customName}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {MEAL_TYPES.find(m => m.value === item.mealType)?.icon} {item.quantity}{item.unit}
+                        </span>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 text-destructive flex-shrink-0"
+                        onClick={() => handleRemovePending(index)}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label>Meal</Label>
               <Select
@@ -470,22 +598,26 @@ export default function NutritionLogPage() {
               </Card>
             )}
 
-            <div className="space-y-2">
-              <Label>Notes (optional)</Label>
-              <Textarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="Any notes about this food..."
-              />
-            </div>
-
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setShowAddDialog(false)}>
-                Cancel
+            <div className="flex justify-between gap-2 pt-2 border-t">
+              <Button 
+                variant="outline" 
+                onClick={handleAddToPending}
+                disabled={!selectedFood && !customFoodName.trim()}
+              >
+                <Plus className="h-4 w-4 mr-1" />
+                Add Another
               </Button>
-              <Button onClick={handleAddEntry} disabled={addMutation.isPending}>
-                Log Food
-              </Button>
+              <div className="flex gap-2">
+                <Button variant="ghost" onClick={() => setShowAddDialog(false)}>
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={handleSaveAll} 
+                  disabled={addMutation.isPending || (pendingItems.length === 0 && !selectedFood && !customFoodName.trim())}
+                >
+                  {addMutation.isPending ? "Saving..." : `Save${pendingItems.length > 0 ? ` (${pendingItems.length + (selectedFood || customFoodName ? 1 : 0)})` : ""}`}
+                </Button>
+              </div>
             </div>
           </div>
         </DialogContent>

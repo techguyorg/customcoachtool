@@ -15,10 +15,12 @@ const options: swaggerJsdoc.Options = {
     },
     servers: [
       {
-        url: config.nodeEnv === 'production' 
-          ? 'https://customcoachpro-api.azurewebsites.net'
-          : `http://localhost:${config.port}`,
-        description: config.nodeEnv === 'production' ? 'Production' : 'Development',
+        url: 'https://customcoachpro-api.azurewebsites.net',
+        description: 'Production',
+      },
+      {
+        url: `http://localhost:${config.port}`,
+        description: 'Development (localhost)',
       },
     ],
     components: {
@@ -59,8 +61,8 @@ const options: swaggerJsdoc.Options = {
             difficulty: { type: 'string', enum: ['beginner', 'intermediate', 'advanced'] },
             instructions: { type: 'array', items: { type: 'string' } },
             tips: { type: 'array', items: { type: 'string' } },
+            common_mistakes: { type: 'array', items: { type: 'string' } },
             video_url: { type: 'string' },
-            image_url: { type: 'string' },
             is_system: { type: 'boolean' },
           },
         },

@@ -33,7 +33,6 @@ interface ExerciseDetailSheetProps {
 interface Exercise {
   name: string;
   video_url?: string | null;
-  image_url?: string | null;
 }
 
 const formatLabel = (value: string) => 
@@ -86,7 +85,7 @@ function ExerciseMedia({ exercise }: { exercise: Exercise }) {
               onClick={() => setIsPlaying(true)}
             >
               <img 
-                src={exercise.image_url || `https://img.youtube.com/vi/${youtubeId}/maxresdefault.jpg`} 
+                src={`https://img.youtube.com/vi/${youtubeId}/maxresdefault.jpg`} 
                 alt={exercise.name}
                 className="w-full h-full object-cover"
               />
@@ -123,18 +122,11 @@ function ExerciseMedia({ exercise }: { exercise: Exercise }) {
           </div>
         ) : (
           <div 
-            className="relative w-full h-full group cursor-pointer"
+            className="relative w-full h-full group cursor-pointer flex items-center justify-center bg-muted"
             onClick={() => setIsPlaying(true)}
           >
-            <img 
-              src={exercise.image_url || ""} 
-              alt={exercise.name}
-              className="w-full h-full object-cover"
-            />
-            <div className="absolute inset-0 bg-black/40 flex items-center justify-center group-hover:bg-black/50 transition-colors">
-              <div className="w-16 h-16 rounded-full bg-primary/90 flex items-center justify-center group-hover:scale-110 transition-transform">
-                <Play className="w-8 h-8 text-primary-foreground ml-1" />
-              </div>
+            <div className="w-16 h-16 rounded-full bg-primary/90 flex items-center justify-center group-hover:scale-110 transition-transform">
+              <Play className="w-8 h-8 text-primary-foreground ml-1" />
             </div>
           </div>
         )}
@@ -142,20 +134,7 @@ function ExerciseMedia({ exercise }: { exercise: Exercise }) {
     );
   }
 
-  // Image only
-  if (exercise.image_url) {
-    return (
-      <div className="aspect-video rounded-xl bg-muted overflow-hidden">
-        <img 
-          src={exercise.image_url} 
-          alt={exercise.name}
-          className="w-full h-full object-cover"
-        />
-      </div>
-    );
-  }
-
-  // No media
+  // No video - show placeholder
   return (
     <div className="aspect-video rounded-xl bg-muted flex items-center justify-center">
       <Dumbbell className="w-16 h-16 text-muted-foreground" />

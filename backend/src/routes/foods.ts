@@ -64,6 +64,33 @@ router.get('/', optionalAuth, asyncHandler(async (req: AuthenticatedRequest, res
 
 /**
  * @swagger
+ * /api/foods/my-foods:
+ *   get:
+ *     tags: [Foods]
+ *     summary: Get custom foods created by the current user
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200: { description: List of user's custom foods }
+ */
+router.get('/my-foods', authenticate, asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  const foods = await queryAll<Record<string, unknown>>(
+    `SELECT id, name, brand, category, subcategory, barcode,
+            calories_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g,
+            fiber_per_100g, sugar_per_100g, sodium_mg_per_100g,
+            default_serving_size, default_serving_unit, image_url, notes,
+            is_system, created_by, created_at
+     FROM foods 
+     WHERE created_by = @userId AND is_system = 0
+     ORDER BY name`,
+    { userId: req.user!.id }
+  );
+
+  res.json(foods);
+}));
+
+/**
+ * @swagger
  * /api/foods/{id}:
  *   get:
  *     tags: [Foods]
@@ -140,6 +167,7 @@ router.post('/', authenticate, asyncHandler(async (req: AuthenticatedRequest, re
     default_serving_unit = 'g',
     image_url,
     notes,
+    is_system, // Allow super admin to set this
   } = req.body;
 
   if (!name || !category) {
@@ -147,6 +175,9 @@ router.post('/', authenticate, asyncHandler(async (req: AuthenticatedRequest, re
   }
 
   const id = uuidv4();
+  const isSuperAdmin = req.user!.roles.includes('super_admin');
+  // Only super admins can create system foods
+  const systemFlag = isSuperAdmin && is_system ? 1 : 0;
 
   await execute(
     `INSERT INTO foods (id, name, brand, category, subcategory, barcode,
@@ -158,25 +189,27 @@ router.post('/', authenticate, asyncHandler(async (req: AuthenticatedRequest, re
              @caloriesPer100g, @proteinPer100g, @carbsPer100g, @fatPer100g,
              @fiberPer100g, @sugarPer100g, @sodiumMgPer100g,
              @defaultServingSize, @defaultServingUnit, @imageUrl, @notes,
-             0, @createdBy)`,
+             @isSystem, @createdBy)`,
     {
       id,
       name,
-      brand,
+      brand: brand || null,
       category,
-      subcategory,
-      barcode,
-      caloriesPer100g: calories_per_100g,
-      proteinPer100g: protein_per_100g,
-      carbsPer100g: carbs_per_100g,
-      fatPer100g: fat_per_100g,
-      fiberPer100g: fiber_per_100g,
-      sugarPer100g: sugar_per_100g,
-      sodiumMgPer100g: sodium_mg_per_100g,
-      defaultServingSize: default_serving_size,
-      defaultServingUnit: default_serving_unit,
-      imageUrl: image_url,
-      notes,
+      subcategory: subcategory || null,
+      barcode: barcode || null,
+      // Ensure NOT NULL columns never receive null - coerce to 0
+      caloriesPer100g: calories_per_100g ?? 0,
+      proteinPer100g: protein_per_100g ?? 0,
+      carbsPer100g: carbs_per_100g ?? 0,
+      fatPer100g: fat_per_100g ?? 0,
+      fiberPer100g: fiber_per_100g ?? null,
+      sugarPer100g: sugar_per_100g ?? null,
+      sodiumMgPer100g: sodium_mg_per_100g ?? null,
+      defaultServingSize: default_serving_size ?? 100,
+      defaultServingUnit: default_serving_unit || 'g',
+      imageUrl: image_url || null,
+      notes: notes || null,
+      isSystem: systemFlag,
       createdBy: req.user!.id,
     }
   );

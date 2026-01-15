@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Search, ChefHat, Flame, Beef, Wheat, Droplet, Edit, Trash2, Clock, Users } from "lucide-react";
+import { Plus, Search, ChefHat, Flame, Beef, Wheat, Droplet, Edit, Trash2, Clock, Users, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -202,11 +202,16 @@ function RecipeCard({
     <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={onView}>
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
-          <div className="space-y-1 flex-1">
-            <CardTitle className="text-lg">{recipe.name}</CardTitle>
-            {recipe.description && (
-              <CardDescription className="line-clamp-2">{recipe.description}</CardDescription>
-            )}
+          <div className="flex items-start gap-3 flex-1">
+            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+              <ChefHat className="w-5 h-5 text-primary" />
+            </div>
+            <div className="space-y-1 flex-1 min-w-0">
+              <CardTitle className="text-base">{recipe.name}</CardTitle>
+              {recipe.description && (
+                <CardDescription className="line-clamp-2 text-xs">{recipe.description}</CardDescription>
+              )}
+            </div>
           </div>
           <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
             <FavoriteButton itemType="recipe" itemId={recipe.id} size="sm" />
@@ -225,10 +230,15 @@ function RecipeCard({
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex flex-wrap gap-2">
+          {isSystem && (
+            <Badge className="text-xs bg-primary/20 text-primary border-primary/30">
+              <Shield className="w-3 h-3 mr-1" />
+              System
+            </Badge>
+          )}
           {recipe.category && (
             <Badge variant="secondary">{recipe.category}</Badge>
           )}
-          {isSystem && <Badge>System</Badge>}
           {totalTime > 0 && (
             <Badge variant="outline" className="flex items-center gap-1">
               <Clock className="h-3 w-3" />

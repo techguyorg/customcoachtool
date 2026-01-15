@@ -1,4 +1,4 @@
-import { Flame, Beef, Wheat, Droplet, Clock, Users } from "lucide-react";
+import { Flame, Beef, Wheat, Droplet, Clock, Users, Shield } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -34,6 +34,12 @@ export function RecipeDetailSheet({ recipe, onOpenChange }: Props) {
         <div className="mt-6 space-y-6">
           {/* Meta info */}
           <div className="flex flex-wrap gap-2">
+            {recipe?.is_system && (
+              <Badge className="bg-primary/20 text-primary border-primary/30">
+                <Shield className="w-3 h-3 mr-1" />
+                System Recipe
+              </Badge>
+            )}
             {recipe?.category && (
               <Badge variant="secondary">{recipe.category}</Badge>
             )}

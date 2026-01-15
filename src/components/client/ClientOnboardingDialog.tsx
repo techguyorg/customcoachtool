@@ -22,12 +22,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 import { Progress } from "@/components/ui/progress";
 import { 
   User, Scale, Target, Heart, Utensils, ChevronRight, ChevronLeft, 
-  Check, Loader2
+  Check, Loader2, CalendarIcon
 } from "lucide-react";
 import { toast } from "sonner";
+import { format, parse } from "date-fns";
+import { cn } from "@/lib/utils";
 
 interface ClientOnboardingDialogProps {
   open: boolean;
@@ -187,13 +195,15 @@ export function ClientOnboardingDialog({ open, onOpenChange, onComplete }: Clien
               
               <div>
                 <Label htmlFor="dob" className="text-sm">Date of Birth</Label>
-                <Input
-                  id="dob"
-                  type="date"
-                  value={formData.dateOfBirth}
-                  onChange={(e) => updateField("dateOfBirth", e.target.value)}
-                  className="mt-1"
-                />
+                <div className="flex gap-2 mt-1">
+                  <Input
+                    id="dob"
+                    type="date"
+                    value={formData.dateOfBirth}
+                    onChange={(e) => updateField("dateOfBirth", e.target.value)}
+                    className="flex-1"
+                  />
+                </div>
               </div>
 
               <div>
@@ -301,7 +311,9 @@ export function ClientOnboardingDialog({ open, onOpenChange, onComplete }: Clien
                   className="mt-2 space-y-2"
                 >
                   {FITNESS_LEVELS.map((level) => (
-                    <div key={level.value} className="flex items-start gap-3 p-3 border rounded-lg hover:bg-muted/50 cursor-pointer">
+                    <div key={level.value} className="flex items-start gap-3 p-3 border rounded-lg hover:bg-muted/50 cursor-pointer"
+                    onClick={() => updateField("fitnessLevel", level.value)}
+                    >
                       <RadioGroupItem value={level.value} id={level.value} className="mt-0.5" />
                       <div>
                         <Label htmlFor={level.value} className="text-sm font-medium cursor-pointer">{level.label}</Label>

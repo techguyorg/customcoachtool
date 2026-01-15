@@ -147,6 +147,18 @@ export function ClientDetailSheet({ client, open, onOpenChange }: ClientDetailSh
                         </div>
                       )}
 
+                      {client.client_profile?.height_cm && (
+                        <div className="bg-muted/50 rounded-lg p-3">
+                          <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
+                            <Scale className="w-4 h-4" />
+                            Height
+                          </div>
+                          <p className="font-semibold">
+                            {client.client_profile.height_cm} cm
+                          </p>
+                        </div>
+                      )}
+
                       {client.client_profile?.current_weight_kg && (
                         <div className="bg-muted/50 rounded-lg p-3">
                           <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
@@ -172,6 +184,36 @@ export function ClientDetailSheet({ client, open, onOpenChange }: ClientDetailSh
                       )}
                     </div>
                   </div>
+
+                  {/* Dietary Restrictions */}
+                  {client.client_profile?.dietary_restrictions && client.client_profile.dietary_restrictions.length > 0 && (
+                    <div>
+                      <h3 className="font-semibold mb-3 flex items-center gap-2">
+                        <AlertCircle className="w-5 h-5 text-warning" />
+                        Dietary Restrictions
+                      </h3>
+                      <div className="flex flex-wrap gap-2">
+                        {client.client_profile.dietary_restrictions.map((restriction, i) => (
+                          <Badge key={i} variant="outline" className="text-warning border-warning/30">
+                            {restriction}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Medical Conditions */}
+                  {client.client_profile?.medical_conditions && (
+                    <div>
+                      <h3 className="font-semibold mb-3 flex items-center gap-2">
+                        <AlertCircle className="w-5 h-5 text-destructive" />
+                        Medical Conditions
+                      </h3>
+                      <p className="text-sm bg-destructive/10 text-destructive rounded-lg p-3">
+                        {client.client_profile.medical_conditions}
+                      </p>
+                    </div>
+                  )}
 
                   {/* Fitness Goals */}
                   {client.client_profile?.fitness_goals && client.client_profile.fitness_goals.length > 0 && (

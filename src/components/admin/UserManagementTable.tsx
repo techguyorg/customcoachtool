@@ -66,6 +66,7 @@ export function UserManagementTable({ onImpersonate, initialRoleFilter = "all" }
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>(initialRoleFilter);
   const [userToDelete, setUserToDelete] = useState<AdminUser | null>(null);
+  const [roleToRemove, setRoleToRemove] = useState<{ user: AdminUser; role: AppRole } | null>(null);
   const [sortBy, setSortBy] = useState<"name" | "date" | "roles">("date");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
 
@@ -110,6 +111,13 @@ export function UserManagementTable({ onImpersonate, initialRoleFilter = "all" }
     }
   };
 
+  const handleRemoveRole = () => {
+    if (roleToRemove) {
+      removeRole({ userId: roleToRemove.user.user_id, role: roleToRemove.role });
+      setRoleToRemove(null);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -137,6 +145,29 @@ export function UserManagementTable({ onImpersonate, initialRoleFilter = "all" }
               disabled={isDeletingUser}
             >
               {isDeletingUser ? "Deleting..." : "Delete User"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Remove Role Confirmation Dialog */}
+      <AlertDialog open={!!roleToRemove} onOpenChange={(open) => !open && setRoleToRemove(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove {roleToRemove && ROLE_LABELS[roleToRemove.role]} role?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to remove the <strong>{roleToRemove && ROLE_LABELS[roleToRemove.role]}</strong> role from <strong>{roleToRemove?.user.full_name}</strong>? 
+              This action will revoke their access to related features.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleRemoveRole} 
+              className="bg-destructive hover:bg-destructive/90"
+              disabled={isRemovingRole}
+            >
+              {isRemovingRole ? "Removing..." : "Remove Role"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -194,15 +225,15 @@ export function UserManagementTable({ onImpersonate, initialRoleFilter = "all" }
         )}
       </div>
 
-      {/* Table */}
-      <div className="border border-border rounded-lg overflow-hidden">
-        <Table>
+      {/* Table with horizontal scroll for mobile */}
+      <div className="border border-border rounded-lg overflow-x-auto -mx-4 sm:mx-0">
+        <Table className="min-w-[600px]">
           <TableHeader>
             <TableRow>
               <TableHead>User</TableHead>
-              <TableHead>Email</TableHead>
+              <TableHead className="hidden sm:table-cell">Email</TableHead>
               <TableHead>Roles</TableHead>
-              <TableHead>Joined</TableHead>
+              <TableHead className="hidden md:table-cell">Joined</TableHead>
               <TableHead className="w-[60px]"></TableHead>
             </TableRow>
           </TableHeader>
@@ -240,7 +271,7 @@ export function UserManagementTable({ onImpersonate, initialRoleFilter = "all" }
                       </div>
                     </div>
                   </TableCell>
-                  <TableCell className="text-muted-foreground text-sm">
+                  <TableCell className="hidden sm:table-cell text-muted-foreground text-sm">
                     {user.email}
                   </TableCell>
                   <TableCell>
@@ -259,7 +290,7 @@ export function UserManagementTable({ onImpersonate, initialRoleFilter = "all" }
                       )}
                     </div>
                   </TableCell>
-                  <TableCell className="text-muted-foreground text-sm">
+                  <TableCell className="hidden md:table-cell text-muted-foreground text-sm">
                     {format(new Date(user.created_at), "MMM d, yyyy")}
                   </TableCell>
                   <TableCell>
@@ -306,7 +337,7 @@ export function UserManagementTable({ onImpersonate, initialRoleFilter = "all" }
                             {user.roles.map((role) => (
                               <DropdownMenuItem
                                 key={role}
-                                onClick={() => removeRole({ userId: user.user_id, role })}
+                                onClick={() => setRoleToRemove({ user, role })}
                                 disabled={isRemovingRole}
                                 className="text-destructive focus:text-destructive"
                               >

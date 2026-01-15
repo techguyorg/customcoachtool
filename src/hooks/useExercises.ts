@@ -1,5 +1,6 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, Exercise } from "@/lib/api";
+import { toast } from "sonner";
 
 export interface ExerciseFilters {
   search: string;
@@ -42,6 +43,36 @@ export function useExercise(id: string | null) {
       return api.get<Exercise>(`/api/exercises/${id}`);
     },
     enabled: !!id,
+  });
+}
+
+export interface CreateExerciseData {
+  name: string;
+  primary_muscle: string;
+  equipment: string;
+  difficulty?: string;
+  instructions?: string;
+  video_url?: string;
+  secondary_muscles?: string[];
+  exercise_type?: string;
+}
+
+export function useCreateExercise() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (data: CreateExerciseData) => {
+      return api.post<Exercise>('/api/exercises', data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["exercises"] });
+      queryClient.invalidateQueries({ queryKey: ["all-exercises"] });
+      toast.success("Exercise created successfully!");
+    },
+    onError: (error) => {
+      console.error(error);
+      toast.error("Failed to create exercise");
+    },
   });
 }
 

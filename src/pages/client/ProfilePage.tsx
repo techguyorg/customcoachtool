@@ -22,6 +22,7 @@ import {
   User, Scale, Target, Heart, Utensils, Save, Loader2, Camera, X, Bell
 } from "lucide-react";
 import { ChangePasswordCard } from "@/components/shared/ChangePasswordCard";
+import { EmailPreferencesCard } from "@/components/settings/EmailPreferencesCard";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
 
@@ -486,6 +487,9 @@ export default function ClientProfilePage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Email Preferences - Full Featured Card */}
+      <EmailPreferencesCard />
 
       {/* Password Change */}
       <ChangePasswordCard />

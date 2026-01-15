@@ -27,17 +27,9 @@ export function ExerciseCard({ exercise, onClick, showFavorite = true }: Exercis
     >
       <CardContent className="p-4">
         <div className="flex items-start gap-4">
-          {/* Exercise Icon/Image */}
-          <div className="w-16 h-16 rounded-lg bg-muted flex items-center justify-center flex-shrink-0 group-hover:bg-primary/10 transition-colors">
-            {exercise.image_url ? (
-              <img 
-                src={exercise.image_url} 
-                alt={exercise.name}
-                className="w-full h-full object-cover rounded-lg"
-              />
-            ) : (
-              <Dumbbell className="w-8 h-8 text-muted-foreground group-hover:text-primary transition-colors" />
-            )}
+          {/* Exercise Icon */}
+          <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0 group-hover:bg-primary/20 transition-colors">
+            <Dumbbell className="w-6 h-6 text-primary" />
           </div>
 
           {/* Exercise Info */}

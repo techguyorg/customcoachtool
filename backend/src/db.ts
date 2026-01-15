@@ -88,13 +88,20 @@ export function ensureArray<T>(value: unknown): T[] {
  */
 export function transformRow<T extends Record<string, unknown>>(
   row: T,
-  jsonFields: (keyof T)[]
+  jsonFields: (keyof T)[],
+  arrayFields: (keyof T)[] = []
 ): T {
   if (!row) return row;
   const result = { ...row };
   for (const field of jsonFields) {
     if (field in result) {
       result[field] = parseJsonField(result[field]) as T[keyof T];
+    }
+  }
+  // Ensure specified fields are always arrays
+  for (const field of arrayFields) {
+    if (field in result) {
+      result[field] = ensureArray(result[field]) as T[keyof T];
     }
   }
   return result;
@@ -105,9 +112,10 @@ export function transformRow<T extends Record<string, unknown>>(
  */
 export function transformRows<T extends Record<string, unknown>>(
   rows: T[],
-  jsonFields: (keyof T)[]
+  jsonFields: (keyof T)[],
+  arrayFields: (keyof T)[] = []
 ): T[] {
-  return rows.map(row => transformRow(row, jsonFields));
+  return rows.map(row => transformRow(row, jsonFields, arrayFields));
 }
 
 // ============ Query Utilities ============

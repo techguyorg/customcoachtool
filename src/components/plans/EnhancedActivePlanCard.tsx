@@ -25,6 +25,12 @@ import { format, differenceInDays, differenceInWeeks } from "date-fns";
 import { TemplateDetailSheet } from "@/components/templates/TemplateDetailSheet";
 import { DietPlanDetailSheet } from "@/components/diet/DietPlanDetailSheet";
 import { useNutritionLog, calculateDailyTotals } from "@/hooks/useNutritionLog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface EnhancedActivePlanCardProps {
   plan: PlanAssignmentWithDetails;
@@ -51,8 +57,10 @@ export function EnhancedActivePlanCard({
   const isCoachAssigned = plan.coach_id !== plan.client_id;
   
   const startDate = new Date(plan.start_date);
-  const daysActive = differenceInDays(new Date(), startDate);
-  const weeksActive = differenceInWeeks(new Date(), startDate);
+  const today = new Date();
+  // Ensure we don't show negative values if start date is in the future
+  const daysActive = Math.max(0, differenceInDays(today, startDate));
+  const weeksActive = Math.max(0, differenceInWeeks(today, startDate));
   
   // Calculate progress if there's an end date or duration
   let progress = 0;
@@ -84,7 +92,7 @@ export function EnhancedActivePlanCard({
   };
 
   return (
-    <>
+    <TooltipProvider>
       <Card 
         className={`relative overflow-hidden cursor-pointer hover:shadow-md transition-shadow ${compact ? '' : ''}`}
         onClick={handleCardClick}
@@ -131,21 +139,42 @@ export function EnhancedActivePlanCard({
         </CardHeader>
         
         <CardContent className="space-y-3 pb-3">
-          {/* Quick stats */}
+          {/* Quick stats with tooltips */}
           <div className="flex items-center gap-4 text-xs text-muted-foreground">
-            <div className="flex items-center gap-1">
-              <Calendar className="w-3 h-3" />
-              <span>{format(startDate, "MMM d")}</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <Clock className="w-3 h-3" />
-              <span>
-                {weeksActive > 0 ? `${weeksActive}w ` : ""}
-                {daysActive % 7}d
-              </span>
-            </div>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="flex items-center gap-1 cursor-help">
+                  <Calendar className="w-3 h-3" />
+                  <span>{format(startDate, "MMM d")}</span>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Started on {format(startDate, "MMMM d, yyyy")}</p>
+              </TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="flex items-center gap-1 cursor-help">
+                  <Clock className="w-3 h-3" />
+                  <span>
+                    {weeksActive > 0 ? `${weeksActive}w ` : ""}
+                    {daysActive % 7}d
+                  </span>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{daysActive} total days active on this plan</p>
+              </TooltipContent>
+            </Tooltip>
             {isWorkout && plan.workout_template && (
-              <span>{plan.workout_template.days_per_week}d/wk</span>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="cursor-help">{plan.workout_template.days_per_week}d/wk</span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>This program has {plan.workout_template.days_per_week} workout days per week</p>
+                </TooltipContent>
+              </Tooltip>
             )}
           </div>
           
@@ -210,7 +239,7 @@ export function EnhancedActivePlanCard({
             </div>
           )}
           
-          {/* Action buttons */}
+          {/* Action buttons with tooltips */}
           <div className="flex gap-2 pt-1">
             <Button 
               variant="outline" 
@@ -221,24 +250,38 @@ export function EnhancedActivePlanCard({
               <Eye className="w-3 h-3 mr-1" />
               View
             </Button>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="h-8 text-xs px-2" 
-              onClick={(e) => { e.stopPropagation(); onPause(); }} 
-              disabled={isPending}
-            >
-              <PauseCircle className="w-3 h-3" />
-            </Button>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="h-8 text-xs px-2" 
-              onClick={(e) => { e.stopPropagation(); onComplete(); }} 
-              disabled={isPending}
-            >
-              <CheckCircle className="w-3 h-3" />
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-8 text-xs px-2" 
+                  onClick={(e) => { e.stopPropagation(); onPause(); }} 
+                  disabled={isPending}
+                >
+                  <PauseCircle className="w-3 h-3" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Pause this plan temporarily</p>
+              </TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-8 text-xs px-2" 
+                  onClick={(e) => { e.stopPropagation(); onComplete(); }} 
+                  disabled={isPending}
+                >
+                  <CheckCircle className="w-3 h-3" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Mark this plan as completed</p>
+              </TooltipContent>
+            </Tooltip>
           </div>
         </CardContent>
       </Card>
@@ -268,7 +311,7 @@ export function EnhancedActivePlanCard({
           onOpenChange={setSheetOpen}
         />
       )}
-    </>
+    </TooltipProvider>
   );
 }
 

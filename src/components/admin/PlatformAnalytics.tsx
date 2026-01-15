@@ -72,9 +72,10 @@ export function PlatformAnalytics() {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Export Button */}
-      <div className="flex justify-end">
+    <div className="space-y-4">
+      {/* Header with Export */}
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-semibold">Platform Analytics</h2>
         <ExportPdfButton
           document={<AdminAnalyticsPdf data={pdfData} />}
           filename={`platform-analytics-${format(new Date(), "yyyy-MM-dd")}.pdf`}
@@ -84,8 +85,8 @@ export function PlatformAnalytics() {
 
       {/* User Stats */}
       <div>
-        <h3 className="text-lg font-semibold mb-4">User Statistics</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <h3 className="text-sm font-medium text-muted-foreground mb-3">User Statistics</h3>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <StatCard
             icon={Users}
             label="Total Users"
@@ -119,18 +120,18 @@ export function PlatformAnalytics() {
 
       {/* Engagement Stats */}
       <div>
-        <h3 className="text-lg font-semibold mb-4">Engagement</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <h3 className="text-sm font-medium text-muted-foreground mb-3">Engagement</h3>
+        <div className="grid grid-cols-2 gap-3">
           <StatCard
             icon={Handshake}
-            label="Active Coach-Client Relationships"
+            label="Active Relationships"
             value={stats.activeCoachings}
             color="text-purple-500"
             onClick={() => navigate("/admin/analytics/relationships")}
           />
           <StatCard
             icon={Users}
-            label="Pending Coaching Requests"
+            label="Pending Requests"
             value={stats.pendingRequests}
             color="text-amber-500"
             onClick={() => navigate("/admin/analytics/requests")}
@@ -140,8 +141,8 @@ export function PlatformAnalytics() {
 
       {/* Content Stats */}
       <div>
-        <h3 className="text-lg font-semibold mb-4">System Content</h3>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+        <h3 className="text-sm font-medium text-muted-foreground mb-3">System Content</h3>
+        <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
           <StatCard
             icon={Dumbbell}
             label="Exercises"

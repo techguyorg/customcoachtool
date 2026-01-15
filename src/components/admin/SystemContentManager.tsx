@@ -24,7 +24,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Dumbbell, Calendar, UtensilsCrossed, ChefHat, Apple, Loader2, Plus, Trash2, Edit, MoreHorizontal, Eye } from "lucide-react";
+import { Dumbbell, Calendar, UtensilsCrossed, ChefHat, Apple, Loader2, Plus, Trash2, Edit, MoreHorizontal, Eye, Globe, GlobeLock } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -32,6 +32,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { toast } from "@/hooks/use-toast";
+import { Switch } from "@/components/ui/switch";
 
 // Import filter components
 import {
@@ -281,6 +282,17 @@ function WorkoutsTab() {
     onError: () => { toast({ title: "Failed to delete template", variant: "destructive" }); },
   });
 
+  const publishMutation = useMutation({
+    mutationFn: async ({ id, isPublished }: { id: string; isPublished: boolean }) => {
+      return api.patch(`/api/workouts/templates/${id}/publish`, { is_published: isPublished });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-workout-templates"] });
+      toast({ title: "Publish status updated" });
+    },
+    onError: () => { toast({ title: "Failed to update publish status", variant: "destructive" }); },
+  });
+
   const filteredAndSorted = useMemo(() => {
     let result = [...(templates || [])];
     
@@ -315,7 +327,7 @@ function WorkoutsTab() {
             <CardTitle>System Workout Templates</CardTitle>
             <CardDescription>Manage platform-wide workout programs</CardDescription>
           </div>
-          <CreateWorkoutTemplateDialog />
+          <CreateWorkoutTemplateDialog isSystemContent={true} />
         </div>
       </CardHeader>
       <CardContent>
@@ -332,6 +344,7 @@ function WorkoutsTab() {
                     <TableHead>Type</TableHead>
                     <TableHead>Days/Week</TableHead>
                     <TableHead>Difficulty</TableHead>
+                    <TableHead>Published</TableHead>
                     <TableHead className="w-[60px]">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -342,6 +355,20 @@ function WorkoutsTab() {
                       <TableCell><Badge variant="outline" className="capitalize">{t.template_type?.replace("_", " ") || "General"}</Badge></TableCell>
                       <TableCell>{t.days_per_week} days</TableCell>
                       <TableCell className="capitalize">{t.difficulty}</TableCell>
+                      <TableCell onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center gap-2">
+                          <Switch
+                            checked={t.is_published !== false}
+                            onCheckedChange={(checked) => publishMutation.mutate({ id: t.id, isPublished: checked })}
+                            disabled={publishMutation.isPending}
+                          />
+                          {t.is_published !== false ? (
+                            <Globe className="w-4 h-4 text-success" />
+                          ) : (
+                            <GlobeLock className="w-4 h-4 text-muted-foreground" />
+                          )}
+                        </div>
+                      </TableCell>
                       <TableCell onClick={(e) => e.stopPropagation()}>
                         <ActionsMenu 
                           onView={() => { setSelectedTemplateId(t.id); setSheetOpen(true); }}
@@ -361,7 +388,7 @@ function WorkoutsTab() {
       </CardContent>
       
       <TemplateDetailSheet templateId={selectedTemplateId} open={sheetOpen} onOpenChange={setSheetOpen} />
-      <CreateWorkoutTemplateDialog initialData={editingTemplate} open={editDialogOpen} onOpenChange={(open) => { setEditDialogOpen(open); if (!open) setEditingTemplate(null); }} />
+      <CreateWorkoutTemplateDialog initialData={editingTemplate} open={editDialogOpen} onOpenChange={(open) => { setEditDialogOpen(open); if (!open) setEditingTemplate(null); }} isSystemContent={true} />
     </Card>
   );
 }
@@ -393,6 +420,17 @@ function DietsTab() {
       toast({ title: "Diet plan deleted" });
     },
     onError: () => { toast({ title: "Failed to delete diet plan", variant: "destructive" }); },
+  });
+
+  const publishMutation = useMutation({
+    mutationFn: async ({ id, isPublished }: { id: string; isPublished: boolean }) => {
+      return api.patch(`/api/diet/plans/${id}/publish`, { is_published: isPublished });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-diet-plans"] });
+      toast({ title: "Publish status updated" });
+    },
+    onError: () => { toast({ title: "Failed to update publish status", variant: "destructive" }); },
   });
 
   const filteredAndSorted = useMemo(() => {
@@ -430,7 +468,7 @@ function DietsTab() {
             <CardDescription>Manage platform-wide diet plans</CardDescription>
           </div>
           <Button size="sm" onClick={() => setShowCreate(true)}><Plus className="w-4 h-4 mr-2" />Add Plan</Button>
-          <CreateDietPlanDialog open={showCreate} onOpenChange={setShowCreate} />
+          <CreateDietPlanDialog open={showCreate} onOpenChange={setShowCreate} isSystemContent={true} />
         </div>
       </CardHeader>
       <CardContent>
@@ -447,6 +485,7 @@ function DietsTab() {
                     <TableHead>Type</TableHead>
                     <TableHead>Goal</TableHead>
                     <TableHead>Calories</TableHead>
+                    <TableHead>Published</TableHead>
                     <TableHead className="w-[60px]">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -457,6 +496,20 @@ function DietsTab() {
                       <TableCell><Badge variant="outline" className="capitalize">{p.dietary_type || "Standard"}</Badge></TableCell>
                       <TableCell className="capitalize">{p.goal?.replace("_", " ") || "—"}</TableCell>
                       <TableCell>{p.calories_target || "—"} kcal</TableCell>
+                      <TableCell onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center gap-2">
+                          <Switch
+                            checked={p.is_published !== false}
+                            onCheckedChange={(checked) => publishMutation.mutate({ id: p.id, isPublished: checked })}
+                            disabled={publishMutation.isPending}
+                          />
+                          {p.is_published !== false ? (
+                            <Globe className="w-4 h-4 text-success" />
+                          ) : (
+                            <GlobeLock className="w-4 h-4 text-muted-foreground" />
+                          )}
+                        </div>
+                      </TableCell>
                       <TableCell onClick={(e) => e.stopPropagation()}>
                         <ActionsMenu 
                           onView={() => setSelectedPlanId(p.id)}
@@ -480,6 +533,7 @@ function DietsTab() {
         open={!!editingPlanId} 
         onOpenChange={(open) => { if (!open) setEditingPlanId(null); }} 
         editingPlan={editingPlan || null}
+        isSystemContent={true}
       />
     </Card>
   );
@@ -512,6 +566,17 @@ function RecipesTab() {
       toast({ title: "Recipe deleted" });
     },
     onError: () => { toast({ title: "Failed to delete recipe", variant: "destructive" }); },
+  });
+
+  const publishMutation = useMutation({
+    mutationFn: async ({ id, isPublished }: { id: string; isPublished: boolean }) => {
+      return api.patch(`/api/recipes/${id}/publish`, { is_published: isPublished });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-recipes"] });
+      toast({ title: "Publish status updated" });
+    },
+    onError: () => { toast({ title: "Failed to update publish status", variant: "destructive" }); },
   });
 
   const filteredAndSorted = useMemo(() => {
@@ -548,7 +613,7 @@ function RecipesTab() {
             <CardDescription>Manage platform-wide recipe library</CardDescription>
           </div>
           <Button size="sm" onClick={() => setShowCreate(true)}><Plus className="w-4 h-4 mr-2" />Add Recipe</Button>
-          <RecipeBuilderDialog open={showCreate} onOpenChange={setShowCreate} />
+          <RecipeBuilderDialog open={showCreate} onOpenChange={setShowCreate} isSystemContent={true} />
         </div>
       </CardHeader>
       <CardContent>
@@ -565,6 +630,7 @@ function RecipesTab() {
                     <TableHead>Category</TableHead>
                     <TableHead>Calories</TableHead>
                     <TableHead>Servings</TableHead>
+                    <TableHead>Published</TableHead>
                     <TableHead className="w-[60px]">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -575,6 +641,20 @@ function RecipesTab() {
                       <TableCell><Badge variant="outline" className="capitalize">{r.category || "General"}</Badge></TableCell>
                       <TableCell>{r.calories_per_serving || "—"} kcal</TableCell>
                       <TableCell>{r.servings}</TableCell>
+                      <TableCell onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center gap-2">
+                          <Switch
+                            checked={r.is_published !== false}
+                            onCheckedChange={(checked) => publishMutation.mutate({ id: r.id, isPublished: checked })}
+                            disabled={publishMutation.isPending}
+                          />
+                          {r.is_published !== false ? (
+                            <Globe className="w-4 h-4 text-success" />
+                          ) : (
+                            <GlobeLock className="w-4 h-4 text-muted-foreground" />
+                          )}
+                        </div>
+                      </TableCell>
                       <TableCell onClick={(e) => e.stopPropagation()}>
                         <ActionsMenu 
                           onView={() => setSelectedRecipeId(r.id)}
@@ -598,6 +678,7 @@ function RecipesTab() {
         open={!!editingRecipeId} 
         onOpenChange={(open) => { if (!open) setEditingRecipeId(null); }} 
         editingRecipe={editingRecipe || null}
+        isSystemContent={true}
       />
     </Card>
   );
@@ -660,7 +741,7 @@ function FoodsTab() {
             <CardTitle>System Foods</CardTitle>
             <CardDescription>Manage platform-wide food database</CardDescription>
           </div>
-          <CustomFoodDialog />
+          <CustomFoodDialog isSystemContent={true} />
         </div>
       </CardHeader>
       <CardContent>
@@ -681,21 +762,32 @@ function FoodsTab() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {paginatedData.map((f) => (
-                    <TableRow key={f.id}>
-                      <TableCell className="font-medium">{f.name}</TableCell>
-                      <TableCell><Badge variant="outline" className="capitalize">{f.category}</Badge></TableCell>
-                      <TableCell>{f.calories_per_100g} /100g</TableCell>
-                      <TableCell>{f.protein_per_100g}g</TableCell>
-                      <TableCell>
-                        <ActionsMenu 
-                          onEdit={() => setEditingFood(f)}
-                          onDelete={() => deleteMutation.mutate(f.id)}
-                          itemName={f.name}
-                        />
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {paginatedData.map((f) => {
+                    const isPieceUnit = ['piece', 'serving', 'slice', 'scoop', 'cup', 'tbsp', 'tsp'].includes(f.default_serving_unit);
+                    const displayUnit = isPieceUnit ? `/${f.default_serving_unit}` : '/100g';
+                    return (
+                      <TableRow key={f.id}>
+                        <TableCell className="font-medium">{f.name}</TableCell>
+                        <TableCell><Badge variant="outline" className="capitalize">{f.category}</Badge></TableCell>
+                        <TableCell>
+                          {f.calories_per_100g} kcal{displayUnit}
+                          {isPieceUnit && f.default_serving_size && (
+                            <span className="text-xs text-muted-foreground ml-1">
+                              ({f.default_serving_size}g)
+                            </span>
+                          )}
+                        </TableCell>
+                        <TableCell>{f.protein_per_100g}g</TableCell>
+                        <TableCell>
+                          <ActionsMenu 
+                            onEdit={() => setEditingFood(f)}
+                            onDelete={() => deleteMutation.mutate(f.id)}
+                            itemName={f.name}
+                          />
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>

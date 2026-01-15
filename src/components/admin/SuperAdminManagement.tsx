@@ -37,20 +37,13 @@ export function SuperAdminManagement() {
 
   const assignMutation = useMutation({
     mutationFn: async (targetEmail: string) => {
-      const data = await api.post<{ result: string }>('/api/admin/super-admins', { email: targetEmail });
-      return { result: data.result, email: targetEmail };
+      await api.post('/api/admin/super-admins', { email: targetEmail });
     },
-    onSuccess: async ({ result, email: targetEmail }) => {
-      if (result.startsWith("SUCCESS")) {
-        toast.success("Super admin role assigned successfully");
-        queryClient.invalidateQueries({ queryKey: ["super-admins"] });
-        setEmail("");
-        setIsAddDialogOpen(false);
-      } else if (result.startsWith("ERROR")) {
-        toast.error(result.replace("ERROR: ", ""));
-      } else {
-        toast.info(result.replace("INFO: ", ""));
-      }
+    onSuccess: () => {
+      toast.success("Super admin role assigned successfully");
+      queryClient.invalidateQueries({ queryKey: ["super-admins"] });
+      setEmail("");
+      setIsAddDialogOpen(false);
     },
     onError: (error: any) => {
       toast.error(error.message || "Failed to assign super admin role");
@@ -59,16 +52,11 @@ export function SuperAdminManagement() {
 
   const revokeMutation = useMutation({
     mutationFn: async (admin: SuperAdmin) => {
-      const data = await api.delete<{ result: string }>(`/api/admin/super-admins/${admin.user_id}`);
-      return { result: data.result, admin };
+      await api.delete(`/api/admin/super-admins/${admin.user_id}`);
     },
-    onSuccess: async ({ result, admin }) => {
-      if (result.startsWith("SUCCESS")) {
-        toast.success("Super admin role revoked");
-        queryClient.invalidateQueries({ queryKey: ["super-admins"] });
-      } else {
-        toast.info(result.replace("INFO: ", ""));
-      }
+    onSuccess: () => {
+      toast.success("Super admin role revoked");
+      queryClient.invalidateQueries({ queryKey: ["super-admins"] });
       setConfirmRevoke(null);
     },
     onError: (error: any) => {
@@ -152,28 +140,34 @@ export function SuperAdminManagement() {
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
           ) : superAdmins && superAdmins.length > 0 ? (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Assigned Date</TableHead>
-                  <TableHead className="w-[100px]">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
+            <div className="overflow-x-auto -mx-4 sm:mx-0">
+              <Table className="min-w-[400px]">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead className="hidden sm:table-cell">Email</TableHead>
+                    <TableHead className="hidden md:table-cell">Assigned Date</TableHead>
+                    <TableHead className="w-[100px]">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
               <TableBody>
                 {superAdmins.map((admin) => (
                   <TableRow key={admin.user_id}>
-                    <TableCell className="font-medium">{admin.full_name}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        {admin.email}
+                    <TableCell className="font-medium">
+                      <div>
+                        {admin.full_name}
                         {admin.email === user?.email && (
-                          <Badge variant="secondary" className="text-xs">You</Badge>
+                          <Badge variant="secondary" className="text-xs ml-2">You</Badge>
                         )}
+                        <p className="text-xs text-muted-foreground sm:hidden">{admin.email}</p>
                       </div>
                     </TableCell>
-                    <TableCell>{format(new Date(admin.created_at), "PPP")}</TableCell>
+                    <TableCell className="hidden sm:table-cell">
+                      <div className="flex items-center gap-2">
+                        {admin.email}
+                      </div>
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell">{format(new Date(admin.created_at), "PPP")}</TableCell>
                     <TableCell>
                       {admin.email !== user?.email ? (
                         confirmRevoke === admin.email ? (
@@ -215,6 +209,7 @@ export function SuperAdminManagement() {
                 ))}
               </TableBody>
             </Table>
+            </div>
           ) : (
             <div className="text-center py-8 text-muted-foreground">
               No super admins found

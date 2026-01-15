@@ -73,14 +73,22 @@ export default function CoachRequestsPage() {
     setResponseDialogOpen(true);
   };
 
+  // Helper to get client info from either flat or nested format
+  const getClientName = (request: CoachingRequestWithClient) => 
+    request.client_name || request.client_profile?.full_name || "Unknown Client";
+  const getClientEmail = (request: CoachingRequestWithClient) =>
+    request.client_email || request.client_profile?.email;
+  const getClientAvatar = (request: CoachingRequestWithClient) =>
+    request.client_avatar || request.client_profile?.avatar_url;
+
   const renderRequestCard = (request: CoachingRequestWithClient, showActions = false) => (
     <Card key={request.id} className="overflow-hidden">
       <CardContent className="p-4">
         <div className="flex items-start gap-4">
           <Avatar className="w-12 h-12">
-            <AvatarImage src={request.client_profile?.avatar_url || undefined} />
+            <AvatarImage src={getClientAvatar(request) || undefined} />
             <AvatarFallback className="bg-primary/20 text-primary">
-              {request.client_profile?.full_name?.charAt(0) || "C"}
+              {getClientName(request)?.charAt(0) || "C"}
             </AvatarFallback>
           </Avatar>
 
@@ -88,10 +96,10 @@ export default function CoachRequestsPage() {
             <div className="flex items-start justify-between gap-2">
               <div>
                 <h4 className="font-semibold">
-                  {request.client_profile?.full_name || "Unknown Client"}
+                  {getClientName(request)}
                 </h4>
                 <p className="text-sm text-muted-foreground">
-                  {request.client_profile?.email}
+                  {getClientEmail(request)}
                 </p>
               </div>
               <Badge
@@ -240,8 +248,8 @@ export default function CoachRequestsPage() {
             </DialogTitle>
             <DialogDescription>
               {responseAction === "accepted"
-                ? `Accept ${selectedRequest?.client_profile?.full_name}'s request to become your client?`
-                : `Decline ${selectedRequest?.client_profile?.full_name}'s request?`}
+                ? `Accept ${selectedRequest?.client_name || selectedRequest?.client_profile?.full_name}'s request to become your client?`
+                : `Decline ${selectedRequest?.client_name || selectedRequest?.client_profile?.full_name}'s request?`}
             </DialogDescription>
           </DialogHeader>
 

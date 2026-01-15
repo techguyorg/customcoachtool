@@ -66,14 +66,16 @@ interface CreateWorkoutTemplateDialogProps {
   initialData?: WorkoutTemplateData | null;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  isSystemContent?: boolean;
 }
 
-export function CreateWorkoutTemplateDialog({ onCreated, initialData, open: controlledOpen, onOpenChange }: CreateWorkoutTemplateDialogProps) {
+export function CreateWorkoutTemplateDialog({ onCreated, initialData, open: controlledOpen, onOpenChange, isSystemContent = false }: CreateWorkoutTemplateDialogProps) {
   const [internalOpen, setInternalOpen] = useState(false);
   const open = controlledOpen !== undefined ? controlledOpen : internalOpen;
   const setOpen = onOpenChange || setInternalOpen;
   
-  const { user } = useAuth();
+  const { user, hasRole } = useAuth();
+  const isSuperAdmin = hasRole("super_admin");
   const queryClient = useQueryClient();
   const isEditing = !!initialData?.id;
 
@@ -127,7 +129,7 @@ export function CreateWorkoutTemplateDialog({ onCreated, initialData, open: cont
       if (isEditing && initialData?.id) {
         return api.put<{ id: string }>(`/api/workouts/templates/${initialData.id}`, templateData);
       } else {
-        return api.post<{ id: string }>('/api/workouts/templates', { ...templateData, is_system: false });
+        return api.post<{ id: string }>('/api/workouts/templates', { ...templateData, is_system: isSuperAdmin && isSystemContent });
       }
     },
     onSuccess: (template) => {

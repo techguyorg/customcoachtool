@@ -6,6 +6,7 @@ import { Progress } from "@/components/ui/progress";
 import { X, ChevronLeft, ChevronRight, Check, Sparkles } from "lucide-react";
 import { TutorialStep } from "@/hooks/useOnboarding";
 
+
 interface TutorialOverlayProps {
   steps: TutorialStep[];
   currentStep: number;
@@ -48,7 +49,8 @@ export function TutorialOverlay({
   const handleAction = () => {
     if (step?.action) {
       navigate(step.action.path);
-      onClose();
+      // Complete the tutorial when user navigates away
+      onComplete();
     }
   };
 

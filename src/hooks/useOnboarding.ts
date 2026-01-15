@@ -129,8 +129,9 @@ export function useOnboarding() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [showTutorial, setShowTutorial] = useState(false);
+  const [hasCheckedOnboarding, setHasCheckedOnboarding] = useState(false);
 
-  const { data: onboardingStatus } = useQuery({
+  const { data: onboardingStatus, isLoading } = useQuery({
     queryKey: ["onboarding", user?.id],
     queryFn: async () => {
       if (!user?.id) return null;
@@ -141,6 +142,7 @@ export function useOnboarding() {
       }
     },
     enabled: !!user?.id,
+    staleTime: Infinity, // Don't refetch automatically
   });
 
   const updateOnboarding = useMutation({
@@ -161,10 +163,23 @@ export function useOnboarding() {
   };
 
   const startTutorial = () => setShowTutorial(true);
-  const closeTutorial = () => setShowTutorial(false);
+  
+  const closeTutorial = async () => {
+    // When user closes tutorial, mark it as completed
+    try {
+      await updateOnboarding.mutateAsync({ completed: true });
+    } catch {
+      // Still close even if save fails
+    }
+    setShowTutorial(false);
+  };
 
   const completeTutorial = async () => {
-    await updateOnboarding.mutateAsync({ completed: true });
+    try {
+      await updateOnboarding.mutateAsync({ completed: true });
+    } catch {
+      // Still close even if save fails
+    }
     setShowTutorial(false);
   };
 
@@ -172,13 +187,18 @@ export function useOnboarding() {
     await updateOnboarding.mutateAsync({ step });
   };
 
-  // Auto-show tutorial for new users
+  // Auto-show tutorial for new users - only check once per session
   useEffect(() => {
-    if (onboardingStatus && !onboardingStatus.onboarding_completed) {
-      const timer = setTimeout(() => setShowTutorial(true), 1000);
-      return () => clearTimeout(timer);
+    if (!isLoading && onboardingStatus !== undefined && !hasCheckedOnboarding) {
+      setHasCheckedOnboarding(true);
+      
+      // Only show if explicitly not completed (not null/undefined due to network error)
+      if (onboardingStatus && onboardingStatus.onboarding_completed === false) {
+        const timer = setTimeout(() => setShowTutorial(true), 1000);
+        return () => clearTimeout(timer);
+      }
     }
-  }, [onboardingStatus]);
+  }, [onboardingStatus, isLoading, hasCheckedOnboarding]);
 
   return {
     showTutorial,
@@ -188,7 +208,7 @@ export function useOnboarding() {
     completeTutorial,
     updateStep,
     currentStep: onboardingStatus?.onboarding_step ?? 0,
-    isCompleted: onboardingStatus?.onboarding_completed ?? false,
+    isCompleted: onboardingStatus?.onboarding_completed ?? true, // Default to true to prevent showing on error
     tutorialSteps: getTutorialSteps(),
   };
 }

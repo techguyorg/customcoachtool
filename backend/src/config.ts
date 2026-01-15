@@ -50,9 +50,9 @@ export const config = {
   
   // Azure Storage (hardcoded account, connection string from env)
   storage: {
-    accountName: 'stcustomcoachpro',
+    accountName: 'customcoachpro',
     containerName: 'progress-photos',
-    connectionString: process.env.AZURE_STORAGE_CONNECTION_STRING || '',
+    connectionString: 'DefaultEndpointsProtocol=https;AccountName=customcoachpro;AccountKey=RRUkiMb45XalPwMAfG2Qzi9yxngePT13AIYAL31NO5a4jfpIpko+2autLahhwlkEB1PzuRYeuvDt+AStzy+F9Q==;EndpointSuffix=core.windows.net',
   },
   
   // Rate Limiting

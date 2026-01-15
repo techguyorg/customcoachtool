@@ -25,6 +25,11 @@ function getContainerClient(): ContainerClient {
     config.storage.connectionString
   );
   containerClient = blobServiceClient.getContainerClient(config.storage.containerName);
+  
+  console.log(
+    'AZURE_STORAGE_CONNECTION_STRING:',
+    config.storage.connectionString
+  );
 
   return containerClient;
 }
@@ -104,4 +109,21 @@ export function generateBlobName(userId: string, fileName: string, folder?: stri
  */
 export function getPublicUrl(blobName: string): string {
   return `https://${config.storage.accountName}.blob.core.windows.net/${config.storage.containerName}/${blobName}`;
+}
+
+/**
+ * List files in Azure Blob Storage with optional prefix
+ */
+export async function listFiles(prefix: string): Promise<{ name: string; url: string }[]> {
+  const container = getContainerClient();
+  const files: { name: string; url: string }[] = [];
+
+  for await (const blob of container.listBlobsFlat({ prefix })) {
+    files.push({
+      name: blob.name,
+      url: `https://${config.storage.accountName}.blob.core.windows.net/${config.storage.containerName}/${blob.name}`,
+    });
+  }
+
+  return files;
 }

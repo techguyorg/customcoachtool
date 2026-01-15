@@ -36,6 +36,7 @@ import { useCreateDietPlan, useUpdateDietPlan, DietPlan } from "@/hooks/useDietP
 import { MealFoodBuilder, MealFoodItem } from "./MealFoodBuilder";
 import { FoodAlternative, FoodAlternativesDialog } from "./FoodAlternatives";
 import { calculateCalories } from "@/hooks/useFoods";
+import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
 const mealSchema = z.object({
@@ -70,6 +71,7 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   editingPlan?: DietPlan | null;
+  isSystemContent?: boolean;
 }
 
 const defaultMeals = [
@@ -79,13 +81,15 @@ const defaultMeals = [
   { meal_number: 4, meal_name: "Dinner", time_suggestion: "19:00" },
 ];
 
-export function CreateDietPlanDialog({ open, onOpenChange, editingPlan }: Props) {
+export function CreateDietPlanDialog({ open, onOpenChange, editingPlan, isSystemContent = false }: Props) {
   const [activeTab, setActiveTab] = useState("basics");
   const [useFoodBuilder, setUseFoodBuilder] = useState(true);
   const [mealFoods, setMealFoods] = useState<Record<number, MealFoodItem[]>>({});
   const [alternatives, setAlternatives] = useState<FoodAlternative[]>([]);
   const [showAlternativesDialog, setShowAlternativesDialog] = useState(false);
   
+  const { hasRole } = useAuth();
+  const isSuperAdmin = hasRole("super_admin");
   const createMutation = useCreateDietPlan();
   const updateMutation = useUpdateDietPlan();
 
@@ -256,7 +260,7 @@ export function CreateDietPlanDialog({ open, onOpenChange, editingPlan }: Props)
         fat_grams: useFoodBuilder ? Math.round(dayTotals.fat) : (data.fat_grams || null),
         meals_per_day: data.meals_per_day,
         notes: data.notes || null,
-        is_system: false,
+        is_system: isSuperAdmin && isSystemContent,
         is_active: true,
       };
 

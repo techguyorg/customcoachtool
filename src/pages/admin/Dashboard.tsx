@@ -13,7 +13,8 @@ import {
   X,
   ShieldCheck,
   Sliders,
-  ClipboardList
+  ClipboardList,
+  FileText
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
@@ -31,6 +32,7 @@ import { RelationshipsView } from "@/components/admin/RelationshipsView";
 import { PendingRequestsView } from "@/components/admin/PendingRequestsView";
 import { BulkImportExport } from "@/components/admin/BulkImportExport";
 import { AuditLogViewer } from "@/components/admin/AuditLogViewer";
+import { BlogManagement } from "@/components/blog/BlogManagement";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Shield, UserCheck, Handshake, Clock } from "lucide-react";
 import { AdminUser } from "@/hooks/useAdminUsers";
@@ -40,6 +42,7 @@ const sidebarItems = [
   { icon: Users, label: "Users", path: "/admin/users" },
   { icon: ShieldCheck, label: "Super Admins", path: "/admin/super-admins" },
   { icon: Dumbbell, label: "Content", path: "/admin/content" },
+  { icon: FileText, label: "Blog", path: "/admin/blog" },
   { icon: ClipboardList, label: "Audit Logs", path: "/admin/audit-logs" },
   { icon: BarChart3, label: "Analytics", path: "/admin/analytics" },
   { icon: Sliders, label: "Platform", path: "/admin/platform" },
@@ -149,6 +152,7 @@ function AdminDashboard() {
             <Route path="super-admins" element={<SuperAdminsPage />} />
             <Route path="content" element={<ContentPage />} />
             <Route path="content/import-export" element={<ImportExportPage />} />
+            <Route path="blog" element={<BlogPage />} />
             <Route path="audit-logs" element={<AuditLogsPage />} />
             <Route path="analytics" element={<AnalyticsPage />} />
             <Route path="analytics/relationships" element={<RelationshipsPage />} />
@@ -380,6 +384,18 @@ function RelationshipsPage() {
 
 function RequestsPage() {
   return <PendingRequestsView />;
+}
+
+function BlogPage() {
+  return (
+    <div className="space-y-6">
+      <PageHeader
+        title="Blog Management"
+        description="Manage blog posts and permissions"
+      />
+      <BlogManagement />
+    </div>
+  );
 }
 
 function SettingsPage() {

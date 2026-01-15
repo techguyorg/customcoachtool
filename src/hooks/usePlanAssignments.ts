@@ -47,8 +47,31 @@ export function useClientAssignments(clientId?: string) {
     queryKey: ["plan-assignments", targetId],
     queryFn: async () => {
       if (!targetId) return [];
-      const data = await api.get<PlanAssignmentWithDetails[]>(`/api/client/${targetId}/assignments`);
-      return data;
+      // Use the correct endpoint - /api/client/assignments for current user
+      const endpoint = clientId ? `/api/client/${clientId}/assignments` : '/api/client/assignments';
+      const data = await api.get<any[]>(endpoint);
+      
+      // Transform flat data to nested structure expected by components
+      return data.map(item => ({
+        ...item,
+        workout_template: item.workout_template_id ? {
+          id: item.workout_template_id,
+          name: item.workout_template_name,
+          description: item.workout_description,
+          difficulty: item.difficulty || 'intermediate',
+          days_per_week: item.days_per_week || 3,
+          duration_weeks: item.duration_weeks || null,
+        } : null,
+        diet_plan: item.diet_plan_id ? {
+          id: item.diet_plan_id,
+          name: item.diet_plan_name,
+          description: item.diet_description,
+          calories_target: item.calories_target || null,
+          protein_grams: item.protein_grams || null,
+          carbs_grams: item.carbs_grams || null,
+          fat_grams: item.fat_grams || null,
+        } : null,
+      })) as PlanAssignmentWithDetails[];
     },
     enabled: !!targetId,
   });
@@ -97,15 +120,13 @@ export function useAssignPlan() {
       if (!user?.id) throw new Error("Not authenticated");
 
       const data = await api.post<PlanAssignment>('/api/coach/assignments', {
-        clientId,
-        planType,
-        workoutTemplateId,
-        dietPlanId,
-        startDate,
-        endDate,
-        notes,
-        planName,
-        coachName,
+        client_id: clientId,
+        plan_type: planType,
+        workout_template_id: workoutTemplateId,
+        diet_plan_id: dietPlanId,
+        start_date: startDate,
+        end_date: endDate,
+        coach_notes: notes,
       });
 
       return data;

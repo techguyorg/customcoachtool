@@ -1,7 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Calendar, Clock, Zap, MoreVertical, Eye, ClipboardList, Edit, Trash2, Play, Loader2 } from "lucide-react";
+import { Calendar, Clock, Zap, MoreVertical, Eye, ClipboardList, Edit, Trash2, Play, Loader2, Dumbbell, Shield } from "lucide-react";
 import { FavoriteButton } from "@/components/favorites/FavoriteButton";
 import {
   DropdownMenu,
@@ -75,15 +75,21 @@ export function TemplateCard({
       <CardContent className="p-5 flex flex-col h-full">
         {/* Header */}
         <div className="flex items-start justify-between gap-3 mb-3">
-          <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-foreground line-clamp-1 group-hover:text-primary transition-colors">
-              {template.name}
-            </h3>
-            {template.goal && (
-              <p className="text-sm text-primary/80 mt-0.5 line-clamp-1">
-                {template.goal}
-              </p>
-            )}
+          <div className="flex items-start gap-3 flex-1 min-w-0">
+            {/* Workout Icon */}
+            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+              <Dumbbell className="w-5 h-5 text-primary" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h3 className="font-semibold text-foreground line-clamp-1 group-hover:text-primary transition-colors text-sm">
+                {template.name}
+              </h3>
+              {template.goal && (
+                <p className="text-xs text-primary/80 mt-0.5 line-clamp-1">
+                  {template.goal}
+                </p>
+              )}
+            </div>
           </div>
           <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
             {showFavorite && (
@@ -155,6 +161,12 @@ export function TemplateCard({
 
         {/* Tags */}
         <div className="flex flex-wrap gap-2">
+          {template.is_system && (
+            <Badge className="text-xs bg-primary/20 text-primary border-primary/30">
+              <Shield className="w-3 h-3 mr-1" />
+              System
+            </Badge>
+          )}
           {template.template_type && (
             <Badge 
               variant="outline" 

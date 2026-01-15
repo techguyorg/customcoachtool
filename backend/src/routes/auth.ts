@@ -7,12 +7,13 @@ import { queryOne, queryAll, execute, query } from '../db';
 import { authenticate, AuthenticatedRequest } from '../middleware/auth';
 import { asyncHandler, BadRequestError, UnauthorizedError } from '../middleware/errorHandler';
 import { sendEmail } from '../services/email';
+import { emailVerificationEmail, passwordResetEmail } from '../services/email-templates';
 
 const router = Router();
 
 // Helper functions
 function generateToken(userId: string, email: string, expiresIn: string): string {
-  return jwt.sign({ userId, email }, config.jwt.secret, { expiresIn });
+  return jwt.sign({ userId, email }, config.jwt.secret, { expiresIn } as jwt.SignOptions);
 }
 
 function generateRefreshToken(): string {
@@ -93,12 +94,12 @@ router.post('/signup', asyncHandler(async (req: Request, res: Response) => {
   const verificationExpires = new Date();
   verificationExpires.setHours(verificationExpires.getHours() + 24);
 
-  // Create user
+  // Create user (full_name is stored in profiles table, not users)
   const userId = uuidv4();
   await execute(
-    `INSERT INTO users (id, email, password_hash, full_name, email_verification_token, email_verification_expires, is_active)
-     VALUES (@id, @email, @passwordHash, @fullName, @verificationToken, @verificationExpires, 1)`,
-    { id: userId, email: email.toLowerCase(), passwordHash, fullName, verificationToken, verificationExpires }
+    `INSERT INTO users (id, email, password_hash, email_verification_token, email_verification_expires, is_active)
+     VALUES (@id, @email, @passwordHash, @verificationToken, @verificationExpires, 1)`,
+    { id: userId, email: email.toLowerCase(), passwordHash, verificationToken, verificationExpires }
   );
 
   // Create profile
@@ -132,14 +133,7 @@ router.post('/signup', asyncHandler(async (req: Request, res: Response) => {
   await sendEmail({
     to: email,
     subject: 'Verify your CustomCoachPro account',
-    html: `
-      <h1>Welcome to CustomCoachPro, ${fullName}!</h1>
-      <p>Please verify your email address by clicking the link below:</p>
-      <a href="${verificationUrl}" style="background: #4f46e5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px;">
-        Verify Email
-      </a>
-      <p>This link expires in 24 hours.</p>
-    `,
+    html: emailVerificationEmail(fullName, verificationUrl),
   });
 
   // Generate auth tokens
@@ -448,15 +442,7 @@ router.post('/forgot-password', asyncHandler(async (req: Request, res: Response)
     await sendEmail({
       to: email,
       subject: 'Reset your CustomCoachPro password',
-      html: `
-        <h1>Password Reset Request</h1>
-        <p>Click the link below to reset your password:</p>
-        <a href="${resetUrl}" style="background: #4f46e5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px;">
-          Reset Password
-        </a>
-        <p>This link expires in 1 hour.</p>
-        <p>If you didn't request this, please ignore this email.</p>
-      `,
+      html: passwordResetEmail(resetUrl),
     });
   }
 
@@ -618,15 +604,7 @@ router.post('/resend-verification', authenticate, asyncHandler(async (req: Authe
   await sendEmail({
     to: user.email,
     subject: 'Verify your CustomCoachPro account',
-    html: `
-      <h1>Email Verification</h1>
-      <p>Hi ${profile?.full_name || 'there'},</p>
-      <p>Please verify your email address by clicking the link below:</p>
-      <a href="${verificationUrl}" style="background: #4f46e5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px;">
-        Verify Email
-      </a>
-      <p>This link expires in 24 hours.</p>
-    `,
+    html: emailVerificationEmail(profile?.full_name || 'there', verificationUrl),
   });
 
   res.json({ message: 'Verification email sent' });

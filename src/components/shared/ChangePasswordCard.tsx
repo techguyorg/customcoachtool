@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { updatePassword } from "@/lib/auth";
+import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,14 +25,12 @@ export function ChangePasswordCard() {
 
     setIsLoading(true);
     try {
-      await updatePassword(newPassword);
-      // Password updated successfully - updatePassword throws on error
-
+      await api.put('/api/users/password', { newPassword });
       toast.success("Password updated successfully!");
       setNewPassword("");
       setConfirmPassword("");
-    } catch (err) {
-      toast.error("Failed to update password");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to update password");
     } finally {
       setIsLoading(false);
     }

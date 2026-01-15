@@ -53,7 +53,8 @@ export function useSendMessage() {
       content: string;
     }) => {
       if (!user?.id) throw new Error("Not authenticated");
-      return api.post('/api/messages', { recipientId, content });
+      // Backend expects recipient_id (snake_case)
+      return api.post('/api/messages', { recipient_id: recipientId, content });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["conversations"] });

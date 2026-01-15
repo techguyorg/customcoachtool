@@ -22,6 +22,7 @@ import {
 import { Settings, User, Award, DollarSign, Users, X, Plus, Save, Loader2, Upload, Camera, Mail } from "lucide-react";
 import { toast } from "sonner";
 import { ChangePasswordCard } from "@/components/shared/ChangePasswordCard";
+import { MyCustomFoodsCard } from "@/components/coach/MyCustomFoodsCard";
 
 const SPECIALIZATION_OPTIONS = [
   "Weight Loss",
@@ -122,8 +123,11 @@ export default function CoachSettingsPage() {
       setPhone(profiles.profile?.phone || "");
       setAvatarUrl(profiles.profile?.avatar_url || "");
       
-      setSpecializations(profiles.coachProfile?.specializations || []);
-      setCertifications(profiles.coachProfile?.certifications || []);
+      // Ensure arrays with defensive defaults
+      const specs = profiles.coachProfile?.specializations;
+      setSpecializations(Array.isArray(specs) ? specs : []);
+      const certs = profiles.coachProfile?.certifications;
+      setCertifications(Array.isArray(certs) ? certs : []);
       setExperienceYears(profiles.coachProfile?.experience_years || 0);
       setHourlyRate(profiles.coachProfile?.hourly_rate ?? null);
       setCurrency(profiles.coachProfile?.currency || "USD");
@@ -550,6 +554,9 @@ export default function CoachSettingsPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Custom Foods Library */}
+      <MyCustomFoodsCard />
 
       {/* Password Change */}
       <ChangePasswordCard />

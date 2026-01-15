@@ -3,7 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { queryAll, queryOne, execute, transformRows } from '../db';
 import { authenticate, AuthenticatedRequest, requireCoach } from '../middleware/auth';
 import { asyncHandler, NotFoundError, BadRequestError, ForbiddenError } from '../middleware/errorHandler';
-import { sendEmail, generateCheckinReceivedEmail, generateCheckinReviewedEmail } from '../services/email';
+import { sendEmail, generateCheckinReceivedEmail, generateCheckinReviewedEmail, EmailOptions } from '../services/email';
 
 const router = Router();
 
@@ -11,7 +11,7 @@ const router = Router();
 
 // Get all check-ins for current user (legacy endpoint)
 router.get('/', authenticate, asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-  const checkins = await queryAll(
+  const checkins = await queryAll<Record<string, unknown>>(
     'SELECT * FROM client_checkins WHERE client_id = @clientId ORDER BY checkin_date DESC',
     { clientId: req.user!.id }
   );
@@ -30,7 +30,7 @@ router.get('/my', authenticate, asyncHandler(async (req: AuthenticatedRequest, r
     params.status = status;
   }
 
-  const checkins = await queryAll(
+  const checkins = await queryAll<Record<string, unknown>>(
     `SELECT TOP ${parseInt(limit as string)} 
             cc.*, p.full_name as coach_name
      FROM client_checkins cc
@@ -60,7 +60,7 @@ router.get('/coach', authenticate, requireCoach, asyncHandler(async (req: Authen
     params.status = status;
   }
 
-  const checkins = await queryAll(
+  const checkins = await queryAll<Record<string, unknown>>(
     `SELECT TOP ${parseInt(limit as string)}
             cc.*, p.full_name as client_name, p.avatar_url as client_avatar
      FROM client_checkins cc
@@ -79,7 +79,11 @@ router.get('/coach', authenticate, requireCoach, asyncHandler(async (req: Authen
 router.get('/:id', authenticate, asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const { id } = req.params;
 
-  const checkin = await queryOne(
+  const checkin = await queryOne<{ 
+    client_id: string; 
+    photo_ids?: string;
+    [key: string]: unknown;
+  }>(
     `SELECT cc.*, p.full_name as client_name, p2.full_name as reviewer_name,
             cm.weight_kg, cm.body_fat_pct, cm.waist_cm
      FROM client_checkins cc
@@ -113,9 +117,9 @@ router.get('/:id', authenticate, asyncHandler(async (req: AuthenticatedRequest, 
 
   if (checkin.photo_ids) {
     try {
-      checkin.photo_ids = JSON.parse(checkin.photo_ids as string);
+      (checkin as Record<string, unknown>).photo_ids = JSON.parse(checkin.photo_ids as string);
     } catch {
-      checkin.photo_ids = [];
+      (checkin as Record<string, unknown>).photo_ids = [];
     }
   }
 
@@ -474,7 +478,7 @@ router.get('/templates', authenticate, asyncHandler(async (req: AuthenticatedReq
     }
   }
 
-  const templates = await queryAll(
+  const templates = await queryAll<Record<string, unknown>>(
     `SELECT * FROM checkin_templates ${whereClause} AND is_active = 1 ORDER BY name`,
     params
   );
@@ -523,7 +527,7 @@ router.get('/my-template', authenticate, asyncHandler(async (req: AuthenticatedR
   }
 
   // First try to find client-specific template
-  let template = await queryOne(
+  let template = await queryOne<Record<string, unknown>>(
     `SELECT * FROM checkin_templates 
      WHERE coach_id = @coachId AND client_id = @clientId AND is_active = 1`,
     { coachId: clientProfile.coach_id, clientId: req.user!.id }
@@ -531,7 +535,7 @@ router.get('/my-template', authenticate, asyncHandler(async (req: AuthenticatedR
 
   // If not found, use coach's default template
   if (!template) {
-    template = await queryOne(
+    template = await queryOne<Record<string, unknown>>(
       `SELECT * FROM checkin_templates 
        WHERE coach_id = @coachId AND client_id IS NULL AND is_active = 1`,
       { coachId: clientProfile.coach_id }

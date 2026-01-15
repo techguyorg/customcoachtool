@@ -46,23 +46,35 @@ const Hero = () => {
             </a>
           </div>
 
-          {/* Trust indicators - Subtle */}
+          {/* Trust indicators - Real avatars */}
           <div className="flex flex-wrap items-center justify-center gap-6 text-sm text-muted-foreground">
             <div className="flex items-center gap-2">
               <div className="flex -space-x-2">
-                {[1, 2, 3, 4].map((i) => (
-                  <div
-                    key={i}
-                    className="w-7 h-7 rounded-full bg-gradient-to-br from-primary/40 to-primary/20 border-2 border-background flex items-center justify-center text-[10px] font-medium"
-                  >
-                    {String.fromCharCode(64 + i)}
-                  </div>
-                ))}
+                <img 
+                  src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop&crop=face" 
+                  alt="User" 
+                  className="w-7 h-7 rounded-full border-2 border-background object-cover"
+                />
+                <img 
+                  src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face" 
+                  alt="User" 
+                  className="w-7 h-7 rounded-full border-2 border-background object-cover"
+                />
+                <img 
+                  src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop&crop=face" 
+                  alt="User" 
+                  className="w-7 h-7 rounded-full border-2 border-background object-cover"
+                />
+                <img 
+                  src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop&crop=face" 
+                  alt="User" 
+                  className="w-7 h-7 rounded-full border-2 border-background object-cover"
+                />
               </div>
-              <span>Trusted by fitness enthusiasts</span>
+              <span>Join 2,000+ active users</span>
             </div>
             <div className="hidden sm:block w-px h-4 bg-border" />
-            <span>Used by coaches worldwide</span>
+            <span>Trusted by coaches worldwide</span>
           </div>
         </div>
 

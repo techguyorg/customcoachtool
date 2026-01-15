@@ -15,6 +15,7 @@ export interface AuthenticatedRequest extends Request {
     id: string;
     email: string;
     roles: string[];
+    fullName?: string;
   };
 }
 
@@ -42,10 +43,17 @@ export async function authenticate(
       { userId: payload.userId }
     );
 
+    // Get user's full name from profiles
+    const profile = await queryOne<{ full_name: string }>(
+      'SELECT full_name FROM profiles WHERE user_id = @userId',
+      { userId: payload.userId }
+    );
+
     req.user = {
       id: payload.userId,
       email: payload.email,
       roles: roles.map(r => r.role),
+      fullName: profile?.full_name,
     };
 
     next();
@@ -84,10 +92,17 @@ export async function optionalAuth(
       { userId: payload.userId }
     );
 
+    // Get user's full name from profiles
+    const profile = await queryOne<{ full_name: string }>(
+      'SELECT full_name FROM profiles WHERE user_id = @userId',
+      { userId: payload.userId }
+    );
+
     req.user = {
       id: payload.userId,
       email: payload.email,
       roles: roles.map(r => r.role),
+      fullName: profile?.full_name,
     };
   } catch {
     // Ignore errors for optional auth

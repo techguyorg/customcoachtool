@@ -17,7 +17,7 @@ router.get('/', authenticate, asyncHandler(async (req: AuthenticatedRequest, res
     whereClause += ' AND is_read = 0';
   }
 
-  const notifications = await queryAll(
+  const notifications = await queryAll<Record<string, unknown>>(
     `SELECT TOP ${parseInt(limit as string)} * 
      FROM notifications 
      ${whereClause}
@@ -31,7 +31,7 @@ router.get('/', authenticate, asyncHandler(async (req: AuthenticatedRequest, res
 
 // Get unread notification count
 router.get('/unread-count', authenticate, asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-  const result = await queryOne(
+  const result = await queryOne<{ count: number }>(
     'SELECT COUNT(*) as count FROM notifications WHERE user_id = @userId AND is_read = 0',
     { userId: req.user!.id }
   );

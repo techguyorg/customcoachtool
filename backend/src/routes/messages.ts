@@ -167,7 +167,7 @@ router.post('/mark-read', authenticate, asyncHandler(async (req: AuthenticatedRe
 
 // Get unread message count
 router.get('/unread/count', authenticate, asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-  const result = await queryOne(
+  const result = await queryOne<{ count: number }>(
     'SELECT COUNT(*) as count FROM messages WHERE recipient_id = @userId AND read_at IS NULL',
     { userId: req.user!.id }
   );

@@ -33,6 +33,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { FoodSearchCombobox } from "./FoodSearchCombobox";
 import { useCreateRecipe, useUpdateRecipe, Recipe, calculateRecipeTotals } from "@/hooks/useRecipes";
 import { Food, calculateNutrition } from "@/hooks/useFoods";
+import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
 const formSchema = z.object({
@@ -69,14 +70,17 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   editingRecipe?: Recipe | null;
+  isSystemContent?: boolean;
 }
 
-export function RecipeBuilderDialog({ open, onOpenChange, editingRecipe }: Props) {
+export function RecipeBuilderDialog({ open, onOpenChange, editingRecipe, isSystemContent = false }: Props) {
   const [ingredients, setIngredients] = useState<IngredientItem[]>([]);
   const [selectedFood, setSelectedFood] = useState<Food | null>(null);
   const [quantity, setQuantity] = useState<number>(100);
   const [unit, setUnit] = useState<string>("g");
 
+  const { hasRole } = useAuth();
+  const isSuperAdmin = hasRole("super_admin");
   const createMutation = useCreateRecipe();
   const updateMutation = useUpdateRecipe();
 
@@ -191,6 +195,7 @@ export function RecipeBuilderDialog({ open, onOpenChange, editingRecipe }: Props
         fat_per_serving: perServing.fat,
         category: data.tags || null,
         image_url: null,
+        is_system: isSuperAdmin && isSystemContent,
       };
 
       const ingredientsData = ingredients.map((ing) => ({

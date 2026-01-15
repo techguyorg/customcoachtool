@@ -351,6 +351,22 @@ const adminFeatures: FeatureCategory[] = [
   },
 ];
 
+// Combined features for unauthenticated users
+const guestFeatures: FeatureCategory[] = [
+  {
+    id: "for-clients",
+    title: "For Clients",
+    icon: Target,
+    features: clientFeatures.flatMap(cat => cat.features).slice(0, 4),
+  },
+  {
+    id: "for-coaches",
+    title: "For Coaches",
+    icon: Users,
+    features: coachFeatures.flatMap(cat => cat.features).slice(0, 4),
+  },
+];
+
 function getFeaturesByRole(role?: string): FeatureCategory[] {
   switch (role) {
     case "coach":
@@ -360,7 +376,8 @@ function getFeaturesByRole(role?: string): FeatureCategory[] {
     case "super_admin":
       return adminFeatures;
     default:
-      return clientFeatures;
+      // Show both client and coach guides for unauthenticated users
+      return guestFeatures;
   }
 }
 
@@ -369,7 +386,7 @@ function getRoleLabel(role?: string): string {
     case "coach": return "Coach";
     case "client": return "Client";
     case "super_admin": return "Admin";
-    default: return "User";
+    default: return "Getting Started";
   }
 }
 

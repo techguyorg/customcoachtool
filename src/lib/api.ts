@@ -209,7 +209,6 @@ export interface Exercise {
   difficulty: 'beginner' | 'intermediate' | 'advanced';
   exercise_type: string;
   video_url?: string;
-  image_url?: string;
   is_system: boolean;
   created_by?: string;
   created_at?: string;
@@ -268,7 +267,11 @@ export interface WorkoutExercise {
     primary_muscle: string;
     equipment: string;
     difficulty: string;
+    instructions?: string[];
   };
+  // Fields from joined exercise data (flat from backend)
+  primary_muscle?: string;
+  equipment?: string;
 }
 
 export interface Food {

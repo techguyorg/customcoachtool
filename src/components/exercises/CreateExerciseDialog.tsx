@@ -43,8 +43,8 @@ interface ExerciseData {
   exercise_type: ExerciseType;
   instructions?: string[] | null;
   tips?: string[] | null;
+  common_mistakes?: string[] | null;
   video_url?: string | null;
-  image_url?: string | null;
 }
 
 interface CreateExerciseDialogProps {
@@ -74,8 +74,8 @@ export function CreateExerciseDialog({ trigger, initialData, open: controlledOpe
     exercise_type: "compound" as ExerciseType,
     instructions: [""],
     tips: [""],
+    common_mistakes: [""],
     video_url: "",
-    image_url: "",
   });
 
   // Populate form when editing
@@ -91,8 +91,8 @@ export function CreateExerciseDialog({ trigger, initialData, open: controlledOpe
         exercise_type: initialData.exercise_type || "compound",
         instructions: initialData.instructions?.length ? initialData.instructions : [""],
         tips: initialData.tips?.length ? initialData.tips : [""],
+        common_mistakes: initialData.common_mistakes?.length ? initialData.common_mistakes : [""],
         video_url: initialData.video_url || "",
-        image_url: initialData.image_url || "",
       });
     } else if (!open) {
       resetForm();
@@ -111,8 +111,8 @@ export function CreateExerciseDialog({ trigger, initialData, open: controlledOpe
         exercise_type: data.exercise_type,
         instructions: data.instructions.filter((i) => i.trim()),
         tips: data.tips.filter((t) => t.trim()),
+        common_mistakes: data.common_mistakes.filter((m) => m.trim()),
         video_url: data.video_url || null,
-        image_url: data.image_url || null,
       };
 
       if (isEditing && initialData?.id) {
@@ -148,8 +148,8 @@ export function CreateExerciseDialog({ trigger, initialData, open: controlledOpe
       exercise_type: "compound",
       instructions: [""],
       tips: [""],
+      common_mistakes: [""],
       video_url: "",
-      image_url: "",
     });
   };
 
@@ -451,29 +451,54 @@ export function CreateExerciseDialog({ trigger, initialData, open: controlledOpe
             </div>
           </div>
 
-          {/* Media URLs */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="video_url">Video URL (YouTube or direct)</Label>
-              <Input
-                id="video_url"
-                value={formData.video_url}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, video_url: e.target.value }))
-                }
-                placeholder="https://youtube.com/watch?v=..."
-              />
+          {/* Video URL */}
+          <div>
+            <Label htmlFor="video_url">Video URL (YouTube or direct link)</Label>
+            <Input
+              id="video_url"
+              value={formData.video_url}
+              onChange={(e) =>
+                setFormData((prev) => ({ ...prev, video_url: e.target.value }))
+              }
+              placeholder="https://youtube.com/watch?v=..."
+            />
+          </div>
+
+          {/* Common Mistakes */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <Label>Common Mistakes</Label>
+              <Button type="button" variant="ghost" size="sm" onClick={() => setFormData((prev) => ({ ...prev, common_mistakes: [...prev.common_mistakes, ""] }))}>
+                <Plus className="w-4 h-4 mr-1" />
+                Add Mistake
+              </Button>
             </div>
-            <div>
-              <Label htmlFor="image_url">Image URL</Label>
-              <Input
-                id="image_url"
-                value={formData.image_url}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, image_url: e.target.value }))
-                }
-                placeholder="https://example.com/image.jpg"
-              />
+            <div className="space-y-2">
+              {formData.common_mistakes.map((mistake, index) => (
+                <div key={index} className="flex gap-2">
+                  <Input
+                    value={mistake}
+                    onChange={(e) => setFormData((prev) => ({
+                      ...prev,
+                      common_mistakes: prev.common_mistakes.map((m, i) => i === index ? e.target.value : m)
+                    }))}
+                    placeholder="Describe a common mistake..."
+                  />
+                  {formData.common_mistakes.length > 1 && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setFormData((prev) => ({
+                        ...prev,
+                        common_mistakes: prev.common_mistakes.filter((_, i) => i !== index)
+                      }))}
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  )}
+                </div>
+              ))}
             </div>
           </div>
 

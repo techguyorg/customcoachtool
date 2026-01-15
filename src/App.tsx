@@ -21,6 +21,8 @@ import GoogleCallback from "./pages/auth/GoogleCallback";
 import VerifyEmail from "./pages/auth/VerifyEmail";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
+import BlogPage from "./pages/blog/BlogPage";
+import BlogPostPage from "./pages/blog/BlogPostPage";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 
 const queryClient = new QueryClient();
@@ -47,6 +49,8 @@ const App = () => (
               <Route path="/auth/verify-email" element={<VerifyEmail />} />
               <Route path="/privacy" element={<PrivacyPolicy />} />
               <Route path="/terms" element={<TermsOfService />} />
+              <Route path="/blog" element={<BlogPage />} />
+              <Route path="/blog/:slug" element={<BlogPostPage />} />
 
               {/* Protected routes - Admin */}
               <Route

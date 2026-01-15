@@ -1,7 +1,7 @@
 import nodemailer from 'nodemailer';
 import { config } from '../config';
 
-interface EmailOptions {
+export interface EmailOptions {
   to: string;
   subject: string;
   html: string;
@@ -161,4 +161,70 @@ export async function sendCoachingRequestEmail(
       </div>
     `,
   });
+}
+
+/**
+ * Generate check-in received email options (for coaches)
+ */
+export function generateCheckinReceivedEmail(email: string, clientName: string): EmailOptions {
+  return {
+    to: email,
+    subject: `New check-in from ${clientName}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h1 style="color: #4f46e5;">New Client Check-in</h1>
+        <p>${clientName} has submitted a new check-in and is waiting for your feedback.</p>
+        <a href="${config.frontendUrl}/coach/checkins" style="display: inline-block; background: #4f46e5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px;">
+          Review Check-in
+        </a>
+      </div>
+    `,
+  };
+}
+
+/**
+ * Generate check-in reviewed email options (for clients)
+ */
+export function generateCheckinReviewedEmail(email: string, coachName: string, feedback?: string): EmailOptions {
+  return {
+    to: email,
+    subject: `Your check-in has been reviewed by ${coachName}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h1 style="color: #4f46e5;">Check-in Reviewed</h1>
+        <p>Your coach ${coachName} has reviewed your check-in.</p>
+        ${feedback ? `<p><strong>Feedback:</strong> ${feedback}</p>` : ''}
+        <a href="${config.frontendUrl}/client/checkins" style="display: inline-block; background: #4f46e5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px;">
+          View Feedback
+        </a>
+      </div>
+    `,
+  };
+}
+
+/**
+ * Generate plan assigned email options (for clients)
+ */
+export function generatePlanAssignedEmail(
+  email: string,
+  planName: string,
+  planType: string,
+  coachName: string
+): EmailOptions {
+  return {
+    to: email,
+    subject: `New ${planType} plan assigned: ${planName}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h1 style="color: #4f46e5;">New Plan Assigned!</h1>
+        <p>Your coach ${coachName} has assigned you a new ${planType} plan:</p>
+        <div style="background: #f3f4f6; padding: 16px; border-radius: 8px; margin: 16px 0;">
+          <h2 style="margin: 0; color: #1f2937;">${planName}</h2>
+        </div>
+        <a href="${config.frontendUrl}/client/dashboard" style="display: inline-block; background: #4f46e5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px;">
+          View Plan
+        </a>
+      </div>
+    `,
+  };
 }

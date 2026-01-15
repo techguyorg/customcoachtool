@@ -266,19 +266,20 @@ function ClientHome() {
         
         {/* Dialogs */}
         <ClientOnboardingDialog 
-          open={showOnboarding} 
+          open={!showTutorial && showOnboarding}
+          // open={showOnboarding} 
           onOpenChange={setShowOnboarding}
         />
         <QuickLogNutritionDialog 
-          open={showNutritionDialog} 
+          open={!showTutorial && showNutritionDialog}
           onOpenChange={setShowNutritionDialog}
         />
         <QuickLogMeasurementDialog 
-          open={showMeasurementDialog} 
+          open={!showTutorial && showMeasurementDialog}
           onOpenChange={setShowMeasurementDialog}
         />
         <StartWorkoutDialog 
-          open={showWorkoutDialog} 
+          open={!showTutorial && showWorkoutDialog}
           onOpenChange={setShowWorkoutDialog}
         />
 

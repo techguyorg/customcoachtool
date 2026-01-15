@@ -248,6 +248,151 @@ BEGIN
 END
 
 -- =========================================
+-- PATCH 11: workout_templates is_system flag
+-- Templates with is_system = 1 are visible to all users
+-- =========================================
+IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'workout_templates' AND COLUMN_NAME = 'is_system')
+BEGIN
+    ALTER TABLE dbo.workout_templates ADD is_system BIT DEFAULT 0;
+    PRINT 'Added is_system to workout_templates';
+END
+
+-- Set all existing templates as system templates so they are visible
+UPDATE dbo.workout_templates SET is_system = 1 WHERE is_system IS NULL OR is_system = 0;
+PRINT 'Updated workout_templates.is_system = 1 for visibility';
+
+-- =========================================
+-- PATCH 12: diet_plans is_system flag
+-- =========================================
+IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'diet_plans' AND COLUMN_NAME = 'is_system')
+BEGIN
+    ALTER TABLE dbo.diet_plans ADD is_system BIT DEFAULT 0;
+    PRINT 'Added is_system to diet_plans';
+END
+
+-- Set all existing diet plans as system plans so they are visible
+UPDATE dbo.diet_plans SET is_system = 1 WHERE is_system IS NULL OR is_system = 0;
+PRINT 'Updated diet_plans.is_system = 1 for visibility';
+
+-- =========================================
+-- PATCH 13: user_email_preferences table
+-- =========================================
+IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'user_email_preferences')
+BEGIN
+    CREATE TABLE dbo.user_email_preferences (
+        id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+        user_id UNIQUEIDENTIFIER NOT NULL UNIQUE,
+        email_checkin_reminder BIT DEFAULT 1,
+        email_checkin_submitted BIT DEFAULT 1,
+        email_checkin_reviewed BIT DEFAULT 1,
+        email_plan_assigned BIT DEFAULT 1,
+        email_coach_message BIT DEFAULT 1,
+        email_marketing BIT DEFAULT 0,
+        created_at DATETIME2 DEFAULT GETUTCDATE(),
+        updated_at DATETIME2 DEFAULT GETUTCDATE(),
+        FOREIGN KEY (user_id) REFERENCES dbo.users(id) ON DELETE CASCADE
+    );
+    CREATE INDEX idx_email_prefs_user ON dbo.user_email_preferences(user_id);
+    PRINT 'Created user_email_preferences table';
+END
+
+-- =========================================
+-- PATCH 14: blog_posts table
+-- =========================================
+IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'blog_posts')
+BEGIN
+    CREATE TABLE dbo.blog_posts (
+        id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+        title NVARCHAR(500) NOT NULL,
+        slug NVARCHAR(500) NOT NULL UNIQUE,
+        content NVARCHAR(MAX),
+        excerpt NVARCHAR(1000),
+        cover_image_url NVARCHAR(1000),
+        status NVARCHAR(20) DEFAULT 'draft' CHECK (status IN ('draft', 'published', 'archived')),
+        author_id UNIQUEIDENTIFIER NOT NULL,
+        published_at DATETIME2 NULL,
+        created_at DATETIME2 DEFAULT GETUTCDATE(),
+        updated_at DATETIME2 DEFAULT GETUTCDATE(),
+        FOREIGN KEY (author_id) REFERENCES dbo.users(id)
+    );
+    CREATE INDEX idx_blog_posts_slug ON dbo.blog_posts(slug);
+    CREATE INDEX idx_blog_posts_status ON dbo.blog_posts(status);
+    PRINT 'Created blog_posts table';
+END
+
+-- =========================================
+-- PATCH 15: blog_permissions table
+-- =========================================
+IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'blog_permissions')
+BEGIN
+    CREATE TABLE dbo.blog_permissions (
+        id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+        user_id UNIQUEIDENTIFIER NOT NULL,
+        can_create BIT DEFAULT 0,
+        can_edit BIT DEFAULT 0,
+        can_publish BIT DEFAULT 0,
+        can_delete BIT DEFAULT 0,
+        created_at DATETIME2 DEFAULT GETUTCDATE(),
+        FOREIGN KEY (user_id) REFERENCES dbo.users(id) ON DELETE CASCADE
+    );
+    CREATE UNIQUE INDEX idx_blog_perms_user ON dbo.blog_permissions(user_id);
+    PRINT 'Created blog_permissions table';
+END
+
+-- =========================================
+-- PATCH 16: progress_photos table
+-- =========================================
+IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'progress_photos')
+BEGIN
+    CREATE TABLE dbo.progress_photos (
+        id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+        client_id UNIQUEIDENTIFIER NOT NULL,
+        photo_url NVARCHAR(1000) NOT NULL,
+        pose_type NVARCHAR(50) DEFAULT 'front',
+        notes NVARCHAR(MAX),
+        is_private BIT DEFAULT 1,
+        recorded_at DATETIME2 DEFAULT GETUTCDATE(),
+        created_at DATETIME2 DEFAULT GETUTCDATE(),
+        FOREIGN KEY (client_id) REFERENCES dbo.users(id) ON DELETE CASCADE
+    );
+    CREATE INDEX idx_progress_photos_client ON dbo.progress_photos(client_id);
+    PRINT 'Created progress_photos table';
+END
+
+-- =========================================
+-- PATCH 17: Initialize coach_profiles JSON arrays
+-- =========================================
+UPDATE dbo.coach_profiles SET specializations = '[]' WHERE specializations IS NULL OR specializations = '';
+UPDATE dbo.coach_profiles SET certifications = '[]' WHERE certifications IS NULL OR certifications = '';
+PRINT 'Initialized coach_profiles JSON array columns';
+
+-- =========================================
+-- PATCH 18: Unique constraint for user_roles
+-- =========================================
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'UQ_user_roles_user_role' AND object_id = OBJECT_ID('dbo.user_roles'))
+BEGIN
+    -- Remove duplicates first
+    WITH CTE AS (
+        SELECT *, ROW_NUMBER() OVER (PARTITION BY user_id, role ORDER BY created_at) AS rn
+        FROM dbo.user_roles
+    )
+    DELETE FROM CTE WHERE rn > 1;
+    
+    -- Add unique constraint
+    BEGIN TRY
+        CREATE UNIQUE INDEX UQ_user_roles_user_role ON dbo.user_roles(user_id, role);
+        PRINT 'Added unique constraint on user_roles(user_id, role)';
+    END TRY
+    BEGIN CATCH
+        PRINT 'Could not add user_roles unique constraint';
+    END CATCH
+END
+
+-- =========================================
 -- DONE
 -- =========================================
+PRINT '';
+PRINT '========================================';
 PRINT 'Schema patch completed successfully!';
+PRINT 'Please restart your backend server.';
+PRINT '========================================';

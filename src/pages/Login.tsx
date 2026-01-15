@@ -96,16 +96,7 @@ const Login = () => {
             </div>
 
             <div className="space-y-2">
-              <div className="flex justify-between">
-                <Label htmlFor="password" className="text-sm">Password</Label>
-                <button 
-                  type="button"
-                  onClick={() => navigate("/forgot-password")}
-                  className="text-xs text-primary hover:underline"
-                >
-                  Forgot password?
-                </button>
-              </div>
+              <Label htmlFor="password" className="text-sm">Password</Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
@@ -118,6 +109,15 @@ const Login = () => {
                   required
                   disabled={isLoading}
                 />
+              </div>
+              <div className="text-right">
+                <button 
+                  type="button"
+                  onClick={() => navigate("/forgot-password")}
+                  className="text-xs text-primary hover:underline"
+                >
+                  Forgot password?
+                </button>
               </div>
             </div>
 

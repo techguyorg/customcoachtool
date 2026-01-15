@@ -17,7 +17,8 @@ import {
   AlertTriangle,
   Loader2,
   Send,
-  Save
+  Save,
+  Eye
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -31,6 +32,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { useSubmitCheckin, useSaveCheckinDraft, useMyCheckins, useClientCheckinTemplate } from "@/hooks/useCheckins";
 import { useClientMeasurements, getLatestMeasurement } from "@/hooks/useClientProgress";
 import { AddMeasurementDialog } from "@/components/client/AddMeasurementDialog";
+import { CheckinDetailSheet, CheckinData } from "@/components/client/CheckinDetailSheet";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
@@ -57,6 +59,7 @@ type CheckinFormData = z.infer<typeof checkinSchema>;
 export default function CheckinsPage() {
   const { user } = useAuth();
   const [measurementDialogOpen, setMeasurementDialogOpen] = useState(false);
+  const [selectedCheckin, setSelectedCheckin] = useState<CheckinData | null>(null);
   const { data: checkins = [], isLoading } = useMyCheckins();
   const { data: template } = useClientCheckinTemplate();
   const { data: measurements = [] } = useClientMeasurements();
@@ -479,9 +482,10 @@ export default function CheckinsPage() {
                   {recentCheckins.map((checkin) => (
                     <div 
                       key={checkin.id} 
-                      className="flex items-center justify-between p-3 rounded-lg bg-muted/50"
+                      className="flex items-center justify-between p-3 rounded-lg bg-muted/50 cursor-pointer hover:bg-muted transition-colors"
+                      onClick={() => setSelectedCheckin(checkin as CheckinData)}
                     >
-                      <div>
+                      <div className="flex-1">
                         <p className="font-medium text-sm">
                           {format(new Date(checkin.checkin_date), "MMM d, yyyy")}
                         </p>
@@ -498,9 +502,14 @@ export default function CheckinsPage() {
                           {checkin.status}
                         </Badge>
                       </div>
-                      {checkin.coach_rating && (
-                        <Badge>{checkin.coach_rating}/5 ⭐</Badge>
-                      )}
+                      <div className="flex items-center gap-2">
+                        {checkin.coach_rating && (
+                          <Badge>{checkin.coach_rating}/5 ⭐</Badge>
+                        )}
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <Eye className="w-4 h-4" />
+                        </Button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -515,6 +524,12 @@ export default function CheckinsPage() {
       <AddMeasurementDialog 
         open={measurementDialogOpen} 
         onOpenChange={setMeasurementDialogOpen} 
+      />
+      
+      <CheckinDetailSheet
+        checkin={selectedCheckin}
+        open={!!selectedCheckin}
+        onOpenChange={(open) => !open && setSelectedCheckin(null)}
       />
     </div>
   );

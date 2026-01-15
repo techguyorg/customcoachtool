@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useDietPlans, useDeleteDietPlan, DietPlan } from "@/hooks/useDietPlans";
-import { CreateDietPlanDialog } from "@/components/diet/CreateDietPlanDialog";
+import { DietPlanWizard } from "@/components/diet/DietPlanWizard";
 import { DietPlanDetailSheet } from "@/components/diet/DietPlanDetailSheet";
 import { QuickAssignDialog } from "@/components/coach/QuickAssignDialog";
 import { FavoriteButton } from "@/components/favorites/FavoriteButton";
@@ -171,12 +171,12 @@ export default function DietPlansPage() {
         </>
       )}
 
-      <CreateDietPlanDialog
+      <DietPlanWizard
         open={createDialogOpen}
         onOpenChange={setCreateDialogOpen}
       />
 
-      <CreateDietPlanDialog
+      <DietPlanWizard
         open={!!editingPlan}
         onOpenChange={(open) => !open && setEditingPlan(null)}
         editingPlan={editingPlan}

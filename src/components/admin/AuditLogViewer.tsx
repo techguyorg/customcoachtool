@@ -54,7 +54,7 @@ export function AuditLogViewer() {
   const { data: logs, isLoading } = useQuery({
     queryKey: ["audit-logs", dateFilter],
     queryFn: async (): Promise<AuditLog[]> => {
-      const data = await api.get<AuditLog[]>(`/api/admin/audit-logs?days=${dateFilter}`);
+      const data = await api.get<AuditLog[]>(`/api/admin/audit-logs?limit=500`);
       return data;
     },
   });

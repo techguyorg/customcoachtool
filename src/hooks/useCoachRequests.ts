@@ -11,6 +11,13 @@ export interface CoachingRequestWithClient {
   coach_response: string | null;
   created_at: string;
   responded_at: string | null;
+  // Flat fields from backend
+  client_name?: string;
+  client_email?: string;
+  client_avatar?: string | null;
+  fitness_level?: string;
+  fitness_goals?: string[];
+  // Legacy nested format
   client_profile?: {
     full_name: string;
     email: string;
@@ -51,7 +58,9 @@ export function useRespondToRequest() {
       response?: string;
     }) => {
       if (!user) throw new Error("Not authenticated");
-      return api.post(`/api/coach/requests/${requestId}/respond`, { status, response });
+      // Backend expects 'action' with 'accept'/'decline' and 'response_message'
+      const action = status === "accepted" ? "accept" : "decline";
+      return api.post(`/api/coach/requests/${requestId}/respond`, { action, response_message: response });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["coach-requests"] });

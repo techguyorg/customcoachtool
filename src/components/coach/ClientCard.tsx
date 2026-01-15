@@ -173,7 +173,7 @@ export function ClientCard({ client, onStatusChange, onViewDetails, onAssignPlan
             </div>
 
             {/* Goals */}
-            {client.client_profile?.fitness_goals && client.client_profile.fitness_goals.length > 0 && (
+            {client.client_profile?.fitness_goals && Array.isArray(client.client_profile.fitness_goals) && client.client_profile.fitness_goals.length > 0 && (
               <div className="flex flex-wrap gap-1.5 mt-3">
                 {client.client_profile.fitness_goals.slice(0, 3).map((goal, i) => (
                   <Badge key={i} variant="secondary" className="text-xs">

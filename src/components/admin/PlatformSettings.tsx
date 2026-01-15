@@ -9,8 +9,9 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { Settings, Shield, Bell, Database, Loader2 } from "lucide-react";
+import { Settings, Shield, Bell, Database, Loader2, Wrench } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { DataIntegrityTool } from "./DataIntegrityTool";
 
 interface PlatformSetting {
   id: string;
@@ -158,6 +159,10 @@ export function PlatformSettings() {
           <TabsTrigger value="notifications" className="gap-2">
             <Bell className="h-4 w-4" />
             Notifications
+          </TabsTrigger>
+          <TabsTrigger value="integrity" className="gap-2">
+            <Wrench className="h-4 w-4" />
+            Data Integrity
           </TabsTrigger>
         </TabsList>
 
@@ -374,6 +379,10 @@ export function PlatformSettings() {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="integrity" className="space-y-4">
+          <DataIntegrityTool />
         </TabsContent>
       </Tabs>
     </div>

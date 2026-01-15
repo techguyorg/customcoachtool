@@ -26,7 +26,7 @@ variables:
   - name: nodeVersion
     value: '20.x'
   - name: AZURE_SERVICE_CONNECTION
-    value: 'your-service-connection-name'  # Replace with your actual service connection
+    value: 'ccp-ado-service-Custom Coach Pro'  # Replace with your actual service connection
 
 stages:
   # =========================================
@@ -60,15 +60,23 @@ stages:
 
           # Create deploy folder and zip
           - script: |
-              rm -rf deploy
-              mkdir deploy
-              cp -R dist/* deploy/
+              mkdir -p frontend-deploy
+              cp -R dist frontend-deploy/
+              cp package.json frontend-deploy/
+              cp package-lock.json frontend-deploy/ 2>/dev/null || true
+              cp server.js frontend-deploy/
+
+              cd frontend-deploy
+              npm ci --omit=dev
+
+              ls -la
+
               echo "===== DEPLOY FOLDER CONTENT ====="
-              ls -la deploy
+              ls -la .
             displayName: 'Prepare frontend deploy folder'
 
           - script: |
-              cd deploy
+              cd frontend-deploy
               zip -r $(Build.ArtifactStagingDirectory)/frontend.zip .
             displayName: 'Archive frontend'
 
@@ -130,7 +138,7 @@ stages:
   - stage: DeployProd
     displayName: 'Deploy to Production'
     dependsOn: Build
-    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+    # condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
     jobs:
       # DEPLOY BACKEND FIRST
       - deployment: DeployBackend

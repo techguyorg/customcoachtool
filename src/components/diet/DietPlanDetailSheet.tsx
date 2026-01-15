@@ -1,4 +1,4 @@
-import { Flame, Beef, Wheat, Droplet, Clock, Utensils, Play, Loader2, Apple } from "lucide-react";
+import { Flame, Beef, Wheat, Droplet, Clock, Utensils, Play, Loader2, Apple, Shield } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -164,13 +164,18 @@ export function DietPlanDetailSheet({ plan, onOpenChange, open }: Props) {
               </div>
 
               <div className="flex flex-wrap gap-2">
+                {displayPlan.is_system && (
+                  <Badge className="bg-primary/20 text-primary border-primary/30">
+                    <Shield className="w-3 h-3 mr-1" />
+                    System Plan
+                  </Badge>
+                )}
                 {displayPlan.goal && (
                   <Badge variant="secondary">{goalLabels[displayPlan.goal] || displayPlan.goal}</Badge>
                 )}
                 {displayPlan.dietary_type && (
                   <Badge variant="outline">{dietaryLabels[displayPlan.dietary_type] || displayPlan.dietary_type}</Badge>
                 )}
-                {displayPlan.is_system && <Badge>System Plan</Badge>}
               </div>
 
               {displayPlan.calories_target && (

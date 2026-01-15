@@ -164,11 +164,11 @@ export default function MessagesPage() {
                 <Avatar className="w-8 h-8">
                   <AvatarImage src={selectedConversation.partnerAvatar || undefined} />
                   <AvatarFallback className="text-xs">
-                    {selectedConversation.partnerName.charAt(0)}
+                    {(selectedConversation.partnerName || "?").charAt(0)}
                   </AvatarFallback>
                 </Avatar>
                 <span className="font-medium text-sm">
-                  {selectedConversation.partnerName}
+                  {selectedConversation.partnerName || "Unknown"}
                 </span>
               </div>
 
@@ -291,13 +291,13 @@ function ConversationItem({
       <Avatar className="w-10 h-10 flex-shrink-0">
         <AvatarImage src={conversation.partnerAvatar || undefined} />
         <AvatarFallback className="text-sm">
-          {conversation.partnerName.charAt(0)}
+          {(conversation.partnerName || "?").charAt(0)}
         </AvatarFallback>
       </Avatar>
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between gap-2">
           <span className="font-medium text-sm truncate">
-            {conversation.partnerName}
+            {conversation.partnerName || "Unknown"}
           </span>
           <span className="text-xs text-muted-foreground flex-shrink-0">
             {formatTime(conversation.lastMessageAt)}

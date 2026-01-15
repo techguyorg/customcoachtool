@@ -30,9 +30,16 @@ router.get('/profile', authenticate, asyncHandler(async (req: AuthenticatedReque
   profile.fitness_goals = parseJsonField(profile.fitness_goals);
   profile.dietary_restrictions = parseJsonField(profile.dietary_restrictions);
   
-  // Check completeness
+  // Check completeness - use human-readable labels
+  const fieldLabels: Record<string, string> = {
+    'height_cm': 'Height',
+    'current_weight_kg': 'Current Weight',
+    'fitness_level': 'Fitness Level',
+  };
   const requiredFields = ['height_cm', 'current_weight_kg', 'fitness_level'];
-  const missingFields = requiredFields.filter(f => !profile[f]);
+  const missingFields = requiredFields
+    .filter(f => !profile[f])
+    .map(f => fieldLabels[f] || f);
   
   res.json({
     hasProfile: true,
@@ -514,18 +521,18 @@ router.get('/workout-stats', authenticate, asyncHandler(async (req: Authenticate
   const userId = req.user!.id;
   
   const totalWorkouts = await queryOne<{ count: number }>(
-    'SELECT COUNT(*) as count FROM workout_logs WHERE client_id = @userId',
+    `SELECT COUNT(*) as count FROM workout_logs WHERE client_id = @userId AND status = 'completed'`,
     { userId }
   );
   
-  const totalMinutes = await queryOne<{ total: number }>(
+  const totalMinutesAll = await queryOne<{ total: number }>(
     'SELECT COALESCE(SUM(duration_minutes), 0) as total FROM workout_logs WHERE client_id = @userId',
     { userId }
   );
   
-  const thisWeek = await queryOne<{ count: number }>(
-    `SELECT COUNT(*) as count FROM workout_logs 
-     WHERE client_id = @userId AND workout_date >= DATEADD(day, -7, GETUTCDATE())`,
+  const thisWeek = await queryOne<{ count: number; minutes: number }>(
+    `SELECT COUNT(*) as count, COALESCE(SUM(duration_minutes), 0) as minutes FROM workout_logs 
+     WHERE client_id = @userId AND workout_date >= DATEADD(day, -7, GETUTCDATE()) AND status = 'completed'`,
     { userId }
   );
   
@@ -533,15 +540,49 @@ router.get('/workout-stats', authenticate, asyncHandler(async (req: Authenticate
     `SELECT COUNT(*) as count FROM workout_logs 
      WHERE client_id = @userId 
        AND workout_date >= DATEADD(day, -14, GETUTCDATE())
-       AND workout_date < DATEADD(day, -7, GETUTCDATE())`,
+       AND workout_date < DATEADD(day, -7, GETUTCDATE())
+       AND status = 'completed'`,
     { userId }
   );
   
+  // Calculate streak
+  const streakDates = await queryAll<{ workout_date: string }>(
+    `SELECT DISTINCT CAST(workout_date AS DATE) as workout_date 
+     FROM workout_logs WHERE client_id = @userId AND status = 'completed'
+     ORDER BY workout_date DESC`,
+    { userId }
+  );
+  
+  let currentStreak = 0;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  for (let i = 0; i < streakDates.length; i++) {
+    const workoutDate = new Date(streakDates[i].workout_date);
+    workoutDate.setHours(0, 0, 0, 0);
+    const expectedDate = new Date(today);
+    expectedDate.setDate(today.getDate() - i);
+    
+    if (workoutDate.getTime() === expectedDate.getTime()) {
+      currentStreak++;
+    } else if (i === 0 && workoutDate.getTime() === expectedDate.getTime() - 86400000) {
+      // Allow yesterday as current streak start
+      currentStreak++;
+    } else {
+      break;
+    }
+  }
+  
   res.json({
+    // These match what the frontend expects
+    workoutsThisWeek: thisWeek?.count || 0,
+    totalMinutesThisWeek: thisWeek?.minutes || 0,
+    currentStreak,
     totalWorkouts: totalWorkouts?.count || 0,
-    totalMinutes: totalMinutes?.total || 0,
+    // Legacy fields
     thisWeek: thisWeek?.count || 0,
     lastWeek: lastWeek?.count || 0,
+    totalMinutes: totalMinutesAll?.total || 0,
     trend: (thisWeek?.count || 0) - (lastWeek?.count || 0),
   });
 }));

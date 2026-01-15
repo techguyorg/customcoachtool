@@ -61,14 +61,14 @@ export function RelationshipsView() {
         </CardHeader>
         <CardContent>
           {relationships && relationships.length > 0 ? (
-            <div className="border rounded-lg overflow-hidden">
-              <Table>
+            <div className="border rounded-lg overflow-x-auto">
+              <Table className="min-w-[500px]">
                 <TableHeader>
                   <TableRow>
                     <TableHead>Coach</TableHead>
                     <TableHead>Client</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Started</TableHead>
+                    <TableHead className="hidden sm:table-cell">Status</TableHead>
+                    <TableHead className="hidden md:table-cell">Started</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -102,12 +102,12 @@ export function RelationshipsView() {
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="hidden sm:table-cell">
                         <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/20">
                           Active
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-muted-foreground text-sm">
+                      <TableCell className="hidden md:table-cell text-muted-foreground text-sm">
                         {rel.started_at 
                           ? format(new Date(rel.started_at), "MMM d, yyyy")
                           : format(new Date(rel.created_at), "MMM d, yyyy")
