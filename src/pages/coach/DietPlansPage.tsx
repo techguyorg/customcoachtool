@@ -48,6 +48,57 @@ const dietaryLabels: Record<string, string> = {
   high_protein: "High Protein",
 };
 
+// Macro Distribution Bar Component
+function MacroDistributionBar({ protein, carbs, fat }: { protein: number; carbs: number; fat: number }) {
+  // Calculate calories from each macro: P×4, C×4, F×9
+  const proteinCal = protein * 4;
+  const carbsCal = carbs * 4;
+  const fatCal = fat * 9;
+  const totalCal = proteinCal + carbsCal + fatCal;
+  
+  if (totalCal === 0) return null;
+  
+  const proteinPct = Math.round((proteinCal / totalCal) * 100);
+  const carbsPct = Math.round((carbsCal / totalCal) * 100);
+  const fatPct = 100 - proteinPct - carbsPct;
+  
+  return (
+    <div className="mt-2">
+      <div className="flex h-2 rounded-full overflow-hidden bg-muted">
+        <div 
+          className="bg-red-500 transition-all" 
+          style={{ width: `${proteinPct}%` }} 
+          title={`Protein: ${proteinPct}%`} 
+        />
+        <div 
+          className="bg-amber-500 transition-all" 
+          style={{ width: `${carbsPct}%` }} 
+          title={`Carbs: ${carbsPct}%`} 
+        />
+        <div 
+          className="bg-yellow-500 transition-all" 
+          style={{ width: `${fatPct}%` }} 
+          title={`Fat: ${fatPct}%`} 
+        />
+      </div>
+      <div className="flex justify-between text-xs text-muted-foreground mt-1">
+        <span className="flex items-center gap-1">
+          <span className="w-2 h-2 rounded-full bg-red-500" />
+          P: {proteinPct}%
+        </span>
+        <span className="flex items-center gap-1">
+          <span className="w-2 h-2 rounded-full bg-amber-500" />
+          C: {carbsPct}%
+        </span>
+        <span className="flex items-center gap-1">
+          <span className="w-2 h-2 rounded-full bg-yellow-500" />
+          F: {fatPct}%
+        </span>
+      </div>
+    </div>
+  );
+}
+
 export default function DietPlansPage() {
   const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
@@ -291,29 +342,39 @@ function DietPlanCard({
           {isSystem && <Badge>System</Badge>}
         </div>
 
-        {plan.calories_target && (
-          <div className="grid grid-cols-4 gap-2 text-sm">
-            <div className="flex flex-col items-center p-2 bg-muted rounded-lg">
-              <Flame className="h-4 w-4 text-orange-500 mb-1" />
-              <span className="font-medium">{plan.calories_target}</span>
-              <span className="text-xs text-muted-foreground">kcal</span>
+{plan.calories_target && (
+          <>
+            <div className="grid grid-cols-4 gap-2 text-sm">
+              <div className="flex flex-col items-center p-2 bg-muted rounded-lg">
+                <Flame className="h-4 w-4 text-orange-500 mb-1" />
+                <span className="font-medium">{plan.calories_target}</span>
+                <span className="text-xs text-muted-foreground">kcal</span>
+              </div>
+              <div className="flex flex-col items-center p-2 bg-muted rounded-lg">
+                <Beef className="h-4 w-4 text-red-500 mb-1" />
+                <span className="font-medium">{plan.protein_grams || 0}g</span>
+                <span className="text-xs text-muted-foreground">protein</span>
+              </div>
+              <div className="flex flex-col items-center p-2 bg-muted rounded-lg">
+                <Wheat className="h-4 w-4 text-amber-500 mb-1" />
+                <span className="font-medium">{plan.carbs_grams || 0}g</span>
+                <span className="text-xs text-muted-foreground">carbs</span>
+              </div>
+              <div className="flex flex-col items-center p-2 bg-muted rounded-lg">
+                <Droplet className="h-4 w-4 text-yellow-500 mb-1" />
+                <span className="font-medium">{plan.fat_grams || 0}g</span>
+                <span className="text-xs text-muted-foreground">fat</span>
+              </div>
             </div>
-            <div className="flex flex-col items-center p-2 bg-muted rounded-lg">
-              <Beef className="h-4 w-4 text-red-500 mb-1" />
-              <span className="font-medium">{plan.protein_grams || 0}g</span>
-              <span className="text-xs text-muted-foreground">protein</span>
-            </div>
-            <div className="flex flex-col items-center p-2 bg-muted rounded-lg">
-              <Wheat className="h-4 w-4 text-amber-500 mb-1" />
-              <span className="font-medium">{plan.carbs_grams || 0}g</span>
-              <span className="text-xs text-muted-foreground">carbs</span>
-            </div>
-            <div className="flex flex-col items-center p-2 bg-muted rounded-lg">
-              <Droplet className="h-4 w-4 text-yellow-500 mb-1" />
-              <span className="font-medium">{plan.fat_grams || 0}g</span>
-              <span className="text-xs text-muted-foreground">fat</span>
-            </div>
-          </div>
+            {/* Macro Distribution Bar */}
+            {plan.protein_grams && plan.carbs_grams && plan.fat_grams && (
+              <MacroDistributionBar 
+                protein={plan.protein_grams} 
+                carbs={plan.carbs_grams} 
+                fat={plan.fat_grams} 
+              />
+            )}
+          </>
         )}
 
         <div className="text-sm text-muted-foreground">

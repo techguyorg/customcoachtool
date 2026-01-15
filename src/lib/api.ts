@@ -379,13 +379,18 @@ export interface DietPlanMeal {
 }
 
 export interface MealFoodItem {
-  id: string;
+  id?: string;  // Optional for creation - backend generates ID
   food_id?: string;
   recipe_id?: string;
   food_name?: string;
   recipe_name?: string;
   quantity: number;
   unit: string;
+  order_index?: number;
+  calculated_calories?: number;
+  calculated_protein?: number;
+  calculated_carbs?: number;
+  calculated_fat?: number;
 }
 
 export interface ClientMeasurement {
