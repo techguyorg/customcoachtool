@@ -107,7 +107,10 @@ export function FoodPickerDialog({ open, onOpenChange, onFoodAdded, mealName }: 
                       <div className="flex-1 min-w-0">
                         <p className="font-medium truncate">{food.name}</p>
                         <p className="text-xs text-muted-foreground">
-                          {food.calories_per_100g} kcal • P: {food.protein_per_100g}g • C: {food.carbs_per_100g}g • F: {food.fat_per_100g}g per 100g
+                          {food.calories_per_100g} kcal • P: {food.protein_per_100g}g • C: {food.carbs_per_100g}g • F: {food.fat_per_100g}g
+                          {food.default_serving_unit === 'piece' || food.default_serving_unit === 'serving' 
+                            ? ` per ${food.default_serving_unit}` 
+                            : ' per 100g'}
                         </p>
                       </div>
                       {food.category && (
@@ -182,7 +185,10 @@ export function FoodPickerDialog({ open, onOpenChange, onFoodAdded, mealName }: 
                   </Button>
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  {selectedFood.calories_per_100g} kcal • P: {selectedFood.protein_per_100g}g • C: {selectedFood.carbs_per_100g}g • F: {selectedFood.fat_per_100g}g per 100g
+                  {selectedFood.calories_per_100g} kcal • P: {selectedFood.protein_per_100g}g • C: {selectedFood.carbs_per_100g}g • F: {selectedFood.fat_per_100g}g
+                  {selectedFood.default_serving_unit === 'piece' || selectedFood.default_serving_unit === 'serving' 
+                    ? ` per ${selectedFood.default_serving_unit}` 
+                    : ' per 100g'}
                 </p>
               </div>
 

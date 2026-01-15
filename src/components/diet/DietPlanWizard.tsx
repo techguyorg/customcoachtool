@@ -334,6 +334,17 @@ export function DietPlanWizard({ open, onOpenChange, editingPlan }: Props) {
           fat_grams: Math.round(mealTotals.fat) || null,
           food_suggestions: meal.foods.map(f => f.food.name),
           notes: meal.notes || null,
+          // Include structured food items for persistence
+          items: meal.foods.map((f, i) => ({
+            food_id: f.food.id,
+            quantity: f.quantity,
+            unit: f.unit,
+            order_index: i,
+            calculated_calories: f.calories,
+            calculated_protein: f.protein,
+            calculated_carbs: f.carbs,
+            calculated_fat: f.fat,
+          })),
         };
       });
 

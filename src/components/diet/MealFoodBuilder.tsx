@@ -14,6 +14,7 @@ import { FoodSearchCombobox } from "./FoodSearchCombobox";
 import { FoodAlternativesPopover, FoodAlternative } from "./FoodAlternatives";
 import { CustomFoodDialog } from "./CustomFoodDialog";
 import { Food, calculateNutrition } from "@/hooks/useFoods";
+import { generateUUID } from "@/lib/utils";
 
 export interface MealFoodItem {
   id: string;
@@ -68,17 +69,22 @@ export function MealFoodBuilder({
     const food = foodToAdd || selectedFood;
     if (!food) return;
 
-    const nutrition = calculateNutrition(food, quantity, unit);
+    // Use food's default unit and size instead of hardcoded 100g
+    const useUnit = selectedFood ? unit : (food.default_serving_unit || "g");
+    const useQuantity = selectedFood ? quantity : (food.default_serving_size || (useUnit === "g" ? 100 : 1));
+
+    const nutrition = calculateNutrition(food, useQuantity, useUnit);
     const newItem: MealFoodItem = {
-      id: crypto.randomUUID(),
+      id: generateUUID(),
       food: food,
-      quantity,
-      unit,
+      quantity: useQuantity,
+      unit: useUnit,
       nutrition,
     };
 
     onItemsChange([...items, newItem]);
     setSelectedFood(null);
+    // Reset to defaults for next selection
     setQuantity(100);
     setUnit("g");
   };
@@ -127,7 +133,7 @@ export function MealFoodBuilder({
   const handleAddAlternative = (food: Food, alternativeFood: Food) => {
     if (!onAlternativesChange) return;
     const newAlt: FoodAlternative = {
-      id: crypto.randomUUID(),
+      id: generateUUID(),
       originalFood: food,
       alternativeFood,
     };
